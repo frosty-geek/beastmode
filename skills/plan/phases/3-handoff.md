@@ -1,6 +1,15 @@
 # 3. Handoff
 
-## 1. Ask User
+
+## 1. Session Tracking
+
+@../_shared/session-tracking.md
+
+## 2. Context Report
+
+@../_shared/context-report.md
+
+## 3. Ask User
 
 <HARD-GATE>
 STOP. You are about to complete the plan. DO NOT call EnterPlanMode or ExitPlanMode. DO NOT automatically start implementation.
@@ -19,20 +28,11 @@ AskUserQuestion:
       description: "End here, I'll invoke /implement manually when ready"
 ```
 
-## 2. Print Command
 
-After user responds, print the copy-pasteable command:
+## 4. Print Command
 
 ```
 /implement .agents/plan/YYYY-MM-DD-<feature-name>.md
 ```
 
-Replace with the actual filename. **Do NOT invoke the skill yourself.**
-
-## 3. Session Tracking
-
-@../_shared/session-tracking.md
-
-## 4. Context Report
-
-@../_shared/context-report.md
+Replace with the actual filename. **ONLY invoke the skill yourself with confirmation from the user**
