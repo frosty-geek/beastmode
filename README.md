@@ -1,6 +1,6 @@
-# dev-workflow
+# beastmode
 
-Michi's canonical workflow for Claude and agents.
+Agentic workflow skills for Claude Code. Activate beastmode.
 
 ## Credits
 
@@ -10,7 +10,7 @@ This plugin is adapted from [pcvelz/superpowers](https://github.com/pcvelz/super
 
 ```bash
 /plugin marketplace add bugroger/overrides-marketplace
-/plugin install dev-workflow@overrides-marketplace
+/plugin install beastmode@overrides-marketplace
 ```
 
 ## The `.agent/` Convention
