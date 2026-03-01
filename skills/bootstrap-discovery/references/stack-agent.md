@@ -2,7 +2,11 @@
 
 ## Role
 
-Analyze the technology stack for this codebase.
+Analyze the technology stack for this codebase and update the STACK.md prime document.
+
+## Instructions
+
+Read the current STACK.md content below. Preserve any sections that already have real content. Fill sections that have placeholders. Update any stale information.
 
 ## Explore These Sources
 
@@ -34,7 +38,3 @@ Analyze the technology stack for this codebase.
 - Run development server
 - Run tests
 - Build for production
-
-## Current Content
-
-{CURRENT_CONTENT}
