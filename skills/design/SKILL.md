@@ -3,6 +3,8 @@ name: design
 description: "Brainstorm and create design specs. Outputs to .agent/design/. Part of workflow: bootstrap → prime → research → design → plan → implement → status → verify → release → retro"
 ---
 
+@../references/session-tracking.md
+
 # /design
 
 ## Overview
@@ -96,6 +98,16 @@ Replace with the actual filename you just created.
 ## Workflow
 
 Part of: bootstrap → prime → research → **design** → plan → implement → status → verify → release → retro
+
+## Session Status Tracking
+
+**On completion (after writing design doc and committing):**
+
+1. Infer feature name from the design doc filename (e.g., `2026-03-01-session-tracking.md` → `session-tracking`)
+2. Get session path using `get_session_path()` with a unique part of your initial arguments
+3. Create `.agent/status/YYYY-MM-DD-<feature>.md` with the header template
+4. Add entry to "Executed Phases" list
+5. Append Design phase section with Summary/Decisions/Issues
 
 ## Key Principles
 
