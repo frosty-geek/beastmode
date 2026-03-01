@@ -28,7 +28,7 @@ See .agents/prime/CONVENTIONS.md
 
 ### 5. Architecture
 See .agents/prime/ARCHITECTURE.md
-- Seven-phase workflow (prime → research → design → plan → implement → verify → retro) with .agents/ persistence
+- Six-phase workflow (prime → design → plan → implement → release → retro) with .agents/ persistence
 
 ### 6. Testing
 See .agents/prime/TESTING.md
