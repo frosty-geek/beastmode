@@ -1,11 +1,11 @@
 # Design: bootstrap-discovery v2 — Parallel Agent Refactoring
 
 **Date:** 2026-03-01
-**Status:** Implemented
+**Status:** Ready for Plan
 
 ## Summary
 
-Refactor bootstrap-discovery to spawn 5 parallel Explore agents (one per analysis prime), remove human-in-the-loop approval, and implement merge/enhance strategy for idempotent re-runs.
+Refactor bootstrap-discovery to spawn 5 parallel Explore agents (one per analysis prime), remove human-in-the-loop approval, and use agent-driven merge for idempotent re-runs.
 
 ## Context
 
@@ -20,22 +20,39 @@ The original bootstrap-discovery used a single Explore agent to analyze everythi
 | Agent count | 5 parallel | One per analysis prime (STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING) |
 | Excluded primes | META.md, AGENTS.md | Mostly static boilerplate |
 | Execution model | All 5 in parallel | Maximum speed |
-| Content strategy | Merge/enhance | Preserves valid content, fills gaps, updates stale info |
-| Write responsibility | Coordinator | Agents return JSON, coordinator writes files |
+| Agent output | Complete markdown file | Simpler than JSON with per-section actions |
+| Merge strategy | Agent-driven | Agent reads current content, preserves valid sections, fills gaps |
+| Write responsibility | Coordinator | Writes agent output directly to prime files |
 | Agent model | Haiku | Fast, cost-effective for exploration |
 | Human approval | Removed | Fully autonomous |
+| CLAUDE.md updates | Defer to META.md | No custom logic, follow existing conventions |
 
 ## Architecture
 
 ```
+Coordinator:
+  1. Check .agent/prime/ exists
+  2. For each prime (STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING):
+     - Read references/{prime}-agent.md
+     - Read references/common-instructions.md
+     - Read .agent/prime/{PRIME}.md
+     - Concatenate into prompt
+  3. Spawn 5 Explore agents in parallel with assembled prompts
+  4. Collect markdown outputs
+  5. Write each output to .agent/prime/{PRIME}.md
+  6. Update CLAUDE.md per META.md conventions
+  7. Offer to commit
+```
+
+```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Coordinator                              │
-│  1. Read existing prime files                                │
+│  1. Assemble prompts (read + concatenate)                    │
 │  2. Spawn 5 agents in parallel                               │
-│  3. Collect findings                                         │
-│  4. Merge & write files                                      │
-│  5. Update CLAUDE.md one-liners                              │
-│  6. Commit changes                                           │
+│  3. Collect markdown outputs                                 │
+│  4. Write to prime files                                     │
+│  5. Update CLAUDE.md (per META.md)                           │
+│  6. Offer to commit                                          │
 └─────────────────────────────────────────────────────────────┘
                           │
     ┌─────────┬───────────┼───────────┬───────────┐
@@ -44,71 +61,104 @@ The original bootstrap-discovery used a single Explore agent to analyze everythi
 │ STACK │ │STRUCT │ │CONVENTIONS│ │ARCHITECTURE│ │ TESTING │
 │ Agent │ │ Agent │ │   Agent   │ │   Agent    │ │  Agent  │
 └───────┘ └───────┘ └───────────┘ └────────────┘ └─────────┘
+     │         │           │              │            │
+     ▼         ▼           ▼              ▼            ▼
+  [markdown] [markdown] [markdown]   [markdown]   [markdown]
 ```
 
-## Agent Prompts
+## Prompt Assembly
 
-Each agent receives:
-1. **Role** — what it's analyzing
-2. **Exploration hints** — specific files/patterns to examine
-3. **Current content** — existing prime file to merge with
-4. **Output schema** — JSON format with action per section
+Each agent prompt is assembled by concatenating:
 
-### Exploration Hints by Agent
+```
+1. references/{prime}-agent.md      # Role + exploration hints
+2. references/common-instructions.md # Output rules + safety
+3. "## Current Content\n\n"
+4. .agent/prime/{PRIME}.md          # Existing file content
+```
 
-| Agent | Explore |
-|-------|---------|
-| STACK | `package.json`, `pyproject.toml`, `tsconfig.json`, lock files, CI/CD |
-| STRUCTURE | Directory tree, entry points, import patterns |
-| CONVENTIONS | Linter configs, 3-5 source samples, type definitions |
-| ARCHITECTURE | README, docs/, entry point dependencies, module structure |
-| TESTING | Test directories, test configs, 2-3 test file samples |
+Example assembled prompt for STACK agent:
+
+```markdown
+# STACK Agent Prompt
+
+## Role
+Analyze the technology stack for this codebase.
+
+## Explore These Sources
+- Package manifests: package.json, pyproject.toml, ...
+[... rest of stack-agent.md ...]
+
+# Common Instructions
 
 ## Output Format
+Return the complete updated markdown file.
+Preserve sections with real content.
+Fill sections that have placeholders.
+Update sections with stale information.
+[... rest of common-instructions.md ...]
 
-```json
-{
-  "prime": "STACK",
-  "confidence": "high|medium|low",
-  "sections": {
-    "Section Name": {
-      "action": "replace|merge|keep",
-      "content": "markdown content"
-    }
-  },
-  "sources": ["package.json", "tsconfig.json"]
-}
+## Current Content
+
+# STACK - Technology Stack
+[... current .agent/prime/STACK.md content ...]
 ```
 
-## Merge Strategy
+## Agent Output
 
-| Action | When | Behavior |
-|--------|------|----------|
-| `replace` | Section has only placeholders | Overwrite entirely |
-| `merge` | Section has content + agent found more | Append new items |
-| `keep` | Section accurate, no updates needed | Leave unchanged |
+Each agent returns a complete markdown file — the updated prime document. No JSON, no structured sections. Example:
 
-### Placeholder Detection
+```markdown
+# STACK - Technology Stack
 
-Patterns identified as placeholders:
-- `[e.g., ...]`
-- `[what it's used for]`
-- `[command]`
-- `<!-- Fill in ... -->`
+## Purpose
+Documents the technology stack, dependencies, and versions used in this project.
+
+## Core Stack
+
+**Runtime:**
+- Language: TypeScript 5.4
+- Runtime: Bun 1.2
+
+**Framework:**
+- None (CLI tool)
+
+**Database:**
+- None
+
+## Key Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| zod | Schema validation |
+| commander | CLI argument parsing |
+
+[... rest of file ...]
+```
 
 ## Error Handling
 
 - Agent timeout → skip prime, preserve existing, log warning
-- Malformed JSON → skip prime, preserve existing
 - Empty response → preserve existing
-- Low confidence → preserve existing, add comment with finding
+- Agent error → preserve existing, log warning
 
-## Files Changed
+## Implementation Tasks
 
-- `skills/bootstrap-discovery/SKILL.md` — refactored skill definition
-- `skills/bootstrap-discovery/references/common-instructions.md` — shared output format and safety rules
-- `skills/bootstrap-discovery/references/stack-agent.md` — STACK agent prompt
-- `skills/bootstrap-discovery/references/structure-agent.md` — STRUCTURE agent prompt
-- `skills/bootstrap-discovery/references/conventions-agent.md` — CONVENTIONS agent prompt
-- `skills/bootstrap-discovery/references/architecture-agent.md` — ARCHITECTURE agent prompt
-- `skills/bootstrap-discovery/references/testing-agent.md` — TESTING agent prompt
+### Files to Update
+
+| File | Change |
+|------|--------|
+| `SKILL.md` | Remove JSON schema, add explicit prompt assembly instructions |
+| `common-instructions.md` | Change output format from JSON to markdown, add merge instructions |
+| `stack-agent.md` | Add "preserve existing valid content" instruction |
+| `structure-agent.md` | Add "preserve existing valid content" instruction |
+| `conventions-agent.md` | Add "preserve existing valid content" instruction |
+| `architecture-agent.md` | Add "preserve existing valid content" instruction |
+| `testing-agent.md` | Add "preserve existing valid content" instruction |
+
+### Implementation Order
+
+1. Update `common-instructions.md` with new output format
+2. Update all 5 agent prompt files with merge instructions
+3. Rewrite `SKILL.md` with explicit prompt assembly flow
+4. Test on this project (beastmode)
