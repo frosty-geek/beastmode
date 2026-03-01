@@ -6,7 +6,7 @@ Documents the system design, component relationships, and data flow.
 
 ## Overview
 
-Beastmode is a workflow system that turns Claude Code into a disciplined engineering partner through opinionated workflow patterns. It provides a structured seven-phase workflow (prime → research → design → plan → implement → verify → retro) that scales from quick fixes to deep feature work, enabling Claude agents to systematically explore, design, and implement features while maintaining comprehensive project context across sessions through .agents/ artifact storage.
+Beastmode is a workflow system that turns Claude Code into a disciplined engineering partner through opinionated workflow patterns. It provides a structured six-phase workflow (prime → design → plan → implement → release → retro) with standalone utilities (/bootstrap, /research, /status) that scales from quick fixes to deep feature work, enabling Claude agents to systematically design and implement features while maintaining comprehensive project context across sessions through .agents/ artifact storage.
 
 ## Components
 
@@ -55,11 +55,6 @@ Beastmode is a workflow system that turns Claude Code into a disciplined enginee
 - Location: `/skills/status/`
 - Dependencies: .agents/status/ directory
 
-**Verify Skill:**
-- Purpose: Run verification and create test reports
-- Location: `/skills/verify/`
-- Dependencies: Test infrastructure, .agents/verify/ directory
-
 **Release Skill:**
 - Purpose: Create changelogs and release notes
 - Location: `/skills/release/`
@@ -89,7 +84,7 @@ Skill execution
   ↓
 Phase-specific processing (analysis, dialogue, planning, execution)
   ↓
-.agents/ artifact storage (research/, design/, plan/, status/, verify/, release/)
+.agents/ artifact storage (research/, design/, plan/, status/, release/)
   ↓
 Next session loads .agents/CLAUDE.md + prime/
   ↓
@@ -115,10 +110,10 @@ Offer commit to git
 
 ## Key Decisions
 
-**Seven-Phase Workflow:**
+**Six-Phase Workflow:**
 - Context: Need to support both quick fixes and deep features without overhead
-- Decision: Linear workflow (prime → research → design → plan → implement → verify → retro) where each phase is optional
-- Rationale: Matches real engineering practices; research-before-design prevents wasted implementation; retro captures learnings for continuous improvement
+- Decision: Linear workflow (prime → design → plan → implement → release → retro) with standalone utilities (/bootstrap, /research, /status)
+- Rationale: Matches real engineering practices; design-before-code prevents wasted implementation; retro captures learnings for continuous improvement
 
 **Artifact-Based Context Persistence:**
 - Context: Multi-session work requires context to survive between Claude Code sessions
