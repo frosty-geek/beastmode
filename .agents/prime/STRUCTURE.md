@@ -30,7 +30,7 @@ beastmode/
 ├── skills/                # Agent skills (executable workflows)
 │   ├── _shared/          # Shared utilities (session-tracking.md, context-report.md)
 │   ├── prime/            # Load project context
-│   │   └── phases/       # 1-analyze.md, 2-report.md
+│   │   └── phases/       # 1-prime.md
 │   ├── research/         # Domain exploration
 │   │   └── phases/       # 1-scope.md, 2-investigate.md, 3-document.md
 │   ├── design/           # Design thinking

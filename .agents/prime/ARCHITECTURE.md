@@ -21,9 +21,9 @@ Beastmode is a workflow system that turns Claude Code into a disciplined enginee
 - Dependencies: Templates in `/skills/bootstrap/templates/`, CLAUDE.md bridge
 
 **Prime Skill:**
-- Purpose: Load comprehensive codebase understanding by analyzing structure, documentation, and key files
+- Purpose: Load curated beastmode context for fast session initialization; reads all `.agents/prime/` and situational files with silent output
 - Location: `/skills/prime/`
-- Dependencies: Project files, documentation, code
+- Dependencies: Bootstrapped beastmode project (.agents/prime/ directory), .agents/CLAUDE.md, project context
 
 **Bootstrap Discovery Skill:**
 - Purpose: Autonomous parallel codebase analysis with 5 parallel Explore agents to auto-populate .agents/prime/*.md files
