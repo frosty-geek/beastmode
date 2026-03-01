@@ -5,9 +5,8 @@ description: Load codebase context — priming, context, understanding. Use when
 
 # /prime
 
-Build comprehensive understanding of the codebase by analyzing structure, documentation, and key files.
+Load curated beastmode context for fast, silent session initialization.
 
 ## Phases
 
-1. [Analyze](phases/1-analyze.md) — Scan project files and docs
-2. [Report](phases/2-report.md) — Generate findings summary
+1. [Prime](phases/1-prime.md) — Load context, output confirmation
