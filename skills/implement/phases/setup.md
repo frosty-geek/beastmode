@@ -82,47 +82,11 @@ git worktree add "$path" -b "$branch_name"
 cd "$path"
 ```
 
-### 4. Run Project Setup
-
-Auto-detect and run appropriate setup:
-
-```bash
-# Node.js
-if [ -f package.json ]; then npm install; fi
-
-# Rust
-if [ -f Cargo.toml ]; then cargo build; fi
-
-# Python
-if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-if [ -f pyproject.toml ]; then poetry install; fi
-
-# Go
-if [ -f go.mod ]; then go mod download; fi
-```
-
-### 5. Verify Clean Baseline
-
-Run tests to ensure worktree starts clean:
-
-```bash
-# Examples - use project-appropriate command
-npm test
-cargo test
-pytest
-go test ./...
-```
-
-**If tests fail:** Report failures, ask whether to proceed or investigate.
-
-**If tests pass:** Report ready.
-
-### 6. Report Location
+### 4. Report Location
 
 ```
 Worktree ready at <full-path>
 Branch: <branch-name>
-Tests passing (<N> tests, 0 failures)
 Ready for Phase 2: Prepare
 ```
 
@@ -132,8 +96,6 @@ Ready for Phase 2: Prepare
 |-----------|--------|
 | `.agent/worktrees/` exists | Use it (verify ignored) |
 | Directory not ignored | Add to .gitignore + commit |
-| Tests fail during baseline | Report failures + ask |
-| No package.json/Cargo.toml | Skip dependency install |
 
 ## Common Mistakes
 
@@ -142,36 +104,21 @@ Ready for Phase 2: Prepare
 - **Problem:** Worktree contents get tracked, pollute git status
 - **Fix:** Always use `git check-ignore` before creating project-local worktree
 
-### Proceeding with failing tests
-
-- **Problem:** Can't distinguish new bugs from pre-existing issues
-- **Fix:** Report failures, get explicit permission to proceed
-
-### Hardcoding setup commands
-
-- **Problem:** Breaks on projects using different tools
-- **Fix:** Auto-detect from project files (package.json, etc.)
-
 ## Red Flags
 
 **Never:**
 - Create worktree without verifying it's ignored
-- Skip baseline test verification
-- Proceed with failing tests without asking
 - Work on main/master branch directly
 
 **Always:**
 - Use `.agent/worktrees/` for beastmode projects
 - Verify directory is ignored for project-local
-- Auto-detect and run project setup
-- Verify clean test baseline
 
 ## Exit Criteria
 
 ✓ Worktree created at `.agent/worktrees/<branch-name>/`
 ✓ Branch created: `implement/<feature-name>`
-✓ Dependencies installed (if applicable)
-✓ Tests pass (or explicit permission to proceed)
+✓ Directory verified as gitignored
 
 **On success:** Proceed to Phase 2: Prepare
 **On failure:** Stop and ask for help

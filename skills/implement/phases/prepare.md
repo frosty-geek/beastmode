@@ -32,7 +32,6 @@ fi
 2. Review critically - identify any questions or concerns:
    - Are all file paths valid?
    - Are dependencies available?
-   - Are test commands correct?
    - Are there missing steps?
 3. If concerns: **STOP** - raise them before starting execution
 4. If no concerns: Proceed to task setup
@@ -85,7 +84,6 @@ Before proceeding to Execute phase:
 - [ ] Native tasks created
 - [ ] Task file persisted
 - [ ] Working directory is in worktree
-- [ ] Tests still pass
 
 ### Report Readiness
 
@@ -106,7 +104,6 @@ Ready for Phase 3: Execute
 | Native tasks exist | Verify match, resume |
 | No existing tasks | Bootstrap from plan |
 | Plan has concerns | STOP and raise before executing |
-| Tests fail | Report, ask permission to proceed |
 
 ## Common Mistakes
 
@@ -146,7 +143,6 @@ Ready for Phase 3: Execute
 ✓ Native tasks created via TodoWrite
 ✓ Task state persisted to .tasks.json
 ✓ Working in correct worktree
-✓ Tests pass
 
 **On success:** Proceed to Phase 3: Execute
 **On failure:** Stop and ask for help

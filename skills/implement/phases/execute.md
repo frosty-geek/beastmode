@@ -2,108 +2,86 @@
 
 ## Overview
 
-Execute tasks in sequence, follow each step exactly, verify at each checkpoint.
+Execute tasks in parallel batches, respecting dependencies.
 
-**Core principle:** Continuous execution without human checkpoints until blocked.
+**Core principle:** Batch independent tasks for parallel execution, no commits until Complete.
 
-**Announce at start:** "Executing implementation tasks."
+**Announce at start:** "Executing implementation tasks in parallel batches."
 
-## Execution Loop
+## Batch Execution
 
-For each task in order (respecting blockedBy dependencies):
+Execute tasks in batches of up to 3 independent tasks.
 
-### Step 1: Mark In Progress
+### Batch Selection Algorithm
 
-```yaml
-TodoWrite:
-  todos:
-    - content: "Task N: [Name]"
-      activeForm: "Implementing [Name]"
-      status: in_progress
-```
+1. Find all tasks with status `pending`
+2. Filter to tasks with no unmet `blockedBy` dependencies
+3. Take up to 3 tasks for the batch
+4. If no tasks eligible but some remain: report blocked state
 
-Update `.tasks.json` immediately.
+### Parallel Execution
 
-### Step 2: Execute Task Steps
-
-Follow each step in the plan exactly:
-
-1. **Read the step** - understand what needs to be done
-2. **Execute** - write code, run command, create file
-3. **Verify** - check output matches expected result
-4. **Proceed** - move to next step
-
-### Step 3: Run Verification
-
-After completing task steps, run task-specific verification:
-
-```bash
-# Run specified tests
-pytest tests/path/test.py -v
-
-# Or project-wide
-npm test
-cargo test
-```
-
-### Step 4: Commit (if plan specifies)
-
-Plans typically include commit points. Follow exactly:
-
-```bash
-git add <specified-files>
-git commit -m "<commit message from plan>"
-```
-
-### Step 5: Mark Complete
+For each batch, spawn parallel agents:
 
 ```yaml
-TodoWrite:
-  todos:
-    - content: "Task N: [Name]"
-      activeForm: "Implementing [Name]"
-      status: completed
+Agent (parallel for each task in batch):
+  subagent_type: general-purpose
+  prompt: |
+    Execute Task N from the plan.
+
+    Plan: <plan-path>
+    Task: <task-subject>
+    Worktree: <worktree-path>
+
+    Follow the task steps exactly. Do NOT commit.
+    Report success or failure when done.
 ```
 
-Update `.tasks.json` immediately.
+### After Batch Completes
 
-### Step 6: Continue
+1. Collect results from all agents
+2. Update task states:
+   - Success → `completed`
+   - Failure → `blocked`
+3. Update `.tasks.json`
+4. Report batch summary
+5. Continue to next batch
 
-Proceed immediately to next task. Do not wait for human confirmation.
+### Batch Report Format
+
+```
+Batch complete (tasks 1-3 of 9)
+
+✓ Task 1: [name]
+✓ Task 2: [name]
+✗ Task 3: [name] - blocked: [reason]
+
+Next batch: Tasks 4-6
+```
 
 ## Handling Failures
 
-### Test Failure
+### Task Failure in Batch
+
+If a task fails during batch execution:
+1. Mark task as `blocked` with reason
+2. Continue with other tasks in batch
+3. Report all failures at batch end
+4. Eligible tasks continue in next batch
+
+### All Tasks Blocked
 
 ```
-Task N verification failed.
+Execution blocked. No tasks can proceed.
 
-Expected: <expected>
-Actual: <actual>
+Blocked tasks:
+- Task N: [reason]
+- Task M: [reason]
 
-[Failure details]
-
-Options:
-1. Attempt fix (if obvious)
-2. Stop and ask for help
+Please resolve blockers to continue.
 ```
 
-If fix is obvious and localized, attempt it. Otherwise STOP.
-
-### Missing Dependency
-
-```
-Task N blocked by missing dependency.
-
-Required: <package/file/tool>
-Status: Not found
-
-Stopping execution. Please provide:
-1. How to install <dependency>
-2. Alternative approach
-```
-
-STOP immediately. Do not guess.
+STOP. Wait for user guidance.
 
 ### Unclear Instruction
 
@@ -113,10 +91,10 @@ Task N step unclear.
 Step: <step text>
 Question: <what's unclear>
 
-Stopping execution. Please clarify.
+Stopping task. Other batch tasks continue.
 ```
 
-STOP immediately. Ask for clarification.
+Mark task blocked, continue batch.
 
 ## Task State Management
 
@@ -141,7 +119,7 @@ TodoWrite:
 
 ### Persistent State
 
-Update `.tasks.json` after EVERY status change:
+Update `.tasks.json` after EVERY batch:
 
 ```json
 {
@@ -150,7 +128,7 @@ Update `.tasks.json` after EVERY status change:
   "branch": "implement/feature",
   "tasks": [
     {"id": 0, "subject": "Task 0: Setup", "status": "completed"},
-    {"id": 1, "subject": "Task 1: Implementation", "status": "in_progress"},
+    {"id": 1, "subject": "Task 1: Implementation", "status": "completed"},
     {"id": 2, "subject": "Task 2: Testing", "status": "pending"}
   ],
   "lastUpdated": "2026-03-01T12:34:56Z"
@@ -161,57 +139,48 @@ Update `.tasks.json` after EVERY status change:
 
 | Situation | Action |
 |-----------|--------|
-| Task complete | Mark complete, update JSON, continue |
-| Test fails | Attempt obvious fix OR stop |
-| Unclear step | STOP, ask for clarification |
-| Missing dependency | STOP, ask how to proceed |
-| All tasks done | Proceed to Phase 4: Complete |
+| Batch complete | Update states, report, next batch |
+| Task fails | Mark blocked, continue batch |
+| All blocked | STOP, ask for help |
+| All done | Proceed to Phase 4: Complete |
 
 ## Common Mistakes
 
-### Batching task completions
+### Not updating task state after batch
 
-- **Problem:** Progress tracking inaccurate, can't resume correctly
-- **Fix:** Update status immediately after each task
+- **Problem:** Progress tracking inaccurate, can't resume
+- **Fix:** Update all task states immediately after batch
 
-### Guessing on failures
+### Committing during execution
 
-- **Problem:** Introduce bugs, waste time on wrong approach
-- **Fix:** STOP and ask when blocked
+- **Problem:** Multiple commits instead of single feature commit
+- **Fix:** No commits until Complete phase
 
-### Skipping verifications
+### Sequential execution of independent tasks
 
-- **Problem:** Broken code makes it to merge
-- **Fix:** Run every verification specified in plan
-
-### Not committing at checkpoints
-
-- **Problem:** Lose work, can't bisect issues
-- **Fix:** Commit at every checkpoint in plan
+- **Problem:** Slow execution, wasted parallelism
+- **Fix:** Batch independent tasks for parallel execution
 
 ## Red Flags
 
 **Never:**
-- Skip task verifications
-- Continue when blocked
-- Batch status updates
-- Commit outside plan-specified points
+- Commit during Execute phase
+- Execute dependent tasks in parallel
+- Continue when all tasks blocked
 - Work outside the worktree
 
 **Always:**
-- Execute steps exactly as written
-- Verify after each task
-- Update status immediately
-- Commit at specified checkpoints
-- Stop when unclear
+- Batch independent tasks
+- Update state after each batch
+- Stop when blocked
+- Defer commits to Complete phase
 
 ## Exit Criteria
 
-✓ All tasks marked complete
-✓ All verifications pass
-✓ All commits made per plan
-✓ Final test suite passes
+✓ All tasks marked complete (or blocked with reason)
+✓ No commits made (deferred to Complete)
 ✓ Task state persisted
+✓ Ready for single commit
 
 **On success:** Proceed to Phase 4: Complete
 **On failure:** Stop and ask for help
