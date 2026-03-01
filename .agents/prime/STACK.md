@@ -34,7 +34,6 @@ Beastmode is a meta-framework for Claude Code — it doesn't have traditional pa
 
 **Testing:**
 - Manual testing via `/skills` command invocation
-- Self-referential: beastmode itself provides the `/verify` skill for testing
 
 **Linting:**
 - No automated linting configured
@@ -55,12 +54,15 @@ Beastmode is a meta-framework for Claude Code — it doesn't have traditional pa
 
 # Run core workflow phases
 /prime
-/research
 /design
 /plan
 /implement
-/verify
+/release
 /retro
+
+# Standalone utilities
+/research
+/status
 
 # Access individual skills
 /bootstrap              # Initialize .agents/ structure
@@ -68,7 +70,6 @@ Beastmode is a meta-framework for Claude Code — it doesn't have traditional pa
 /bootstrap-wizard      # Interactive project setup
 /plan                  # Create implementation plans
 /implement             # Execute plans in worktree
-/verify                # Run verification tests
 /retro                 # Capture learnings
 ```
 
