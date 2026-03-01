@@ -22,7 +22,6 @@ beastmode/
 │   ├── plan/              # Implementation plans & tasks
 │   ├── research/          # Domain exploration
 │   ├── status/            # Current state & milestones
-│   ├── verify/            # Test reports
 │   ├── release/           # Changelogs
 │   ├── worktrees/         # Worktree management
 │   └── templates/         # Task/artifact templates
@@ -35,7 +34,6 @@ beastmode/
 │   ├── plan/             # Break down into tasks
 │   ├── implement/        # Execute implementation
 │   │   └── phases/       # Implementation phase templates
-│   ├── verify/           # Verification & testing
 │   ├── retro/            # Capture learnings
 │   │   └── references/   # Retrospective references
 │   ├── status/           # Show project status
@@ -63,7 +61,7 @@ beastmode/
 
 **`skills/`** — Agent Skills (Executable Workflows)
 - Purpose: Reusable agent prompts that implement the beastmode workflow
-- Contains: 14 skill definitions (prime, research, design, plan, implement, verify, retro, status, bootstrap, bootstrap-wizard, bootstrap-discovery, release)
+- Contains: 13 skill definitions (prime, research, design, plan, implement, retro, status, bootstrap, bootstrap-wizard, bootstrap-discovery, release)
 - Each skill has: SKILL.md (prompt definition) + optional references/ or phases/ subdirectories
 
 **`agents/`** — Agent Documentation
@@ -92,7 +90,6 @@ beastmode/
 - `skills/design/SKILL.md`: Design & brainstorming
 - `skills/plan/SKILL.md`: Break into implementation tasks
 - `skills/implement/SKILL.md`: Execute implementation
-- `skills/verify/SKILL.md`: Verification & testing
 - `skills/retro/SKILL.md`: Capture learnings
 
 **Project Knowledge Base (Prime Documents):**
@@ -114,7 +111,7 @@ beastmode/
 
 **Directories:**
 - `skills/{skill-name}/`: Skill name uses kebab-case (e.g., bootstrap-discovery, bootstrap-wizard)
-- `.agents/{phase-name}/`: Phase directories use lowercase (design, plan, status, verify, release)
+- `.agents/{phase-name}/`: Phase directories use lowercase (design, plan, status, release)
 - `references/`: Supporting files for skills, templates for agents
 - `phases/`: Implementation phase templates (in implement/phases/)
 - `templates/`: Starter templates for bootstrap skill
@@ -132,7 +129,6 @@ beastmode/
 - Design specs: `.agents/design/{feature-date-name}.md`
 - Implementation plans: `.agents/plan/{feature-date-name}.md`
 - Status updates: `.agents/status/STATUS.md`
-- Test reports: `.agents/verify/{report-name}.md`
 - Changelogs: `.agents/release/{version}.md`
 
 **New Agent Documentation:**
