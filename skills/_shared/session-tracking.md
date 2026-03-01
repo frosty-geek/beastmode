@@ -34,6 +34,9 @@ On phase completion, update `.agents/status/YYYY-MM-DD-<feature>.md`:
 
    ### Executed Phases
 
+   ### Session Files
+   <!-- Absolute paths for retro inspection -->
+
    ---
 
    ## Findings for Retro
@@ -45,7 +48,12 @@ On phase completion, update `.agents/status/YYYY-MM-DD-<feature>.md`:
    - [<Phase> — HH:MM](#phase--hhmm) · `<session-path>`
    ```
 
-3. **Append phase section** before "Findings for Retro":
+3. **Add to Session Files list** (if not already present):
+   ```markdown
+   - <full-session-path>
+   ```
+
+4. **Append phase section** before "Findings for Retro":
    ```markdown
    ## <Phase> — HH:MM
    **Claude Session**: `<session-path>`

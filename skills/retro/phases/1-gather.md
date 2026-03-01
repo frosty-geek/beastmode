@@ -12,7 +12,11 @@ Gather from this cycle:
 - Status records in `.agents/status/`
 - Conversation history
 
-## 3. Identify Prime Files
+## 3. Collect Session Paths
+
+Read the status file's "Session Files" section. Collect all listed paths into a list for use in retro agent prompts.
+
+## 4. Identify Prime Files
 
 List all prime files that may need updates:
 - META.md — writing guidelines, Rules Summary sync

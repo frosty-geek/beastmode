@@ -14,6 +14,14 @@ Launch parallel agents to review each prime file. Use prompts from `agents/` dir
 
 Use haiku model for cost efficiency.
 
+**Include session context**: Append to each agent prompt:
+
+```yaml
+## Session Files
+Read these session JSONL files for conversation context:
+<list paths from gather phase>
+```
+
 ## 2. Collect Findings
 
 Each agent returns:
