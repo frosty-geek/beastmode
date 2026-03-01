@@ -57,14 +57,42 @@ Skills follow a standard YAML frontmatter + markdown structure:
 ```yaml
 ---
 name: skill-name
-description: Brief one-liner description
+description: <Action words> — <keywords>. Use when <trigger>. <What it does>.
 ---
 
 # /skill-name
 
-[Content...]
+<One sentence overview.>
+
+<HARD-GATE>
+<Constraint one-liner.> [→ Why](references/constraints.md)
+</HARD-GATE>
+
+## Phases
+
+1. [<Phase>](phases/1-<phase>.md) — <3-5 word description>
+2. [<Phase>](phases/2-<phase>.md) — <3-5 word description>
 ```
-Example: skills/bootstrap/SKILL.md, skills/design/SKILL.md
+
+**Skill Authoring Rules:**
+- SKILL.md body MUST be under 50 lines
+- Description format: `<Action words> — <keywords>. Use when <trigger>. <What it does>.`
+- HARD-GATE block required if skill has constraints (link to references/constraints.md)
+- 3-5 phases maximum, descriptions are terse (3-5 words)
+- One sentence overview after heading
+
+**Phase File Rules:**
+- Numbered internal steps: `## 1. Step Name`, `## 2. Step Name`
+- Imperative voice throughout (commands, not descriptions)
+- @import shared functionality at any position: `@../_shared/session-tracking.md`
+- Specific, actionable instructions (not conceptual)
+- Code examples where applicable
+
+**Shared Functionality Rules:**
+- Location: `skills/_shared/`
+- Self-contained, context-aware (figures out phase/feature from environment)
+- No parameters needed from calling skill
+- Include templates/examples inline
 
 **Documentation Assembly Pattern:**
 Prompts are assembled by concatenating multiple source files:
