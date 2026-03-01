@@ -13,7 +13,7 @@ Review the TESTING.md prime document against this cycle's work to identify test 
 
 ## Artifact Sources to Check
 
-- `.agent/plan/*.md` — test requirements in tasks
+- `.agents/plan/*.md` — test requirements in tasks
 - Git diff of test files — new tests added
 - CI configuration — test commands in workflows
 - Actual test file structure

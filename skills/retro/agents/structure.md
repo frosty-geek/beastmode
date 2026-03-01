@@ -14,8 +14,8 @@ Review the STRUCTURE.md prime document against this cycle's work to identify new
 ## Artifact Sources to Check
 
 - Git diff — files/directories added this cycle
-- `.agent/design/*.md` — structural decisions
-- `.agent/plan/*.md` — file creation plans
+- `.agents/design/*.md` — structural decisions
+- `.agents/plan/*.md` — file creation plans
 - Actual directory structure via `find` or `tree`
 
 ## Questions to Answer

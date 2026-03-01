@@ -1,1 +1,1 @@
-@.agent/CLAUDE.md
+@.agents/CLAUDE.md

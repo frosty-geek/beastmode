@@ -7,16 +7,16 @@ Review the META.md prime document against this cycle's artifacts to identify doc
 ## Review Focus
 
 1. **Writing guidelines compliance** — Are the cycle's artifacts (design docs, plans) following META.md's writing guidelines?
-2. **Rules Summary sync** — Does `.agent/CLAUDE.md` Rules Summary accurately reflect all prime file rules?
+2. **Rules Summary sync** — Does `.agents/CLAUDE.md` Rules Summary accurately reflect all prime file rules?
 3. **File conventions** — Are new files following UPPERCASE/lowercase conventions?
 4. **Anti-bloat adherence** — Are docs concise, using bullets over paragraphs?
 
 ## Artifact Sources to Check
 
-- `.agent/design/*.md` — design docs from this cycle
-- `.agent/plan/*.md` — plan docs from this cycle
-- `.agent/CLAUDE.md` — Rules Summary section
-- `.agent/prime/*.md` — all prime files for sync check
+- `.agents/design/*.md` — design docs from this cycle
+- `.agents/plan/*.md` — plan docs from this cycle
+- `.agents/CLAUDE.md` — Rules Summary section
+- `.agents/prime/*.md` — all prime files for sync check
 
 ## Questions to Answer
 

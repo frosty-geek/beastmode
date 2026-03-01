@@ -1,19 +1,19 @@
 ---
 name: bootstrap-discovery
-description: Autonomous parallel codebase analysis to generate .agent/prime/*.md docs. Spawns 5 Explore agents simultaneously for STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING. Merges findings with existing content. Use after /bootstrap on existing projects.
+description: Autonomous parallel codebase analysis to generate .agents/prime/*.md docs. Spawns 5 Explore agents simultaneously for STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING. Merges findings with existing content. Use after /bootstrap on existing projects.
 ---
 
 # /bootstrap-discovery
 
-Autonomous codebase analysis with parallel agents. Analyzes project and populates `.agent/prime/*.md` files.
+Autonomous codebase analysis with parallel agents. Analyzes project and populates `.agents/prime/*.md` files.
 
 ## Prerequisite
 
-Verify `.agent/prime/` exists. If missing: "Run `/bootstrap` first to create the .agent/ structure."
+Verify `.agents/prime/` exists. If missing: "Run `/bootstrap` first to create the .agents/ structure."
 
 ## Execution Flow
 
-1. **Check prerequisite** — verify `.agent/prime/` directory exists
+1. **Check prerequisite** — verify `.agents/prime/` directory exists
 2. **Read current state** — read all 5 prime files
 3. **Assemble prompts** — for each prime, concatenate: agent prompt + common instructions + current content
 4. **Spawn agents** — launch 5 Explore agents in parallel (haiku model)
@@ -30,7 +30,7 @@ For each prime file, assemble the prompt by reading and concatenating:
 Read: references/{prime}-agent.md
 Read: references/common-instructions.md
 Append: "\n\n## Current Content\n\n"
-Append: .agent/prime/{PRIME}.md content
+Append: .agents/prime/{PRIME}.md content
 ```
 
 ## Agent Invocation

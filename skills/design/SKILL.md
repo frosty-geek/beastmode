@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Brainstorm and create design specs. Outputs to .agent/design/. Part of workflow: bootstrap → prime → research → design → plan → implement → status → verify → release → retro"
+description: "Brainstorm and create design specs. Outputs to .agents/design/. Part of workflow: bootstrap → prime → research → design → plan → implement → status → verify → release → retro"
 ---
 
 @../_shared/SESSION-TRACKING.md
@@ -31,7 +31,7 @@ You MUST create a task for each of these items and complete them in order:
 2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
-5. **Write design doc** — save to `.agent/design/YYYY-MM-DD-<topic>.md` and commit
+5. **Write design doc** — save to `.agents/design/YYYY-MM-DD-<topic>.md` and commit
 6. **Transition to implementation** — suggest /plan skill to create implementation plan
 
 ## Process Flow
@@ -82,7 +82,7 @@ digraph design {
 ## After the Design
 
 **Documentation:**
-- Write the validated design to `.agent/design/YYYY-MM-DD-<topic>.md`
+- Write the validated design to `.agents/design/YYYY-MM-DD-<topic>.md`
 - Commit the design document to git
 
 **Next Step:**
@@ -90,7 +90,7 @@ digraph design {
 - Provide copy-pasteable command for a new session:
 
 ```
-/plan .agent/design/YYYY-MM-DD-<topic>.md
+/plan .agents/design/YYYY-MM-DD-<topic>.md
 ```
 
 Replace with the actual filename you just created.
@@ -105,7 +105,7 @@ Part of: bootstrap → prime → research → **design** → plan → implement 
 
 1. Infer feature name from the design doc filename (e.g., `2026-03-01-session-tracking.md` → `session-tracking`)
 2. Get session path using `get_session_path()` with a unique part of your initial arguments
-3. Create `.agent/status/YYYY-MM-DD-<feature>.md` with the header template
+3. Create `.agents/status/YYYY-MM-DD-<feature>.md` with the header template
 4. Add entry to "Executed Phases" list
 5. Append Design phase section with Summary/Decisions/Issues
 

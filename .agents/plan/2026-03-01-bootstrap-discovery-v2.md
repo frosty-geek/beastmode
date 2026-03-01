@@ -6,7 +6,7 @@
 
 **Tech Stack:** Claude Code skills, Agent tool with Explore subagent, Haiku model
 
-**Design Doc:** [.agent/design/2026-03-01-bootstrap-discovery-v2.md](.agent/design/2026-03-01-bootstrap-discovery-v2.md)
+**Design Doc:** [.agents/design/2026-03-01-bootstrap-discovery-v2.md](.agents/design/2026-03-01-bootstrap-discovery-v2.md)
 
 ---
 
@@ -371,20 +371,20 @@ Replace entire file with:
 ```markdown
 ---
 name: bootstrap-discovery
-description: Autonomous parallel codebase analysis to generate .agent/prime/*.md docs. Spawns 5 Explore agents simultaneously for STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING. Merges findings with existing content. Use after /bootstrap on existing projects.
+description: Autonomous parallel codebase analysis to generate .agents/prime/*.md docs. Spawns 5 Explore agents simultaneously for STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING. Merges findings with existing content. Use after /bootstrap on existing projects.
 ---
 
 # /bootstrap-discovery
 
-Autonomous codebase analysis with parallel agents. Analyzes project and populates `.agent/prime/*.md` files.
+Autonomous codebase analysis with parallel agents. Analyzes project and populates `.agents/prime/*.md` files.
 
 ## Prerequisite
 
-Verify `.agent/prime/` exists. If missing: "Run `/bootstrap` first to create the .agent/ structure."
+Verify `.agents/prime/` exists. If missing: "Run `/bootstrap` first to create the .agents/ structure."
 
 ## Execution Flow
 
-1. **Check prerequisite** — verify `.agent/prime/` directory exists
+1. **Check prerequisite** — verify `.agents/prime/` directory exists
 2. **Read current state** — read all 5 prime files
 3. **Assemble prompts** — for each prime, concatenate: agent prompt + common instructions + current content
 4. **Spawn agents** — launch 5 Explore agents in parallel (haiku model)
@@ -401,7 +401,7 @@ For each prime file, assemble the prompt by reading and concatenating:
 Read: references/{prime}-agent.md
 Read: references/common-instructions.md
 Append: "\n\n## Current Content\n\n"
-Append: .agent/prime/{PRIME}.md content
+Append: .agents/prime/{PRIME}.md content
 ```
 
 ## Agent Invocation
@@ -487,7 +487,7 @@ git commit -m "refactor(bootstrap-discovery): rewrite SKILL.md with explicit pro
 ## Task 7: Test on beastmode project
 
 **Files:**
-- Test target: `.agent/prime/STACK.md`, `.agent/prime/STRUCTURE.md`, etc.
+- Test target: `.agents/prime/STACK.md`, `.agents/prime/STRUCTURE.md`, etc.
 
 **Step 1: Run the skill**
 
@@ -500,7 +500,7 @@ Check that each prime file has been updated with real content (not just placehol
 **Step 3: Commit results if valid**
 
 ```bash
-git add .agent/prime/
+git add .agents/prime/
 git commit -m "test(bootstrap-discovery): validate v2 on beastmode project"
 ```
 
@@ -509,7 +509,7 @@ git commit -m "test(bootstrap-discovery): validate v2 on beastmode project"
 ## Task 8: Update design doc status
 
 **Files:**
-- Modify: `.agent/design/2026-03-01-bootstrap-discovery-v2.md`
+- Modify: `.agents/design/2026-03-01-bootstrap-discovery-v2.md`
 
 **Step 1: Change status to Implemented**
 
@@ -521,6 +521,6 @@ Update line 4:
 **Step 2: Commit**
 
 ```bash
-git add .agent/design/2026-03-01-bootstrap-discovery-v2.md
+git add .agents/design/2026-03-01-bootstrap-discovery-v2.md
 git commit -m "docs: mark bootstrap-discovery v2 design as implemented"
 ```

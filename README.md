@@ -16,7 +16,7 @@ A simple loop that scales from quick fixes to deep feature work:
 
 **New feature?** Research the domain. Design the approach. Plan the tasks. Build. Verify. Learn.
 
-**Multi-session project?** Each phase writes artifacts to `.agent/`. Next session, `/prime` restores context. Pick up where you left off.
+**Multi-session project?** Each phase writes artifacts to `.agents/`. Next session, `/prime` restores context. Pick up where you left off.
 
 **Every project?** `/retro` feeds learnings back into your agent instructions. Knowledge compounds automatically.
 
@@ -45,12 +45,12 @@ Then initialize your project:
 /bootstrap
 ```
 
-## The `.agent/` Folder
+## The `.agents/` Folder
 
 All project context lives here:
 
 ```
-.agent/
+.agents/
 ├── CLAUDE.md           # Project brain (<200 lines)
 ├── prime/              # Context loaded every session
 │   ├── META.md         # How to maintain these docs
@@ -68,7 +68,7 @@ All project context lives here:
 └── release/            # Changelogs
 ```
 
-Your root `CLAUDE.md` imports: `@.agent/CLAUDE.md`
+Your root `CLAUDE.md` imports: `@.agents/CLAUDE.md`
 
 ## Why This Works
 

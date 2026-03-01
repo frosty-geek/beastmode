@@ -21,7 +21,7 @@ Surgical removal from existing 4-phase structure. Keep proven worktree isolation
 ### Phase 1: Setup (Simplified)
 
 **Keep:**
-- Directory selection (`.agent/worktrees/`)
+- Directory selection (`.agents/worktrees/`)
 - Safety verification (`git check-ignore`)
 - Branch creation from plan name
 - Worktree creation
@@ -32,7 +32,7 @@ Surgical removal from existing 4-phase structure. Keep proven worktree isolation
 - Test baseline verification
 
 **Exit criteria:**
-- Worktree created at `.agent/worktrees/<branch-name>/`
+- Worktree created at `.agents/worktrees/<branch-name>/`
 - Branch created: `implement/<feature-name>`
 - Directory verified as gitignored
 
@@ -113,7 +113,7 @@ Execute batch tasks in parallel (Agent tool) → Mark complete → Next batch
 ```
 feat: <feature-name-from-plan>
 
-Implements plan: .agent/plan/YYYY-MM-DD-<topic>.md
+Implements plan: .agents/plan/YYYY-MM-DD-<topic>.md
 ```
 
 **Exit criteria:**

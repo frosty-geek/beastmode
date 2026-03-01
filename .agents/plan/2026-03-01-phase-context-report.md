@@ -6,7 +6,7 @@
 
 **Tech Stack:** Markdown with `@` import syntax (beastmode skill conventions)
 
-**Design Doc:** [.agent/design/2026-03-01-phase-context-report.md](.agent/design/2026-03-01-phase-context-report.md)
+**Design Doc:** [.agents/design/2026-03-01-phase-context-report.md](.agents/design/2026-03-01-phase-context-report.md)
 
 ---
 

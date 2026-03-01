@@ -5,7 +5,7 @@
 
 ## Overview
 
-Two new skills to prefill `.agent/prime/*.md` templates after `/bootstrap`:
+Two new skills to prefill `.agents/prime/*.md` templates after `/bootstrap`:
 
 | Skill | Purpose | Style |
 |-------|---------|-------|
@@ -41,14 +41,14 @@ agents/
 
 ```yaml
 name: bootstrap-wizard
-description: Interactive conversational prefill of .agent/prime/*.md templates.
+description: Interactive conversational prefill of .agents/prime/*.md templates.
   Use after /bootstrap to configure project context through GSD-style
   dialogue. Covers stack, structure, conventions, architecture, testing.
 ```
 
 ### Prerequisite
 
-Verify `.agent/prime/` exists. If not, prompt to run `/bootstrap` first.
+Verify `.agents/prime/` exists. If not, prompt to run `/bootstrap` first.
 
 ### Conversation Flow
 
@@ -90,7 +90,7 @@ Verify `.agent/prime/` exists. If not, prompt to run `/bootstrap` first.
    → Present TESTING.md for review → write on approval
 
 7. WRAP-UP
-   - Update .agent/CLAUDE.md rules summary with one-liners
+   - Update .agents/CLAUDE.md rules summary with one-liners
    - Offer to commit all changes
 ```
 
@@ -108,14 +108,14 @@ Verify `.agent/prime/` exists. If not, prompt to run `/bootstrap` first.
 
 ```yaml
 name: bootstrap-discovery
-description: Autonomous codebase analysis to generate .agent/prime/*.md docs.
+description: Autonomous codebase analysis to generate .agents/prime/*.md docs.
   Use after /bootstrap on existing projects. Analyzes package manifests,
   file tree, code patterns, and docs to prefill project context.
 ```
 
 ### Prerequisite
 
-Verify `.agent/prime/` exists. If not, prompt to run `/bootstrap` first.
+Verify `.agents/prime/` exists. If not, prompt to run `/bootstrap` first.
 
 ### Architecture
 
@@ -200,14 +200,14 @@ Users can:
 
 Both skills write to the same template files:
 
-- `.agent/prime/STACK.md`
-- `.agent/prime/STRUCTURE.md`
-- `.agent/prime/CONVENTIONS.md`
-- `.agent/prime/ARCHITECTURE.md`
-- `.agent/prime/TESTING.md`
+- `.agents/prime/STACK.md`
+- `.agents/prime/STRUCTURE.md`
+- `.agents/prime/CONVENTIONS.md`
+- `.agents/prime/ARCHITECTURE.md`
+- `.agents/prime/TESTING.md`
 
-Both update `.agent/CLAUDE.md` rules summary section with one-liners after each file is written.
+Both update `.agents/CLAUDE.md` rules summary section with one-liners after each file is written.
 
 ## Next Steps
 
-Run `/plan .agent/design/2026-03-01-bootstrap-prefill.md` to create implementation plan.
+Run `/plan .agents/design/2026-03-01-bootstrap-prefill.md` to create implementation plan.

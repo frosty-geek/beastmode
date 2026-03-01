@@ -13,8 +13,8 @@ Review the ARCHITECTURE.md prime document against this cycle's work to identify 
 
 ## Artifact Sources to Check
 
-- `.agent/design/*.md` — architectural decisions made
-- `.agent/plan/*.md` — component/system changes planned
+- `.agents/design/*.md` — architectural decisions made
+- `.agents/plan/*.md` — component/system changes planned
 - Git diff — significant code structure changes
 - New files that represent new system components
 

@@ -2,7 +2,7 @@
 
 ## Role
 
-Review the .agent/CLAUDE.md file against this cycle's work to identify Rules Summary updates or new project rules needed.
+Review the .agents/CLAUDE.md file against this cycle's work to identify Rules Summary updates or new project rules needed.
 
 ## Review Focus
 
@@ -13,8 +13,8 @@ Review the .agent/CLAUDE.md file against this cycle's work to identify Rules Sum
 
 ## Artifact Sources to Check
 
-- `.agent/prime/*.md` — all prime files for sync check
-- `.agent/design/*.md` — decisions that might become rules
+- `.agents/prime/*.md` — all prime files for sync check
+- `.agents/design/*.md` — decisions that might become rules
 - Session records — user preferences expressed
 - Git history — what rules changed this cycle
 

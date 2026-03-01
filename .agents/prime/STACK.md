@@ -63,7 +63,7 @@ Beastmode is a meta-framework for Claude Code — it doesn't have traditional pa
 /retro
 
 # Access individual skills
-/bootstrap              # Initialize .agent/ structure
+/bootstrap              # Initialize .agents/ structure
 /bootstrap-discovery   # Autonomous codebase analysis
 /bootstrap-wizard      # Interactive project setup
 /plan                  # Create implementation plans

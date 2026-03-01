@@ -11,21 +11,21 @@ Documents the testing approach, commands, and conventions.
 /bootstrap-discovery
 
 # Verify generated prime files have real content
-grep -v "\[" .agent/prime/*.md | grep -v "^\[" | grep -v "^--" | wc -l
+grep -v "\[" .agents/prime/*.md | grep -v "^\[" | grep -v "^--" | wc -l
 
 # Review generated documentation
-cat .agent/prime/STACK.md .agent/prime/STRUCTURE.md .agent/prime/TESTING.md
+cat .agents/prime/STACK.md .agents/prime/STRUCTURE.md .agents/prime/TESTING.md
 ```
 
 ## Test Structure
 
 **Verification Tests:**
-- Location: `.agent/prime/` (auto-generated after `/bootstrap-discovery`)
+- Location: `.agents/prime/` (auto-generated after `/bootstrap-discovery`)
 - Naming: UPPERCASE.md files contain generated content, not placeholder patterns
 
 **Integration Tests:**
 - Location: Project-level verification by running `/bootstrap-discovery` on actual codebases
-- Naming: Manual inspection of generated files in `.agent/prime/`
+- Naming: Manual inspection of generated files in `.agents/prime/`
 
 ## Conventions
 

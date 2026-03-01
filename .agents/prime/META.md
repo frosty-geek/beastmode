@@ -2,16 +2,16 @@
 
 ## Purpose
 
-This file defines how to maintain the `.agent/` documentation structure. It is always imported into CLAUDE.md to ensure consistent documentation practices.
+This file defines how to maintain the `.agents/` documentation structure. It is always imported into CLAUDE.md to ensure consistent documentation practices.
 
 ## Rules Summary Updates
 
-**Rule**: When adding, modifying, or removing rules in any `prime/` file, update the corresponding summary in `.agent/CLAUDE.md`.
+**Rule**: When adding, modifying, or removing rules in any `prime/` file, update the corresponding summary in `.agents/CLAUDE.md`.
 
 **Process**:
 1. Add the rule to the appropriate `prime/*.md` file
 2. Add a one-sentence summary to the Rules Summary section in CLAUDE.md
-3. Ensure the summary references the file: "See .agent/prime/FILENAME.md"
+3. Ensure the summary references the file: "See .agents/prime/FILENAME.md"
 
 ## Writing Guidelines
 
@@ -37,7 +37,7 @@ This file defines how to maintain the `.agent/` documentation structure. It is a
 ## Folder Structure
 
 ```
-.agent/
+.agents/
 ├── CLAUDE.md       # <200 lines, summary + @imports
 ├── prime/          # Reference material (loaded by /prime)
 ├── research/       # Discovery, exploration

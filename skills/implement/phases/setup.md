@@ -15,8 +15,8 @@ Follow this priority order:
 ### 1. Check Existing Directories
 
 ```bash
-# Beastmode uses project-local .agent/worktrees/
-ls -d .agent/worktrees 2>/dev/null
+# Beastmode uses project-local .agents/worktrees/
+ls -d .agents/worktrees 2>/dev/null
 ```
 
 **If found:** Use that directory.
@@ -25,17 +25,17 @@ ls -d .agent/worktrees 2>/dev/null
 
 ```bash
 grep -i "worktree.*director" CLAUDE.md 2>/dev/null
-grep -i "worktree.*director" .agent/CLAUDE.md 2>/dev/null
+grep -i "worktree.*director" .agents/CLAUDE.md 2>/dev/null
 ```
 
 **If preference specified:** Use it without asking.
 
-### 3. Default to .agent/worktrees/
+### 3. Default to .agents/worktrees/
 
-Beastmode convention: all worktrees go in `.agent/worktrees/`
+Beastmode convention: all worktrees go in `.agents/worktrees/`
 
 ```bash
-mkdir -p .agent/worktrees
+mkdir -p .agents/worktrees
 ```
 
 ## Safety Verification
@@ -44,13 +44,13 @@ mkdir -p .agent/worktrees
 
 ```bash
 # Check if directory is ignored (respects local, global, and system gitignore)
-git check-ignore -q .agent/worktrees 2>/dev/null
+git check-ignore -q .agents/worktrees 2>/dev/null
 ```
 
 **If NOT ignored:**
 
 Per beastmode convention - fix broken things immediately:
-1. Add `.agent/worktrees/` to .gitignore
+1. Add `.agents/worktrees/` to .gitignore
 2. Commit the change
 3. Proceed with worktree creation
 
@@ -75,7 +75,7 @@ project=$(basename "$(git rev-parse --show-toplevel)")
 
 ```bash
 # Full path
-path=".agent/worktrees/$branch_name"
+path=".agents/worktrees/$branch_name"
 
 # Create worktree with new branch
 git worktree add "$path" -b "$branch_name"
@@ -94,7 +94,7 @@ Ready for Phase 2: Prepare
 
 | Situation | Action |
 |-----------|--------|
-| `.agent/worktrees/` exists | Use it (verify ignored) |
+| `.agents/worktrees/` exists | Use it (verify ignored) |
 | Directory not ignored | Add to .gitignore + commit |
 
 ## Common Mistakes
@@ -111,12 +111,12 @@ Ready for Phase 2: Prepare
 - Work on main/master branch directly
 
 **Always:**
-- Use `.agent/worktrees/` for beastmode projects
+- Use `.agents/worktrees/` for beastmode projects
 - Verify directory is ignored for project-local
 
 ## Exit Criteria
 
-✓ Worktree created at `.agent/worktrees/<branch-name>/`
+✓ Worktree created at `.agents/worktrees/<branch-name>/`
 ✓ Branch created: `implement/<feature-name>`
 ✓ Directory verified as gitignored
 

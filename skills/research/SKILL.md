@@ -1,6 +1,6 @@
 ---
 name: research
-description: Conduct discovery and exploration for a project. Outputs to .agent/research/.
+description: Conduct discovery and exploration for a project. Outputs to .agents/research/.
 ---
 
 # /research
@@ -9,7 +9,7 @@ Research and discovery for the project.
 
 ## Output
 
-Writes to: `.agent/research/`
+Writes to: `.agents/research/`
 
 ## Status
 

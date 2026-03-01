@@ -2,11 +2,11 @@
 
 **Goal:** Add session status tracking to all workflow phases, recording Claude session paths for traceability
 
-**Architecture:** Each phase skill appends to `.agent/status/YYYY-MM-DD-<feature>.md` on completion, using a shared reference file for session detection logic
+**Architecture:** Each phase skill appends to `.agents/status/YYYY-MM-DD-<feature>.md` on completion, using a shared reference file for session detection logic
 
 **Tech Stack:** Markdown skills, bash for session detection, jq for JSONL parsing
 
-**Design Doc:** [.agent/design/2026-03-01-session-tracking.md](.agent/design/2026-03-01-session-tracking.md)
+**Design Doc:** [.agents/design/2026-03-01-session-tracking.md](.agents/design/2026-03-01-session-tracking.md)
 
 ---
 
@@ -42,7 +42,7 @@ get_session_path() {
 
 ## Status File Update
 
-On phase completion, update `.agent/status/YYYY-MM-DD-<feature>.md`:
+On phase completion, update `.agents/status/YYYY-MM-DD-<feature>.md`:
 
 1. **Create file if not exists** with header:
    ```markdown
@@ -51,8 +51,8 @@ On phase completion, update `.agent/status/YYYY-MM-DD-<feature>.md`:
    ## Context
    - **Feature**: <feature-name>
    - **Related artifacts**:
-     - Design: .agent/design/YYYY-MM-DD-<feature>.md
-     - Plan: .agent/plan/YYYY-MM-DD-<feature>.md
+     - Design: .agents/design/YYYY-MM-DD-<feature>.md
+     - Plan: .agents/plan/YYYY-MM-DD-<feature>.md
 
    ### Executed Phases
 
@@ -120,7 +120,7 @@ Add new section before "## Workflow" (around line 96):
 
 1. Infer feature name from the design doc filename
 2. Get session path using `get_session_path()` with a unique part of your initial arguments
-3. Create/update `.agent/status/YYYY-MM-DD-<feature>.md`
+3. Create/update `.agents/status/YYYY-MM-DD-<feature>.md`
 4. Add entry to "Executed Phases" list
 5. Append Design phase section with Summary/Decisions/Issues
 
@@ -164,13 +164,13 @@ Add new section before "## Workflow" (around line 205):
 
 1. Extract feature name from plan doc filename (e.g., `2026-03-01-session-tracking.md` → `session-tracking`)
 2. Get session path using `get_session_path()` with a unique part of your initial arguments
-3. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+3. Update `.agents/status/YYYY-MM-DD-<feature>.md`
 4. Add entry to "Executed Phases" list
 5. Append Plan phase section with Summary/Decisions/Issues
 
 **Feature extraction from path:**
 ```bash
-# From .agent/plan/2026-03-01-session-tracking.md
+# From .agents/plan/2026-03-01-session-tracking.md
 FEATURE=$(basename "$PLAN_PATH" .md | sed 's/^[0-9-]*//')
 DATE=$(basename "$PLAN_PATH" .md | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}')
 ```
@@ -209,7 +209,7 @@ Add new section before "## Workflow" (around line 109):
 
 1. Extract feature name from plan doc filename
 2. Get session path using `get_session_path()` with a unique part of your initial arguments
-3. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+3. Update `.agents/status/YYYY-MM-DD-<feature>.md`
 4. Add entry to "Executed Phases" list
 5. Append Implement phase section with:
    - Summary: tasks completed, merge status
@@ -238,7 +238,7 @@ Replace entire file content:
 ```markdown
 ---
 name: verify
-description: Run verification and create reports. Outputs to .agent/verify/.
+description: Run verification and create reports. Outputs to .agents/verify/.
 ---
 
 # /verify
@@ -259,7 +259,7 @@ Run tests, check coverage, verify the implementation matches the plan.
 /verify [feature-name]
 ```
 
-If no feature provided, look for most recent status file in `.agent/status/`.
+If no feature provided, look for most recent status file in `.agents/status/`.
 
 ## Process
 
@@ -267,7 +267,7 @@ If no feature provided, look for most recent status file in `.agent/status/`.
 2. Run test suite
 3. Check test coverage
 4. Verify against plan requirements
-5. Write report to `.agent/verify/YYYY-MM-DD-<feature>.md`
+5. Write report to `.agents/verify/YYYY-MM-DD-<feature>.md`
 
 ## Session Status Tracking
 
@@ -275,13 +275,13 @@ If no feature provided, look for most recent status file in `.agent/status/`.
 
 1. Get feature name from argument or infer from recent status
 2. Get session path using `get_session_path()`
-3. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+3. Update `.agents/status/YYYY-MM-DD-<feature>.md`
 4. Add entry to "Executed Phases" list
 5. Append Verify phase section with test results summary
 
 ## Output
 
-Writes to: `.agent/verify/`
+Writes to: `.agents/verify/`
 
 ## Workflow
 
@@ -309,7 +309,7 @@ Replace entire file content:
 ```markdown
 ---
 name: release
-description: Create changelogs and release notes. Outputs to .agent/release/.
+description: Create changelogs and release notes. Outputs to .agents/release/.
 ---
 
 # /release
@@ -338,7 +338,7 @@ If no version provided, suggest next version based on changes.
 2. Generate changelog entries
 3. Create release notes
 4. Update version (if applicable)
-5. Write to `.agent/release/YYYY-MM-DD-<version>.md`
+5. Write to `.agents/release/YYYY-MM-DD-<version>.md`
 
 ## Session Status Tracking
 
@@ -346,13 +346,13 @@ If no version provided, suggest next version based on changes.
 
 1. Get feature name from recent status file or current work
 2. Get session path using `get_session_path()`
-3. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+3. Update `.agents/status/YYYY-MM-DD-<feature>.md`
 4. Add entry to "Executed Phases" list
 5. Append Release phase section with version and changelog summary
 
 ## Output
 
-Writes to: `.agent/release/`
+Writes to: `.agents/release/`
 
 ## Workflow
 
@@ -382,29 +382,29 @@ rm skills/retro/templates/session-record.md
 rmdir skills/retro/templates 2>/dev/null || true
 ```
 
-**Step 2: Update retro.md to read from .agent/status/**
+**Step 2: Update retro.md to read from .agents/status/**
 
 Edit `skills/retro/references/retro.md` line 9, change:
 
 ```markdown
-1. **Find session records**: `ls .agent/status/*-session.md 2>/dev/null`
+1. **Find session records**: `ls .agents/status/*-session.md 2>/dev/null`
 ```
 
 To:
 
 ```markdown
-1. **Find session records**: `ls .agent/status/*.md 2>/dev/null`
+1. **Find session records**: `ls .agents/status/*.md 2>/dev/null`
 ```
 
 **Step 3: Update SKILL.md Session Artifacts section**
 
-The SKILL.md already references `.agent/status/` correctly (line 32-33). No changes needed there.
+The SKILL.md already references `.agents/status/` correctly (line 32-33). No changes needed there.
 
 **Step 4: Commit**
 
 ```bash
 git add -A skills/retro/
-git commit -m "feat(retro): remove template, read status from .agent/status/"
+git commit -m "feat(retro): remove template, read status from .agents/status/"
 ```
 
 ---
@@ -421,7 +421,7 @@ Replace entire file content:
 ```markdown
 ---
 name: status
-description: Track current project state and milestones. Reads/writes .agent/status/.
+description: Track current project state and milestones. Reads/writes .agents/status/.
 ---
 
 # /status
@@ -445,18 +445,18 @@ Display current session status, list all sessions, or show specific session deta
 ## Commands
 
 ### Default (no args)
-Show the most recently modified status file in `.agent/status/`.
+Show the most recently modified status file in `.agents/status/`.
 
 ### list
 List all status files with their features and dates:
 ```bash
-ls -lt .agent/status/*.md 2>/dev/null
+ls -lt .agents/status/*.md 2>/dev/null
 ```
 
 ### <feature>
 Show status for a specific feature:
 ```bash
-cat .agent/status/*-<feature>.md 2>/dev/null
+cat .agents/status/*-<feature>.md 2>/dev/null
 ```
 
 ## Output Format
@@ -469,7 +469,7 @@ When displaying status, show:
 
 ## Output
 
-Reads from: `.agent/status/`
+Reads from: `.agents/status/`
 
 ## Workflow
 
@@ -524,5 +524,5 @@ Verify commits are in order:
 4. feat(implement): add session status tracking on completion
 5. feat(verify): implement skill with session status tracking
 6. feat(release): implement skill with session status tracking
-7. feat(retro): remove template, read status from .agent/status/
+7. feat(retro): remove template, read status from .agents/status/
 8. feat(status): implement skill as session status viewer

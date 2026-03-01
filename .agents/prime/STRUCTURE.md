@@ -8,7 +8,7 @@ Documents the directory layout and where different types of files belong.
 
 ```
 beastmode/
-├── .agent/                 # Project context & agent artifacts
+├── .agents/                 # Project context & agent artifacts
 │   ├── CLAUDE.md          # Project brain (imported by root CLAUDE.md)
 │   ├── prime/             # Reference material (loaded by /prime skill)
 │   │   ├── META.md        # Documentation maintenance rules
@@ -49,14 +49,14 @@ beastmode/
 ├── agents/               # Agent documentation
 │   └── discovery.md      # Codebase discovery patterns
 ├── README.md             # Project overview & workflow
-├── CLAUDE.md             # Root entry point (imports .agent/CLAUDE.md)
+├── CLAUDE.md             # Root entry point (imports .agents/CLAUDE.md)
 ├── LICENSE               # MIT License
 └── .gitignore            # Git ignore rules
 ```
 
 ## Key Directories
 
-**`.agent/`** — Project Context & Artifacts
+**`.agents/`** — Project Context & Artifacts
 - Purpose: Central hub for all project knowledge, plans, and agent outputs
 - Contains: Prime documentation, research, designs, plans, status, verification reports, changelogs
 - Persists across sessions; read by `/prime` skill to restore context
@@ -77,12 +77,12 @@ beastmode/
 ## Key File Locations
 
 **Entry Points:**
-- `CLAUDE.md`: Root project rules (imports @.agent/CLAUDE.md)
-- `.agent/CLAUDE.md`: Project brain (<200 lines, summary + @imports)
+- `CLAUDE.md`: Root project rules (imports @.agents/CLAUDE.md)
+- `.agents/CLAUDE.md`: Project brain (<200 lines, summary + @imports)
 - `README.md`: Workflow overview & installation instructions
 
 **Configuration:**
-- `.agent/prime/META.md`: Documentation maintenance rules
+- `.agents/prime/META.md`: Documentation maintenance rules
 - `.claude/settings.local.json`: Local Claude IDE settings
 - `.claude-plugin/plugin.json`: Plugin definition
 
@@ -96,12 +96,12 @@ beastmode/
 - `skills/retro/SKILL.md`: Capture learnings
 
 **Project Knowledge Base (Prime Documents):**
-- `.agent/prime/AGENTS.md`: Multi-agent safety rules
-- `.agent/prime/STACK.md`: Technology stack
-- `.agent/prime/STRUCTURE.md`: Directory layout
-- `.agent/prime/CONVENTIONS.md`: Code conventions
-- `.agent/prime/ARCHITECTURE.md`: System design
-- `.agent/prime/TESTING.md`: Test strategy
+- `.agents/prime/AGENTS.md`: Multi-agent safety rules
+- `.agents/prime/STACK.md`: Technology stack
+- `.agents/prime/STRUCTURE.md`: Directory layout
+- `.agents/prime/CONVENTIONS.md`: Code conventions
+- `.agents/prime/ARCHITECTURE.md`: System design
+- `.agents/prime/TESTING.md`: Test strategy
 
 ## Naming Conventions
 
@@ -114,7 +114,7 @@ beastmode/
 
 **Directories:**
 - `skills/{skill-name}/`: Skill name uses kebab-case (e.g., bootstrap-discovery, bootstrap-wizard)
-- `.agent/{phase-name}/`: Phase directories use lowercase (design, plan, status, verify, release)
+- `.agents/{phase-name}/`: Phase directories use lowercase (design, plan, status, verify, release)
 - `references/`: Supporting files for skills, templates for agents
 - `phases/`: Implementation phase templates (in implement/phases/)
 - `templates/`: Starter templates for bootstrap skill
@@ -127,13 +127,13 @@ beastmode/
 - Templates/phases: `skills/{skill-name}/{templates|phases}/`
 
 **New Documentation:**
-- Project rules/context: `.agent/prime/{RULEFILE}.md`
-- Research findings: `.agent/research/{topic}.md`
-- Design specs: `.agent/design/{feature-date-name}.md`
-- Implementation plans: `.agent/plan/{feature-date-name}.md`
-- Status updates: `.agent/status/STATUS.md`
-- Test reports: `.agent/verify/{report-name}.md`
-- Changelogs: `.agent/release/{version}.md`
+- Project rules/context: `.agents/prime/{RULEFILE}.md`
+- Research findings: `.agents/research/{topic}.md`
+- Design specs: `.agents/design/{feature-date-name}.md`
+- Implementation plans: `.agents/plan/{feature-date-name}.md`
+- Status updates: `.agents/status/STATUS.md`
+- Test reports: `.agents/verify/{report-name}.md`
+- Changelogs: `.agents/release/{version}.md`
 
 **New Agent Documentation:**
 - Discovery guides: `agents/{guide-name}.md`

@@ -13,8 +13,8 @@ Review a prime file that doesn't have a specialized agent. Use this for any new 
 
 ## Artifact Sources to Check
 
-- `.agent/design/*.md` — decisions affecting this document
-- `.agent/plan/*.md` — implementation details
+- `.agents/design/*.md` — decisions affecting this document
+- `.agents/plan/*.md` — implementation details
 - Git diff — recent changes to related files
 - Session records — relevant issues encountered
 

@@ -21,7 +21,7 @@ Rules for Claude and agents working on this project. Ensures safe multi-agent co
 
 ## Refactoring
 
-- **Implementation plans are authoritative**: When executing a `.agent/plan/*.md` file, the plan takes precedence over existing documentation or code comments
+- **Implementation plans are authoritative**: When executing a `.agents/plan/*.md` file, the plan takes precedence over existing documentation or code comments
 - **Grep for old names**: When renaming/deleting, run `grep -r "old-name" .` to find all references
 
 ## Reports

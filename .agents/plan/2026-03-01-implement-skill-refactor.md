@@ -6,7 +6,7 @@
 
 **Tech Stack:** Markdown skill files
 
-**Design Doc:** [.agent/design/2026-03-01-implement-skill-refactor.md](.agent/design/2026-03-01-implement-skill-refactor.md)
+**Design Doc:** [.agents/design/2026-03-01-implement-skill-refactor.md](.agents/design/2026-03-01-implement-skill-refactor.md)
 
 ---
 
@@ -68,7 +68,7 @@ Replace exit criteria with:
 ```markdown
 ## Exit Criteria
 
-✓ Worktree created at `.agent/worktrees/<branch-name>/`
+✓ Worktree created at `.agents/worktrees/<branch-name>/`
 ✓ Branch created: `implement/<feature-name>`
 ✓ Directory verified as gitignored
 
@@ -322,7 +322,7 @@ git add -A
 git commit -m "$(cat <<'EOF'
 feat: <feature-name-from-plan>
 
-Implements plan: .agent/plan/YYYY-MM-DD-<topic>.md
+Implements plan: .agents/plan/YYYY-MM-DD-<topic>.md
 EOF
 )"
 ```

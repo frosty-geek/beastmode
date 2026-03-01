@@ -29,7 +29,7 @@ Run phases in order. Each phase is conversational — wait for feedback before p
 **Session Artifacts:**
 - Design docs from this cycle
 - Plan docs from this cycle
-- Session records in `.agent/status/`
+- Session records in `.agents/status/`
 - Conversation history
 
 ## Quick Exit

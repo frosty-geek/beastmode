@@ -1,6 +1,6 @@
 ---
 name: plan
-description: "Create implementation plans. Outputs to .agent/plan/."
+description: "Create implementation plans. Outputs to .agents/plan/."
 ---
 
 @../_shared/SESSION-TRACKING.md
@@ -19,7 +19,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Announce at start:** "I'm using the /plan skill to create the implementation plan."
 
-**Save plans to:** `.agent/plan/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:** `.agents/plan/YYYY-MM-DD-<feature-name>.md`
 
 ## REQUIRED FIRST STEP: Initialize Task Tracking
 
@@ -53,7 +53,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Tech Stack:** [Key technologies/libraries]
 
-**Design Doc:** [Link to .agent/design/ doc if applicable]
+**Design Doc:** [Link to .agents/design/ doc if applicable]
 
 ---
 ```
@@ -118,7 +118,7 @@ Your ONLY permitted next action is calling `AskUserQuestion` with this EXACT str
 
 ```yaml
 AskUserQuestion:
-  question: "Plan complete and saved to .agent/plan/<filename>.md. Ready to continue with implementation?"
+  question: "Plan complete and saved to .agents/plan/<filename>.md. Ready to continue with implementation?"
   header: "Next Step"
   options:
     - label: "Yes, continue with /implement"
@@ -132,7 +132,7 @@ AskUserQuestion:
 After user responds, print the copy-pasteable command:
 
 ```
-/implement .agent/plan/YYYY-MM-DD-<feature-name>.md
+/implement .agents/plan/YYYY-MM-DD-<feature-name>.md
 ```
 
 Replace with the actual filename you just created. **Do NOT invoke the skill yourself** — let the user copy-paste it.
@@ -178,11 +178,11 @@ TodoWrite:
 
 At plan completion, write the task persistence file **in the same directory as the plan document**.
 
-If the plan is saved to `.agent/plan/2026-01-15-feature.md`, the tasks file MUST be saved to `.agent/plan/2026-01-15-feature.tasks.json`.
+If the plan is saved to `.agents/plan/2026-01-15-feature.md`, the tasks file MUST be saved to `.agents/plan/2026-01-15-feature.tasks.json`.
 
 ```json
 {
-  "planPath": ".agent/plan/2026-01-15-feature.md",
+  "planPath": ".agents/plan/2026-01-15-feature.md",
   "tasks": [
     {"id": 0, "subject": "Task 0: ...", "status": "pending"},
     {"id": 1, "subject": "Task 1: ...", "status": "pending", "blockedBy": [0]}
@@ -191,7 +191,7 @@ If the plan is saved to `.agent/plan/2026-01-15-feature.md`, the tasks file MUST
 }
 ```
 
-Both the plan `.md` and `.tasks.json` must be co-located in `.agent/plan/`.
+Both the plan `.md` and `.tasks.json` must be co-located in `.agents/plan/`.
 
 ### Resuming Work
 
@@ -215,7 +215,7 @@ Part of: bootstrap → prime → research → design → **plan** → implement 
 1. Extract feature name from plan doc filename (e.g., `2026-03-01-session-tracking.md` → `session-tracking`)
 2. Extract date from plan doc filename
 3. Get session path using `get_session_path()` with a unique part of your initial arguments
-4. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+4. Update `.agents/status/YYYY-MM-DD-<feature>.md`
 5. Add entry to "Executed Phases" list
 6. Append Plan phase section with Summary/Decisions/Issues
 

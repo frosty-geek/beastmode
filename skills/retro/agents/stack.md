@@ -13,8 +13,8 @@ Review the STACK.md prime document against this cycle's work to identify new too
 
 ## Artifact Sources to Check
 
-- `.agent/design/*.md` — tech decisions made
-- `.agent/plan/*.md` — tools specified for implementation
+- `.agents/design/*.md` — tech decisions made
+- `.agents/plan/*.md` — tools specified for implementation
 - `package.json`, `pyproject.toml`, etc. — actual dependency state
 - Git diff of manifest files — what changed this cycle
 

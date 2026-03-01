@@ -39,15 +39,15 @@ Tokens (estimated):
   Total:             ~14,700 / 200,000 (7.4%)
 
 Loaded artifacts:
-  - /CLAUDE.md → .agent/CLAUDE.md → .agent/prime/META.md
-  - .agent/design/2026-03-01-phase-context-report.md
+  - /CLAUDE.md → .agents/CLAUDE.md → .agents/prime/META.md
+  - .agents/design/2026-03-01-phase-context-report.md
 
 Phase: design (3 of 7)
 Messages: 12 exchanges
 
 Handoff:
   Continue: Context is fresh, safe to proceed
-  New session: /plan .agent/design/2026-03-01-phase-context-report.md
+  New session: /plan .agents/design/2026-03-01-phase-context-report.md
 ```
 
 ## Implementation

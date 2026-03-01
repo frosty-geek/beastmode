@@ -1,12 +1,12 @@
 # Bootstrap Prefill Implementation Plan
 
-**Goal:** Add two new skills (`/bootstrap-wizard` and `/bootstrap-discovery`) to prefill `.agent/prime/*.md` templates after `/bootstrap`.
+**Goal:** Add two new skills (`/bootstrap-wizard` and `/bootstrap-discovery`) to prefill `.agents/prime/*.md` templates after `/bootstrap`.
 
 **Architecture:** Two skills with shared output targets. Wizard uses conversational GSD-style flow with question bank references. Discovery spawns a subagent for autonomous codebase analysis, then presents findings for approval.
 
 **Tech Stack:** Markdown skill files, Claude Agent SDK subagent pattern
 
-**Design Doc:** [.agent/design/2026-03-01-bootstrap-prefill.md](.agent/design/2026-03-01-bootstrap-prefill.md)
+**Design Doc:** [.agents/design/2026-03-01-bootstrap-prefill.md](.agents/design/2026-03-01-bootstrap-prefill.md)
 
 ---
 
@@ -28,7 +28,7 @@ Create `agents/discovery.md`:
 ```markdown
 # Discovery Subagent
 
-You are a codebase analysis agent. Your job is to analyze an existing codebase and generate structured findings for `.agent/prime/*.md` documentation files.
+You are a codebase analysis agent. Your job is to analyze an existing codebase and generate structured findings for `.agents/prime/*.md` documentation files.
 
 ## Analysis Targets
 
@@ -132,17 +132,17 @@ Create `skills/bootstrap-wizard/SKILL.md`:
 ```markdown
 ---
 name: bootstrap-wizard
-description: Interactive conversational prefill of .agent/prime/*.md templates. Use after /bootstrap to configure project context through GSD-style dialogue. Covers stack, structure, conventions, architecture, testing.
+description: Interactive conversational prefill of .agents/prime/*.md templates. Use after /bootstrap to configure project context through GSD-style dialogue. Covers stack, structure, conventions, architecture, testing.
 ---
 
 # /bootstrap-wizard
 
-Interactive conversational prefill of `.agent/prime/*.md` templates.
+Interactive conversational prefill of `.agents/prime/*.md` templates.
 
 ## Prerequisite Check
 
-**FIRST:** Verify `.agent/prime/` exists.
-- If missing: "Run `/bootstrap` first to create the .agent/ structure."
+**FIRST:** Verify `.agents/prime/` exists.
+- If missing: "Run `/bootstrap` first to create the .agents/ structure."
 - If exists: Proceed with wizard
 
 ## Conversation Style
@@ -180,7 +180,7 @@ Discover via conversation:
 >
 > Approve, edit, or regenerate?"
 
-Write to `.agent/prime/STACK.md` on approval.
+Write to `.agents/prime/STACK.md` on approval.
 
 ### 3. STRUCTURE → STRUCTURE.md
 
@@ -190,7 +190,7 @@ Discover via conversation:
 - Config file locations
 - Where to add new features?
 
-**Present draft** → Write on approval to `.agent/prime/STRUCTURE.md`
+**Present draft** → Write on approval to `.agents/prime/STRUCTURE.md`
 
 ### 4. CONVENTIONS → CONVENTIONS.md
 
@@ -201,7 +201,7 @@ Discover via conversation:
 - Import organization
 - Error handling patterns
 
-**Present draft** → Write on approval to `.agent/prime/CONVENTIONS.md`
+**Present draft** → Write on approval to `.agents/prime/CONVENTIONS.md`
 
 ### 5. ARCHITECTURE → ARCHITECTURE.md
 
@@ -211,7 +211,7 @@ Discover via conversation:
 - Data flow
 - Key architectural decisions and why
 
-**Present draft** → Write on approval to `.agent/prime/ARCHITECTURE.md`
+**Present draft** → Write on approval to `.agents/prime/ARCHITECTURE.md`
 
 ### 6. TESTING → TESTING.md
 
@@ -221,13 +221,13 @@ Discover via conversation:
 - How to run tests
 - Coverage expectations
 
-**Present draft** → Write on approval to `.agent/prime/TESTING.md`
+**Present draft** → Write on approval to `.agents/prime/TESTING.md`
 
 ### 7. WRAP-UP
 
 After all sections:
 
-1. Update `.agent/CLAUDE.md` Rules Summary section with one-liners for each completed file
+1. Update `.agents/CLAUDE.md` Rules Summary section with one-liners for each completed file
 2. Show summary of what was created
 3. Offer to commit:
    > "Want me to commit these changes? (y/n)"
@@ -395,17 +395,17 @@ Create `skills/bootstrap-discovery/SKILL.md`:
 ```markdown
 ---
 name: bootstrap-discovery
-description: Autonomous codebase analysis to generate .agent/prime/*.md docs. Use after /bootstrap on existing projects. Analyzes package manifests, file tree, code patterns, and docs to prefill project context.
+description: Autonomous codebase analysis to generate .agents/prime/*.md docs. Use after /bootstrap on existing projects. Analyzes package manifests, file tree, code patterns, and docs to prefill project context.
 ---
 
 # /bootstrap-discovery
 
-Autonomous codebase analysis to prefill `.agent/prime/*.md` templates.
+Autonomous codebase analysis to prefill `.agents/prime/*.md` templates.
 
 ## Prerequisite Check
 
-**FIRST:** Verify `.agent/prime/` exists.
-- If missing: "Run `/bootstrap` first to create the .agent/ structure."
+**FIRST:** Verify `.agents/prime/` exists.
+- If missing: "Run `/bootstrap` first to create the .agents/ structure."
 - If exists: Proceed with discovery
 
 ## Overview
@@ -451,7 +451,7 @@ For each file in order: STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING
 >
 > Choose: **approve** / **edit** / **regenerate** / **skip**"
 
-3. On approve: Write to `.agent/prime/STACK.md`
+3. On approve: Write to `.agents/prime/STACK.md`
 4. On edit: Ask what to change, update, re-present
 5. On regenerate: Re-run analysis for this section
 6. On skip: Move to next file
@@ -459,7 +459,7 @@ For each file in order: STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING
 ### Step 4: Update CLAUDE.md
 
 After all files processed:
-1. Read `.agent/CLAUDE.md`
+1. Read `.agents/CLAUDE.md`
 2. Update the Rules Summary section with one-liners for each written file
 3. Show changes and confirm before writing
 
@@ -538,7 +538,7 @@ Part of: **bootstrap** → (bootstrap-wizard OR bootstrap-discovery) → prime �
 **Next steps after bootstrap:**
 - `/bootstrap-wizard` — Interactive prefill via conversation
 - `/bootstrap-discovery` — Autonomous codebase analysis
-- Or fill `.agent/prime/*.md` manually
+- Or fill `.agents/prime/*.md` manually
 ```
 
 **Step 3: Verify change**

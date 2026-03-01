@@ -14,8 +14,8 @@ Review the CONVENTIONS.md prime document against this cycle's work to identify n
 ## Artifact Sources to Check
 
 - Git diff — new files, renamed files, code changes
-- `.agent/design/*.md` — convention decisions
-- `.agent/plan/*.md` — naming specified in tasks
+- `.agents/design/*.md` — convention decisions
+- `.agents/plan/*.md` — naming specified in tasks
 - Actual code files — what patterns are being used
 
 ## Questions to Answer

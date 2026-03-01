@@ -44,14 +44,14 @@ skills/retro/
 ### Session Artifacts
 
 ```
-.agent/status/
+.agents/status/
 └── YYYY-MM-DD-<feature>-session.md   # Per-session records
 ```
 
 Session files follow the same naming pattern as design/plan:
-- `.agent/design/YYYY-MM-DD-<feature>.md`
-- `.agent/plan/YYYY-MM-DD-<feature>.md`
-- `.agent/status/YYYY-MM-DD-<feature>-session.md`
+- `.agents/design/YYYY-MM-DD-<feature>.md`
+- `.agents/plan/YYYY-MM-DD-<feature>.md`
+- `.agents/status/YYYY-MM-DD-<feature>-session.md`
 
 Feature context is inferred from filename pattern — no separate STATUS.md needed.
 
@@ -64,8 +64,8 @@ Feature context is inferred from filename pattern — no separate STATUS.md need
 - **Phase**: design | plan | implement | verify | retro
 - **Feature**: <feature-name>
 - **Related artifacts**:
-  - Design: .agent/design/YYYY-MM-DD-<feature>.md
-  - Plan: .agent/plan/YYYY-MM-DD-<feature>.md
+  - Design: .agents/design/YYYY-MM-DD-<feature>.md
+  - Plan: .agents/plan/YYYY-MM-DD-<feature>.md
 
 ## Session Summary
 <!-- Brief description of what was accomplished -->
@@ -86,7 +86,7 @@ Feature context is inferred from filename pattern — no separate STATUS.md need
 /retro
     │
     ├─► Phase 0: Gather Context
-    │   ├── Read .agent/status/*-session.md files
+    │   ├── Read .agents/status/*-session.md files
     │   ├── Identify feature name from current session or recent plan
     │   ├── Load related artifacts (design, plan, sessions)
     │   └── Build context payload for agents
@@ -145,7 +145,7 @@ Feature context is inferred from filename pattern — no separate STATUS.md need
 
 ### Session Records in status/
 - **Context**: Need to track multiple sessions per feature cycle
-- **Decision**: Store session records in `.agent/status/YYYY-MM-DD-<feature>-session.md`
+- **Decision**: Store session records in `.agents/status/YYYY-MM-DD-<feature>-session.md`
 - **Rationale**: Reuses existing pattern; feature context inferred from filename
 
 ### No STATUS.md
@@ -158,7 +158,7 @@ Feature context is inferred from filename pattern — no separate STATUS.md need
 ### In Scope
 - Parallel prime file review with specific prompts per file
 - CLAUDE.md review integrated into the parallel batch
-- Session records in `.agent/status/YYYY-MM-DD-<feature>-session.md`
+- Session records in `.agents/status/YYYY-MM-DD-<feature>-session.md`
 - Findings synthesis and user approval flow
 - Generic prompt fallback for new prime files
 
@@ -192,5 +192,5 @@ Feature context is inferred from filename pattern — no separate STATUS.md need
 1. Running `/retro` spawns 8 parallel agents to review prime files + CLAUDE.md
 2. Findings are grouped by file and presented for user approval
 3. Approved changes are applied and committed
-4. Session records can be created in `.agent/status/` with correct naming pattern
+4. Session records can be created in `.agents/status/` with correct naming pattern
 5. Generic prompt handles any new prime files not in the predefined list

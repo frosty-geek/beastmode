@@ -6,7 +6,7 @@
 
 **Tech Stack:** Markdown skill definitions, Claude Agent tool with haiku model, Explore subagent type
 
-**Design Doc:** [.agent/design/2026-03-01-retro-prime-review.md](.agent/design/2026-03-01-retro-prime-review.md)
+**Design Doc:** [.agents/design/2026-03-01-retro-prime-review.md](.agents/design/2026-03-01-retro-prime-review.md)
 
 ---
 
@@ -120,16 +120,16 @@ Review the META.md prime document against this cycle's artifacts to identify doc
 ## Review Focus
 
 1. **Writing guidelines compliance** — Are the cycle's artifacts (design docs, plans) following META.md's writing guidelines?
-2. **Rules Summary sync** — Does `.agent/CLAUDE.md` Rules Summary accurately reflect all prime file rules?
+2. **Rules Summary sync** — Does `.agents/CLAUDE.md` Rules Summary accurately reflect all prime file rules?
 3. **File conventions** — Are new files following UPPERCASE/lowercase conventions?
 4. **Anti-bloat adherence** — Are docs concise, using bullets over paragraphs?
 
 ## Artifact Sources to Check
 
-- `.agent/design/*.md` — design docs from this cycle
-- `.agent/plan/*.md` — plan docs from this cycle
-- `.agent/CLAUDE.md` — Rules Summary section
-- `.agent/prime/*.md` — all prime files for sync check
+- `.agents/design/*.md` — design docs from this cycle
+- `.agents/plan/*.md` — plan docs from this cycle
+- `.agents/CLAUDE.md` — Rules Summary section
+- `.agents/prime/*.md` — all prime files for sync check
 
 ## Questions to Answer
 
@@ -177,9 +177,9 @@ Review the AGENTS.md prime document against this cycle's work to identify multi-
 
 ## Artifact Sources to Check
 
-- Session records in `.agent/status/*-session.md` — issues encountered
+- Session records in `.agents/status/*-session.md` — issues encountered
 - Git history — commit patterns, merge conflicts
-- `.agent/plan/*.md` — were there multi-agent coordination requirements?
+- `.agents/plan/*.md` — were there multi-agent coordination requirements?
 
 ## Questions to Answer
 
@@ -227,8 +227,8 @@ Review the STACK.md prime document against this cycle's work to identify new too
 
 ## Artifact Sources to Check
 
-- `.agent/design/*.md` — tech decisions made
-- `.agent/plan/*.md` — tools specified for implementation
+- `.agents/design/*.md` — tech decisions made
+- `.agents/plan/*.md` — tools specified for implementation
 - `package.json`, `pyproject.toml`, etc. — actual dependency state
 - Git diff of manifest files — what changed this cycle
 
@@ -279,8 +279,8 @@ Review the STRUCTURE.md prime document against this cycle's work to identify new
 ## Artifact Sources to Check
 
 - Git diff — files/directories added this cycle
-- `.agent/design/*.md` — structural decisions
-- `.agent/plan/*.md` — file creation plans
+- `.agents/design/*.md` — structural decisions
+- `.agents/plan/*.md` — file creation plans
 - Actual directory structure via `find` or `tree`
 
 ## Questions to Answer
@@ -330,8 +330,8 @@ Review the CONVENTIONS.md prime document against this cycle's work to identify n
 ## Artifact Sources to Check
 
 - Git diff — new files, renamed files, code changes
-- `.agent/design/*.md` — convention decisions
-- `.agent/plan/*.md` — naming specified in tasks
+- `.agents/design/*.md` — convention decisions
+- `.agents/plan/*.md` — naming specified in tasks
 - Actual code files — what patterns are being used
 
 ## Questions to Answer
@@ -380,8 +380,8 @@ Review the ARCHITECTURE.md prime document against this cycle's work to identify 
 
 ## Artifact Sources to Check
 
-- `.agent/design/*.md` — architectural decisions made
-- `.agent/plan/*.md` — component/system changes planned
+- `.agents/design/*.md` — architectural decisions made
+- `.agents/plan/*.md` — component/system changes planned
 - Git diff — significant code structure changes
 - New files that represent new system components
 
@@ -432,7 +432,7 @@ Review the TESTING.md prime document against this cycle's work to identify test 
 
 ## Artifact Sources to Check
 
-- `.agent/plan/*.md` — test requirements in tasks
+- `.agents/plan/*.md` — test requirements in tasks
 - Git diff of test files — new tests added
 - CI configuration — test commands in workflows
 - Actual test file structure
@@ -473,7 +473,7 @@ git commit -m "feat(retro): add TESTING.md review agent"
 
 ## Role
 
-Review the .agent/CLAUDE.md file against this cycle's work to identify Rules Summary updates or new project rules needed.
+Review the .agents/CLAUDE.md file against this cycle's work to identify Rules Summary updates or new project rules needed.
 
 ## Review Focus
 
@@ -484,8 +484,8 @@ Review the .agent/CLAUDE.md file against this cycle's work to identify Rules Sum
 
 ## Artifact Sources to Check
 
-- `.agent/prime/*.md` — all prime files for sync check
-- `.agent/design/*.md` — decisions that might become rules
+- `.agents/prime/*.md` — all prime files for sync check
+- `.agents/design/*.md` — decisions that might become rules
 - Session records — user preferences expressed
 - Git history — what rules changed this cycle
 
@@ -535,8 +535,8 @@ Review a prime file that doesn't have a specialized agent. Use this for any new 
 
 ## Artifact Sources to Check
 
-- `.agent/design/*.md` — decisions affecting this document
-- `.agent/plan/*.md` — implementation details
+- `.agents/design/*.md` — decisions affecting this document
+- `.agents/plan/*.md` — implementation details
 - Git diff — recent changes to related files
 - Session records — relevant issues encountered
 
@@ -612,9 +612,9 @@ You are an expert in prompt engineering, specializing in optimizing AI code assi
 
 Collect artifacts from the current development cycle:
 
-1. **Find session records**: `ls .agent/status/*-session.md 2>/dev/null`
-2. **Find design docs**: `ls .agent/design/*.md 2>/dev/null`
-3. **Find plan docs**: `ls .agent/plan/*.md 2>/dev/null`
+1. **Find session records**: `ls .agents/status/*-session.md 2>/dev/null`
+2. **Find design docs**: `ls .agents/design/*.md 2>/dev/null`
+3. **Find plan docs**: `ls .agents/plan/*.md 2>/dev/null`
 4. **Identify feature name**: Extract from most recent plan or design filename
 
 Build a context summary:
@@ -645,7 +645,7 @@ Agent:
     [agents/common.md content]
 
     ## Current Content
-    [.agent/prime/META.md content]
+    [.agents/prime/META.md content]
 
     ## Cycle Artifacts
     [design/plan/session summaries]
@@ -798,7 +798,7 @@ Run phases in order. Each phase is conversational — wait for feedback before p
 **Session Artifacts:**
 - Design docs from this cycle
 - Plan docs from this cycle
-- Session records in `.agent/status/`
+- Session records in `.agents/status/`
 - Conversation history
 
 ## Quick Exit
@@ -857,8 +857,8 @@ mkdir -p skills/retro/templates
 - **Phase**: design | plan | implement | verify | retro
 - **Feature**: <feature-name>
 - **Related artifacts**:
-  - Design: .agent/design/YYYY-MM-DD-<feature>.md
-  - Plan: .agent/plan/YYYY-MM-DD-<feature>.md
+  - Design: .agents/design/YYYY-MM-DD-<feature>.md
+  - Plan: .agents/plan/YYYY-MM-DD-<feature>.md
 
 ## Session Summary
 <!-- Brief description of what was accomplished -->

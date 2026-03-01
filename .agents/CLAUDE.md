@@ -1,6 +1,6 @@
 # beastmode
 
-@.agent/prime/META.md
+@.agents/prime/META.md
 
 ## Prime Directives
 
@@ -9,27 +9,27 @@
 ## Rules Summary
 
 ### 1. Agents
-See .agent/prime/AGENTS.md
+See .agents/prime/AGENTS.md
 - ALWAYS verify in code; NEVER guess
 - NEVER create/drop git stash unless explicitly requested
 - ALWAYS assume other agents may be working
 
 ### 2. Stack
-See .agent/prime/STACK.md
+See .agents/prime/STACK.md
 - Claude Code plugin system with markdown + YAML skill definitions; no runtime dependencies
 
 ### 3. Structure
-See .agent/prime/STRUCTURE.md
-- Skills in `skills/{name}/SKILL.md`; artifacts in `.agent/{phase}/`; prime docs in `.agent/prime/`
+See .agents/prime/STRUCTURE.md
+- Skills in `skills/{name}/SKILL.md`; artifacts in `.agents/{phase}/`; prime docs in `.agents/prime/`
 
 ### 4. Conventions
-See .agent/prime/CONVENTIONS.md
+See .agents/prime/CONVENTIONS.md
 - UPPERCASE.md for meta files; kebab-case for skills; @ imports for references
 
 ### 5. Architecture
-See .agent/prime/ARCHITECTURE.md
-- Seven-phase workflow (prime → research → design → plan → implement → verify → retro) with .agent/ persistence
+See .agents/prime/ARCHITECTURE.md
+- Seven-phase workflow (prime → research → design → plan → implement → verify → retro) with .agents/ persistence
 
 ### 6. Testing
-See .agent/prime/TESTING.md
+See .agents/prime/TESTING.md
 - Self-referential testing via `/bootstrap-discovery` on actual codebases; verify prime files have real content

@@ -20,7 +20,7 @@ git add -A
 git commit -m "$(cat <<'EOF'
 feat: <feature-name-from-plan>
 
-Implements plan: .agent/plan/YYYY-MM-DD-<topic>.md
+Implements plan: .agents/plan/YYYY-MM-DD-<topic>.md
 EOF
 )"
 ```

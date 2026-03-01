@@ -13,9 +13,9 @@ Review the AGENTS.md prime document against this cycle's work to identify multi-
 
 ## Artifact Sources to Check
 
-- Session records in `.agent/status/*-session.md` — issues encountered
+- Session records in `.agents/status/*-session.md` — issues encountered
 - Git history — commit patterns, merge conflicts
-- `.agent/plan/*.md` — were there multi-agent coordination requirements?
+- `.agents/plan/*.md` — were there multi-agent coordination requirements?
 
 ## Questions to Answer
 

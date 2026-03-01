@@ -1,16 +1,16 @@
 ---
 name: bootstrap
-description: Initialize a project with the .agent/ folder structure for Claude and agents. Creates canonical workflow folders and prime/ reference templates.
+description: Initialize a project with the .agents/ folder structure for Claude and agents. Creates canonical workflow folders and prime/ reference templates.
 ---
 
 # /bootstrap
 
-Initialize a project with Michi's canonical `.agent/` folder structure.
+Initialize a project with Michi's canonical `.agents/` folder structure.
 
 ## What It Creates
 
 ```
-.agent/
+.agents/
 ├── CLAUDE.md           # <200 lines, summary + @imports
 ├── prime/              # Reference material
 │   ├── META.md         # How to maintain docs (invariant)
@@ -27,18 +27,18 @@ Initialize a project with Michi's canonical `.agent/` folder structure.
 ├── verify/             # /verify output
 └── release/            # /release output
 
-./CLAUDE.md             # Bridge: @.agent/CLAUDE.md
+./CLAUDE.md             # Bridge: @.agents/CLAUDE.md
 ```
 
 ## Instructions
 
-1. Create `.agent/` directory structure with all verb folders
+1. Create `.agents/` directory structure with all verb folders
 2. Copy invariant files from templates (META.md, AGENTS.md) - pre-filled
 3. Copy template files from templates (STACK.md, etc.) - section headers + guidelines
-4. Copy CLAUDE.md template to `.agent/CLAUDE.md`
+4. Copy CLAUDE.md template to `.agents/CLAUDE.md`
 5. Replace `{project-name}` with actual project name
 6. Handle `./CLAUDE.md`:
-   - If not exists: create with content `@.agent/CLAUDE.md`
+   - If not exists: create with content `@.agents/CLAUDE.md`
    - If exists: ask user before replacing
 
 ## Templates
@@ -60,4 +60,4 @@ Part of: **bootstrap** → (bootstrap-wizard OR bootstrap-discovery) → prime �
 **Next steps after bootstrap:**
 - `/bootstrap-wizard` — Interactive prefill via conversation
 - `/bootstrap-discovery` — Autonomous codebase analysis
-- Or fill `.agent/prime/*.md` manually
+- Or fill `.agents/prime/*.md` manually

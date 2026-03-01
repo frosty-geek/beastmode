@@ -36,7 +36,7 @@ get_session_path() {
 
 ## 2. Status File Structure
 
-**Location:** `.agent/status/YYYY-MM-DD-<feature>.md`
+**Location:** `.agents/status/YYYY-MM-DD-<feature>.md`
 
 **Format:**
 
@@ -46,8 +46,8 @@ get_session_path() {
 ## Context
 - **Feature**: <feature-name>
 - **Related artifacts**:
-  - Design: .agent/design/YYYY-MM-DD-<feature>.md
-  - Plan: .agent/plan/YYYY-MM-DD-<feature>.md
+  - Design: .agents/design/YYYY-MM-DD-<feature>.md
+  - Plan: .agents/plan/YYYY-MM-DD-<feature>.md
 
 ### Executed Phases
 - [Design — HH:MM](#design--hhmm) · `<absolute-path-to-session.jsonl>`
@@ -88,7 +88,7 @@ Each phase skill (design, plan, implement, verify, release):
 
 **On completion:**
 1. Get Claude session path using `get_session_path()`
-2. Create or update `.agent/status/YYYY-MM-DD-<feature>.md`
+2. Create or update `.agents/status/YYYY-MM-DD-<feature>.md`
 3. Add entry to "Executed Phases" list in Context section
 4. Append phase section with Summary/Decisions/Issues
 
@@ -99,11 +99,11 @@ Each phase skill (design, plan, implement, verify, release):
 | Phase | Source |
 |-------|--------|
 | `/design` | User provides topic, or extracted from arguments |
-| `/plan` | From design doc path: `.agent/design/2026-03-01-<feature>.md` → `<feature>` |
-| `/implement` | From plan doc path: `.agent/plan/2026-03-01-<feature>.md` → `<feature>` |
+| `/plan` | From design doc path: `.agents/design/2026-03-01-<feature>.md` → `<feature>` |
+| `/implement` | From plan doc path: `.agents/plan/2026-03-01-<feature>.md` → `<feature>` |
 | `/verify` | From most recent status file, or passed explicitly |
 | `/release` | From most recent status file, or passed explicitly |
-| `/retro` | Scans all status files in `.agent/status/` |
+| `/retro` | Scans all status files in `.agents/status/` |
 
 ---
 
@@ -116,7 +116,7 @@ Each phase skill (design, plan, implement, verify, release):
 | `/implement` | Add status file update on completion |
 | `/verify` | Add status file update on completion |
 | `/release` | Add status file update on completion |
-| `/retro` | Remove template, read from `.agent/status/` |
+| `/retro` | Remove template, read from `.agents/status/` |
 | `/status` | Implement as reader/viewer of status files |
 
 ---
@@ -132,5 +132,5 @@ Each phase skill (design, plan, implement, verify, release):
 - `skills/implement/SKILL.md` — Add status tracking on completion
 - `skills/verify/SKILL.md` — Add status tracking on completion
 - `skills/release/SKILL.md` — Add status tracking on completion
-- `skills/retro/SKILL.md` — Update to read from `.agent/status/`
+- `skills/retro/SKILL.md` — Update to read from `.agents/status/`
 - `skills/status/SKILL.md` — Implement as status file viewer

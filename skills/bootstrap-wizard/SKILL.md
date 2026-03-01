@@ -1,16 +1,16 @@
 ---
 name: bootstrap-wizard
-description: Interactive conversational prefill of .agent/prime/*.md templates. Use after /bootstrap to configure project context through GSD-style dialogue. Covers stack, structure, conventions, architecture, testing.
+description: Interactive conversational prefill of .agents/prime/*.md templates. Use after /bootstrap to configure project context through GSD-style dialogue. Covers stack, structure, conventions, architecture, testing.
 ---
 
 # /bootstrap-wizard
 
-Interactive conversational prefill of `.agent/prime/*.md` templates.
+Interactive conversational prefill of `.agents/prime/*.md` templates.
 
 ## Prerequisite Check
 
-**FIRST:** Verify `.agent/prime/` exists.
-- If missing: "Run `/bootstrap` first to create the .agent/ structure."
+**FIRST:** Verify `.agents/prime/` exists.
+- If missing: "Run `/bootstrap` first to create the .agents/ structure."
 - If exists: Proceed with wizard
 
 ## Conversation Style
@@ -48,7 +48,7 @@ Discover via conversation:
 >
 > Approve, edit, or regenerate?"
 
-Write to `.agent/prime/STACK.md` on approval.
+Write to `.agents/prime/STACK.md` on approval.
 
 ### 3. STRUCTURE → STRUCTURE.md
 
@@ -58,7 +58,7 @@ Discover via conversation:
 - Config file locations
 - Where to add new features?
 
-**Present draft** → Write on approval to `.agent/prime/STRUCTURE.md`
+**Present draft** → Write on approval to `.agents/prime/STRUCTURE.md`
 
 ### 4. CONVENTIONS → CONVENTIONS.md
 
@@ -69,7 +69,7 @@ Discover via conversation:
 - Import organization
 - Error handling patterns
 
-**Present draft** → Write on approval to `.agent/prime/CONVENTIONS.md`
+**Present draft** → Write on approval to `.agents/prime/CONVENTIONS.md`
 
 ### 5. ARCHITECTURE → ARCHITECTURE.md
 
@@ -79,7 +79,7 @@ Discover via conversation:
 - Data flow
 - Key architectural decisions and why
 
-**Present draft** → Write on approval to `.agent/prime/ARCHITECTURE.md`
+**Present draft** → Write on approval to `.agents/prime/ARCHITECTURE.md`
 
 ### 6. TESTING → TESTING.md
 
@@ -89,13 +89,13 @@ Discover via conversation:
 - How to run tests
 - Coverage expectations
 
-**Present draft** → Write on approval to `.agent/prime/TESTING.md`
+**Present draft** → Write on approval to `.agents/prime/TESTING.md`
 
 ### 7. WRAP-UP
 
 After all sections:
 
-1. Update `.agent/CLAUDE.md` Rules Summary section with one-liners for each completed file
+1. Update `.agents/CLAUDE.md` Rules Summary section with one-liners for each completed file
 2. Show summary of what was created
 3. Offer to commit:
    > "Want me to commit these changes? (y/n)"

@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Execute implementation plans in isolated git worktrees. Creates .agent/worktrees/ workspace, runs tasks from .agent/plan/*.md, merges back to main on completion. Use when you have a plan ready to implement or when executing multi-task development work."
+description: "Execute implementation plans in isolated git worktrees. Creates .agents/worktrees/ workspace, runs tasks from .agents/plan/*.md, merges back to main on completion. Use when you have a plan ready to implement or when executing multi-task development work."
 ---
 
 @../_shared/SESSION-TRACKING.md
@@ -25,9 +25,9 @@ Create isolated worktree, load plan, execute tasks, merge back, cleanup.
 /implement <plan-path>
 ```
 
-Example: `/implement .agent/plan/2026-03-01-feature.md`
+Example: `/implement .agents/plan/2026-03-01-feature.md`
 
-If no path provided, list available plans in `.agent/plan/` and ask user to select.
+If no path provided, list available plans in `.agents/plan/` and ask user to select.
 
 ## The Four Phases
 
@@ -119,7 +119,7 @@ Part of: bootstrap → prime → research → design → plan → **implement** 
 1. Extract feature name from plan doc filename
 2. Extract date from plan doc filename
 3. Get session path using `get_session_path()` with a unique part of your initial arguments
-4. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+4. Update `.agents/status/YYYY-MM-DD-<feature>.md`
 5. Add entry to "Executed Phases" list
 6. Append Implement phase section with:
    - Summary: tasks completed, merge status

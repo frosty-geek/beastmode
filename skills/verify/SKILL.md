@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Run verification and create reports. Outputs to .agent/verify/.
+description: Run verification and create reports. Outputs to .agents/verify/.
 ---
 
 @../_shared/SESSION-TRACKING.md
@@ -21,7 +21,7 @@ Run tests, check coverage, verify the implementation matches the plan.
 /verify [feature-name]
 ```
 
-If no feature provided, look for most recent status file in `.agent/status/`.
+If no feature provided, look for most recent status file in `.agents/status/`.
 
 ## Process
 
@@ -29,11 +29,11 @@ If no feature provided, look for most recent status file in `.agent/status/`.
 2. Run test suite
 3. Check test coverage
 4. Verify against plan requirements
-5. Write report to `.agent/verify/YYYY-MM-DD-<feature>.md`
+5. Write report to `.agents/verify/YYYY-MM-DD-<feature>.md`
 
 ## Output
 
-Writes to: `.agent/verify/`
+Writes to: `.agents/verify/`
 
 ## Workflow
 
@@ -45,7 +45,7 @@ Part of: bootstrap → prime → research → design → plan → implement → 
 
 1. Get feature name from argument or infer from recent status
 2. Get session path using `get_session_path()` with a unique part of your initial arguments
-3. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+3. Update `.agents/status/YYYY-MM-DD-<feature>.md`
 4. Add entry to "Executed Phases" list
 5. Append Verify phase section with test results summary
 

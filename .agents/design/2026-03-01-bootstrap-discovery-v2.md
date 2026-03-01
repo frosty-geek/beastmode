@@ -31,15 +31,15 @@ The original bootstrap-discovery used a single Explore agent to analyze everythi
 
 ```
 Coordinator:
-  1. Check .agent/prime/ exists
+  1. Check .agents/prime/ exists
   2. For each prime (STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING):
      - Read references/{prime}-agent.md
      - Read references/common-instructions.md
-     - Read .agent/prime/{PRIME}.md
+     - Read .agents/prime/{PRIME}.md
      - Concatenate into prompt
   3. Spawn 5 Explore agents in parallel with assembled prompts
   4. Collect markdown outputs
-  5. Write each output to .agent/prime/{PRIME}.md
+  5. Write each output to .agents/prime/{PRIME}.md
   6. Update CLAUDE.md per META.md conventions
   7. Offer to commit
 ```
@@ -74,7 +74,7 @@ Each agent prompt is assembled by concatenating:
 1. references/{prime}-agent.md      # Role + exploration hints
 2. references/common-instructions.md # Output rules + safety
 3. "## Current Content\n\n"
-4. .agent/prime/{PRIME}.md          # Existing file content
+4. .agents/prime/{PRIME}.md          # Existing file content
 ```
 
 Example assembled prompt for STACK agent:
@@ -101,7 +101,7 @@ Update sections with stale information.
 ## Current Content
 
 # STACK - Technology Stack
-[... current .agent/prime/STACK.md content ...]
+[... current .agents/prime/STACK.md content ...]
 ```
 
 ## Agent Output

@@ -62,8 +62,8 @@ Write task state to co-located file:
 
 ```json
 {
-  "planPath": ".agent/plan/2026-03-01-feature.md",
-  "worktree": ".agent/worktrees/implement/feature",
+  "planPath": ".agents/plan/2026-03-01-feature.md",
+  "worktree": ".agents/worktrees/implement/feature",
   "branch": "implement/feature",
   "tasks": [
     {"id": 0, "subject": "Task 0: ...", "status": "pending"},

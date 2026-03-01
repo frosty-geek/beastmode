@@ -1,6 +1,6 @@
 ---
 name: status
-description: Track current project state and milestones. Reads/writes .agent/status/.
+description: Track current project state and milestones. Reads/writes .agents/status/.
 ---
 
 # /status
@@ -24,18 +24,18 @@ Display current session status, list all sessions, or show specific session deta
 ## Commands
 
 ### Default (no args)
-Show the most recently modified status file in `.agent/status/`.
+Show the most recently modified status file in `.agents/status/`.
 
 ### list
 List all status files with their features and dates:
 ```bash
-ls -lt .agent/status/*.md 2>/dev/null
+ls -lt .agents/status/*.md 2>/dev/null
 ```
 
 ### <feature>
 Show status for a specific feature:
 ```bash
-cat .agent/status/*-<feature>.md 2>/dev/null
+cat .agents/status/*-<feature>.md 2>/dev/null
 ```
 
 ## Output Format
@@ -48,7 +48,7 @@ When displaying status, show:
 
 ## Output
 
-Reads from: `.agent/status/`
+Reads from: `.agents/status/`
 
 ## Workflow
 
