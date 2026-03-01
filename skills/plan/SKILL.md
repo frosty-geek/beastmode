@@ -3,6 +3,8 @@ name: plan
 description: "Create implementation plans. Outputs to .agent/plan/."
 ---
 
+@../references/session-tracking.md
+
 # /plan
 
 ## CRITICAL CONSTRAINTS — Read Before Anything Else
@@ -205,3 +207,14 @@ The skill reads the `.tasks.json` file and continues from where it left off.
 ## Workflow
 
 Part of: bootstrap → prime → research → design → **plan** → implement → status → verify → release → retro
+
+## Session Status Tracking
+
+**On completion (after writing plan doc and committing):**
+
+1. Extract feature name from plan doc filename (e.g., `2026-03-01-session-tracking.md` → `session-tracking`)
+2. Extract date from plan doc filename
+3. Get session path using `get_session_path()` with a unique part of your initial arguments
+4. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+5. Add entry to "Executed Phases" list
+6. Append Plan phase section with Summary/Decisions/Issues
