@@ -1,102 +1,134 @@
 ---
 name: bootstrap-discovery
-description: Autonomous codebase analysis to generate .agent/prime/*.md docs. Use after /bootstrap on existing projects. Analyzes package manifests, file tree, code patterns, and docs to prefill project context.
+description: Autonomous parallel codebase analysis to generate .agent/prime/*.md docs. Spawns 5 Explore agents simultaneously for STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING. Merges findings with existing content. Use after /bootstrap on existing projects.
 ---
 
 # /bootstrap-discovery
 
-Autonomous codebase analysis to prefill `.agent/prime/*.md` templates.
+Autonomous codebase analysis with parallel agents. Analyzes project and populates `.agent/prime/*.md` files.
 
-## Prerequisite Check
+## Prerequisite
 
-**FIRST:** Verify `.agent/prime/` exists.
-- If missing: "Run `/bootstrap` first to create the .agent/ structure."
-- If exists: Proceed with discovery
-
-## Overview
-
-This skill spawns a discovery subagent to analyze the codebase, then presents findings for your approval before writing each file.
+Verify `.agent/prime/` exists. If missing: "Run `/bootstrap` first to create the .agent/ structure."
 
 ## Execution Flow
 
-### Step 1: Announce
+```yaml
+1. Read Current State:
+   - Read all 5 prime files
+   - Store content for agent prompts
 
-> "Starting codebase discovery. I'll analyze your project and propose content for each prime document."
+2. Spawn 5 Agents (parallel):
+   - STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING
+   - Use Agent tool with subagent_type: Explore, model: haiku
+   - Each gets: role + hints + current content + output schema
 
-### Step 2: Spawn Discovery Subagent
+3. Collect Results:
+   - Wait for all agents
+   - Parse JSON responses
 
-Use the Agent tool with subagent_type `Explore`:
+4. Merge & Write:
+   - Apply merge strategy per section
+   - Write to .agent/prime/{FILE}.md
+
+5. Update CLAUDE.md:
+   - Generate one-liner summaries
+   - Update Rules Summary section
+
+6. Complete:
+   - List updated files
+   - Offer to commit
+```
+
+## Agent Invocation
+
+Spawn all 5 agents in a single message for parallel execution:
 
 ```yaml
 Agent:
   subagent_type: Explore
+  model: haiku
+  description: "Analyze STACK"
   prompt: |
-    Analyze this codebase following the discovery.md prompt.
-    Return structured JSON findings for STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, and TESTING.
-  description: "Analyze codebase for prime docs"
+    [STACK agent prompt - see references/agent-prompts.md]
+
+    Current STACK.md content:
+    [paste current content]
+
+Agent:
+  subagent_type: Explore
+  model: haiku
+  description: "Analyze STRUCTURE"
+  prompt: |
+    [STRUCTURE agent prompt - see references/agent-prompts.md]
+
+    Current STRUCTURE.md content:
+    [paste current content]
+
+# ... CONVENTIONS, ARCHITECTURE, TESTING agents
 ```
 
-The subagent will:
-- Scan package manifests (package.json, pyproject.toml, etc.)
-- Analyze directory structure
-- Sample code for patterns
-- Check existing documentation
-- Return structured findings
+## Output Schema
 
-### Step 3: Present Findings
+Each agent returns JSON:
 
-For each file in order: STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING
+```json
+{
+  "prime": "STACK",
+  "confidence": "high",
+  "sections": {
+    "Core Stack": {
+      "action": "replace",
+      "content": "**Runtime:**\n- Language: TypeScript 5.4\n- Runtime: Bun 1.2"
+    },
+    "Key Dependencies": {
+      "action": "merge",
+      "content": "| zod | Schema validation |"
+    }
+  },
+  "sources": ["package.json", "tsconfig.json"]
+}
+```
 
-1. Transform subagent findings into markdown format matching template structure
-2. Present to user:
+## Merge Strategy
 
-> "**STACK.md** — Based on analysis:
->
-> [show proposed content]
->
-> Choose: **approve** / **edit** / **regenerate** / **skip**"
+| Action | Behavior |
+|--------|----------|
+| `replace` | Overwrite section with new content |
+| `merge` | Append to existing (tables, lists) |
+| `keep` | Leave existing unchanged |
 
-3. On approve: Write to `.agent/prime/STACK.md`
-4. On edit: Ask what to change, update, re-present
-5. On regenerate: Re-run analysis for this section
-6. On skip: Move to next file
+### Placeholder Detection
 
-### Step 4: Update CLAUDE.md
+Agents identify placeholders by patterns:
+- `[e.g., ...]` — example placeholder
+- `[what it's used for]` — instruction placeholder
+- `[command]` — empty placeholder
+- `<!-- Fill in ... -->` — comment placeholder
 
-After all files processed:
-1. Read `.agent/CLAUDE.md`
-2. Update the Rules Summary section with one-liners for each written file
-3. Show changes and confirm before writing
+Sections with only placeholders → `action: replace`
 
-### Step 5: Wrap-Up
+## Error Handling
 
-> "Discovery complete. Files created:
-> - ✅ STACK.md
-> - ✅ STRUCTURE.md
-> - ⏭️ CONVENTIONS.md (skipped)
-> - ✅ ARCHITECTURE.md
-> - ✅ TESTING.md
->
-> Want me to commit these changes? (y/n)"
-
-## Analysis Sources
-
-| Source | Files | Informs |
-|--------|-------|---------|
-| Package manifests | `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod` | STACK.md |
-| Config files | `.eslintrc`, `tsconfig.json`, `.prettierrc`, `ruff.toml` | STACK.md, CONVENTIONS.md |
-| Directory tree | Root structure analysis | STRUCTURE.md |
-| Code samples | 2-3 representative source files | CONVENTIONS.md |
-| Documentation | `README.md`, `docs/` | ARCHITECTURE.md |
-| Test files | `tests/`, `__tests__/`, `*_test.*` | TESTING.md |
+- Agent timeout → skip prime, log warning
+- Malformed JSON → skip, preserve existing
+- Empty response → preserve existing
 
 ## Safety Rules
 
 - **Never read:** `.env`, `*.pem`, `credentials*`, `secrets*`, `*.key`
-- **Always cite:** Include file paths for findings
-- **Mark uncertainty:** Use `[inferred]` for low-confidence findings
-- **Ask when unclear:** If findings are ambiguous, ask user to clarify
+- **Always cite:** Include source files in response
+- **Mark uncertainty:** Use confidence levels
+
+## References
+
+- [references/common-instructions.md](references/common-instructions.md) - Output format and safety rules (include in all prompts)
+- [references/stack-agent.md](references/stack-agent.md) - STACK agent prompt
+- [references/structure-agent.md](references/structure-agent.md) - STRUCTURE agent prompt
+- [references/conventions-agent.md](references/conventions-agent.md) - CONVENTIONS agent prompt
+- [references/architecture-agent.md](references/architecture-agent.md) - ARCHITECTURE agent prompt
+- [references/testing-agent.md](references/testing-agent.md) - TESTING agent prompt
 
 ## Workflow
 
-Part of: bootstrap → bootstrap-wizard OR **bootstrap-discovery** → prime → research → design → ...
+Part of: bootstrap → **bootstrap-discovery** → prime → research → design → plan → implement
