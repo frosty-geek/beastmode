@@ -10,6 +10,7 @@ Review the STRUCTURE.md prime document against this cycle's work to identify new
 2. **File patterns** — Are there new file naming patterns to document?
 3. **Layout accuracy** — Does the directory tree still match reality?
 4. **Where to add** — Should new "where to add" guidance be included?
+5. **Design prescriptions** — Did the design doc establish structural patterns that should be documented?
 
 ## Artifact Sources to Check
 
@@ -23,5 +24,6 @@ Review the STRUCTURE.md prime document against this cycle's work to identify new
 - Did we add any new directories this cycle?
 - Are there new file types or patterns to document?
 - Is the directory layout diagram still accurate?
+- Did the design doc prescribe directory structure not yet in STRUCTURE.md?
 
 @agents/common.md

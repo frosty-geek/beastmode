@@ -10,6 +10,7 @@ Review the CONVENTIONS.md prime document against this cycle's work to identify n
 2. **Code style** — Are there new import/export patterns used?
 3. **Anti-patterns** — Did we violate any documented anti-patterns? Should new ones be added?
 4. **Pattern consistency** — Are all similar things named consistently?
+5. **Design prescriptions** — Did the design doc establish rules/patterns/formats that should be documented as conventions?
 
 ## Artifact Sources to Check
 
@@ -23,5 +24,6 @@ Review the CONVENTIONS.md prime document against this cycle's work to identify n
 - Did we introduce any new naming conventions this cycle?
 - Were there anti-patterns we violated or discovered?
 - Are there patterns in our new code that should be documented?
+- Did the design doc prescribe rules (MUST, NEVER, format specs) that aren't in CONVENTIONS.md?
 
 @agents/common.md

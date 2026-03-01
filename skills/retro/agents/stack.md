@@ -10,6 +10,7 @@ Review the STACK.md prime document against this cycle's work to identify new too
 2. **Version updates** — Have any documented versions changed?
 3. **New commands** — Are there new development commands we used?
 4. **Tool changes** — Did we switch any tools (e.g., different test runner)?
+5. **Design prescriptions** — Did the design doc establish stack requirements that should be documented?
 
 ## Artifact Sources to Check
 
@@ -23,5 +24,6 @@ Review the STACK.md prime document against this cycle's work to identify new too
 - Did we install any new dependencies this cycle?
 - Are the documented commands still accurate?
 - Did we use any tools not mentioned in STACK.md?
+- Did the design doc prescribe stack requirements not yet in STACK.md?
 
 @agents/common.md

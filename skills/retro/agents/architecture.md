@@ -10,6 +10,7 @@ Review the ARCHITECTURE.md prime document against this cycle's work to identify 
 2. **Data flow changes** — Did the way data moves through the system change?
 3. **Key decisions** — Were architectural decisions made this cycle that should be recorded?
 4. **Boundary changes** — Did internal/external boundaries shift?
+5. **Design prescriptions** — Did the design doc establish architectural patterns or decisions that should be documented?
 
 ## Artifact Sources to Check
 
@@ -24,5 +25,6 @@ Review the ARCHITECTURE.md prime document against this cycle's work to identify 
 - Were there architectural decisions that should be documented?
 - Has the data flow diagram changed?
 - Are there new boundaries or interfaces?
+- Did the design doc prescribe architectural patterns not yet in ARCHITECTURE.md?
 
 @agents/common.md

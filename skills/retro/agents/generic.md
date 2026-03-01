@@ -10,6 +10,7 @@ Review a prime file that doesn't have a specialized agent. Use this for any new 
 2. **Completeness** — Are there gaps or missing sections?
 3. **Actionability** — Is the content clear and actionable?
 4. **Staleness** — Is any information outdated?
+5. **Design prescriptions** — Did the design doc establish requirements that should be in this document?
 
 ## Artifact Sources to Check
 
@@ -24,5 +25,6 @@ Review a prime file that doesn't have a specialized agent. Use this for any new 
 - Are there gaps that should be filled?
 - Is the content clear and actionable?
 - Should any sections be updated based on this cycle's work?
+- Did the design doc prescribe requirements not yet in this document?
 
 @agents/common.md

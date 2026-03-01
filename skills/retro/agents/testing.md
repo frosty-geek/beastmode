@@ -10,10 +10,12 @@ Review the TESTING.md prime document against this cycle's work to identify test 
 2. **Test structure** — Are there new test file locations or naming patterns?
 3. **Coverage changes** — Did coverage targets or requirements change?
 4. **New patterns** — Did we establish new testing patterns?
+5. **Design prescriptions** — Did the design doc establish testing requirements that should be documented?
 
 ## Artifact Sources to Check
 
 - `.agents/plan/*.md` — test requirements in tasks
+- `.agents/design/*.md` — testing strategy decisions
 - Git diff of test files — new tests added
 - CI configuration — test commands in workflows
 - Actual test file structure
@@ -24,5 +26,6 @@ Review the TESTING.md prime document against this cycle's work to identify test 
 - Are there new test patterns to document?
 - Did coverage requirements change?
 - Are test locations/naming conventions still accurate?
+- Did the design doc prescribe testing rules not yet in TESTING.md?
 
 @agents/common.md
