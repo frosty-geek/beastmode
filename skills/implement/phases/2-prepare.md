@@ -1,4 +1,4 @@
-# Phase 2: Prepare (Tasks)
+# 2. Prepare (Tasks)
 
 ## Overview
 

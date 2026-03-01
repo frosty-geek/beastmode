@@ -1,20 +1,14 @@
 ---
 name: research
-description: Conduct discovery and exploration for a project. Outputs to .agents/research/.
+description: Conduct discovery and exploration — researching, investigating, analyzing. Use when gathering information. Explores codebase, web, docs and writes findings.
 ---
 
 # /research
 
-Research and discovery for the project.
+Research and discovery for informed decision-making.
 
-## Output
+## Phases
 
-Writes to: `.agents/research/`
-
-## Status
-
-🚧 Stub - not yet implemented
-
-## Context Report
-
-@../_shared/CONTEXT-REPORT.md
+1. [Scope](phases/1-scope.md) — Clarify objectives and plan
+2. [Investigate](phases/2-investigate.md) — Explore sources
+3. [Document](phases/3-document.md) — Write findings report

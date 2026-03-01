@@ -1,4 +1,4 @@
-# Phase 4: Complete (Merge & Cleanup)
+# 4. Complete (Merge)
 
 ## Overview
 
@@ -260,3 +260,11 @@ For each option:
 
 **On success:** Workflow complete
 **On failure:** Stop and ask for help
+
+## 5. Session Tracking
+
+@../_shared/session-tracking.md
+
+## 6. Context Report
+
+@../_shared/context-report.md

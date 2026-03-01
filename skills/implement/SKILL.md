@@ -1,126 +1,19 @@
 ---
 name: implement
-description: "Execute implementation plans in isolated git worktrees. Creates .agents/worktrees/ workspace, runs tasks from .agents/plan/*.md, merges back to main on completion. Use when you have a plan ready to implement or when executing multi-task development work."
+description: Execute implementation plans — implementing, coding, building. Use after plan. Runs tasks in isolated worktree, merges on completion.
 ---
-
-@../_shared/SESSION-TRACKING.md
 
 # /implement
 
-## CRITICAL CONSTRAINTS — Read Before Anything Else
-
-**NEVER call `EnterPlanMode` or `ExitPlanMode` during this skill.** This skill operates in normal mode. Calling either traps or breaks the workflow.
-
-## Overview
-
 Create isolated worktree, load plan, execute tasks, merge back, cleanup.
 
-**Core principle:** Isolated worktree execution with clean merge on completion.
+<HARD-GATE>
+No EnterPlanMode or ExitPlanMode — worktree isolation only. [→ Why](references/constraints.md)
+</HARD-GATE>
 
-**Announce:** "I'm using the /implement skill to execute this plan."
+## Phases
 
-## Arguments
-
-```
-/implement <plan-path>
-```
-
-Example: `/implement .agents/plan/2026-03-01-feature.md`
-
-If no path provided, list available plans in `.agents/plan/` and ask user to select.
-
-## The Four Phases
-
-This skill operates in four sequential phases. Each phase must complete successfully before proceeding to the next.
-
-### Phase 1: Setup (Worktree)
-
-@phases/setup.md
-
-Creates isolated git worktree for implementation work.
-
-**Entry criteria:** Valid plan path provided
-**Exit criteria:** Worktree created, dependencies installed, tests pass
-
-### Phase 2: Prepare (Tasks)
-
-@phases/prepare.md
-
-Load plan, create task list, verify readiness.
-
-**Entry criteria:** Clean worktree with passing tests
-**Exit criteria:** Tasks created and ready for execution
-
-### Phase 3: Execute (Implementation)
-
-@phases/execute.md
-
-Execute tasks in sequence, verify each step.
-
-**Entry criteria:** Task list ready
-**Exit criteria:** All tasks complete, tests pass
-
-### Phase 4: Complete (Merge & Cleanup)
-
-@phases/complete.md
-
-Merge back to main, cleanup worktree.
-
-**Entry criteria:** All tasks complete, tests pass
-**Exit criteria:** Merged to main, worktree removed
-
-## Quick Reference
-
-| Phase | Purpose | Key Actions |
-|-------|---------|-------------|
-| Setup | Isolation | Create worktree, install deps, verify tests |
-| Prepare | Planning | Load plan, create tasks, review |
-| Execute | Work | Run tasks, verify steps, commit |
-| Complete | Integration | Merge, cleanup, handoff |
-
-## When to Stop and Ask for Help
-
-**STOP executing immediately when:**
-
-- Worktree creation fails
-- Tests fail during setup
-- Plan has critical gaps
-- Task execution hits blocker
-- Merge conflicts occur
-
-**Ask for clarification rather than guessing.**
-
-## Remember
-
-- Never work directly on main/master branch
-- All work happens in isolated worktree
-- Tests must pass at each phase boundary
-- Commits happen in Execute phase
-- Merge happens in Complete phase
-- Reference skills when plan says to
-- Stop when blocked, don't guess
-
-## Integration
-
-**Required workflow skills:**
-- **beastmode:plan** - Creates the plan this skill executes
-
----
-
-## Session Status Tracking
-
-**On completion (Phase 4: Complete, after merge):**
-
-1. Extract feature name from plan doc filename
-2. Extract date from plan doc filename
-3. Get session path using `get_session_path()` with a unique part of your initial arguments
-4. Update `.agents/status/YYYY-MM-DD-<feature>.md`
-5. Add entry to "Executed Phases" list
-6. Append Implement phase section with:
-   - Summary: tasks completed, merge status
-   - Decisions: any implementation choices made
-   - Issues: blockers encountered, how resolved
-
-## Context Report
-
-@../_shared/CONTEXT-REPORT.md
+1. [Setup](phases/1-setup.md) — Create worktree, verify tests
+2. [Prepare](phases/2-prepare.md) — Load plan, create task list
+3. [Execute](phases/3-execute.md) — Run tasks, verify steps
+4. [Complete](phases/4-complete.md) — Merge, cleanup, handoff

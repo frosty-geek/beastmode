@@ -1,4 +1,4 @@
-# Phase 1: Setup (Git Worktree)
+# 1. Setup (Worktree)
 
 ## Overview
 
