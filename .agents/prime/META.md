@@ -44,5 +44,7 @@ This file defines how to maintain the `.agents/` documentation structure. It is 
 ├── design/         # Specs, brainstorming output
 ├── plan/           # Implementation plans
 ├── status/         # Current state, milestones
-└── release/        # Changelogs, release notes
+├── release/        # Changelogs, release notes
+├── templates/      # Artifact templates
+└── worktrees/      # Isolated git worktrees (gitignored)
 ```
