@@ -2,9 +2,9 @@
 
 ## Overview
 
-Guide completion of development work by committing changes, merging back to main, cleaning up the worktree, and handing off to verification.
+Guide completion of development work by committing changes, merging back to main, and cleaning up the worktree.
 
-**Core principle:** Single commit → Merge → Cleanup → Handoff.
+**Core principle:** Single commit → Merge → Cleanup.
 
 **Announce at start:** "Completing implementation - committing, merging and cleaning up."
 
@@ -64,7 +64,7 @@ AskUserQuestion:
   header: "Complete"
   options:
     - label: "Merge locally"
-      description: "Merge to <base-branch>, delete worktree, handoff to /verify"
+      description: "Merge to <base-branch>, delete worktree"
     - label: "Create Pull Request"
       description: "Push branch, create PR, keep worktree"
     - label: "Keep as-is"
@@ -96,8 +96,6 @@ git merge "$feature_branch"
 git worktree remove "$worktree_path"
 git branch -d "$feature_branch"
 ```
-
-**Then:** Handoff to /verify
 
 ### Option 2: Push and Create PR
 
@@ -176,7 +174,7 @@ git worktree list
 
 **For Options 2 and 3:** Keep worktree.
 
-## Step 6: Handoff to Verify
+## Step 6: Suggest Next Steps
 
 **For Option 1 (Merge Locally):**
 
@@ -184,11 +182,8 @@ git worktree list
 Implementation merged to <base-branch>.
 Worktree cleaned up.
 
-Next step: Run /verify to complete the development workflow.
+Consider running /release if ready to ship.
 ```
-
-**Announce:** "I'm using the /verify skill to complete this work."
-**REQUIRED SUB-SKILL:** Use beastmode:verify
 
 ## Quick Reference
 
@@ -233,7 +228,7 @@ Next step: Run /verify to complete the development workflow.
 - Present all 4 options
 - Get typed confirmation for discard
 - Clean up only when appropriate
-- Handoff to /verify after merge
+- Suggest /release after merge
 
 ## Exit Criteria
 
@@ -244,7 +239,7 @@ For each option:
 ✓ Merged to base branch
 ✓ Worktree removed
 ✓ Branch deleted
-✓ Handed off to /verify
+✓ Suggested /release
 
 **Option 2 (PR):**
 ✓ Single commit created
@@ -263,5 +258,5 @@ For each option:
 ✓ Worktree removed
 ✓ Branch deleted
 
-**On success:** Workflow complete (or handed to /verify)
+**On success:** Workflow complete
 **On failure:** Stop and ask for help
