@@ -50,7 +50,8 @@ Agent:
   model: haiku
   description: "Analyze STACK"
   prompt: |
-    [STACK agent prompt - see references/agent-prompts.md]
+    [STACK agent prompt - see references/stack-agent.md]
+    [common instructions - see references/common-instructions.md]
 
     Current STACK.md content:
     [paste current content]
@@ -60,7 +61,8 @@ Agent:
   model: haiku
   description: "Analyze STRUCTURE"
   prompt: |
-    [STRUCTURE agent prompt - see references/agent-prompts.md]
+    [STRUCTURE agent prompt - see references/structure-agent.md]
+    [common instructions - see references/common-instructions.md]
 
     Current STRUCTURE.md content:
     [paste current content]

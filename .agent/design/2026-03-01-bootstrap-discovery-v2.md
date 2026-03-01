@@ -1,7 +1,7 @@
 # Design: bootstrap-discovery v2 — Parallel Agent Refactoring
 
 **Date:** 2026-03-01
-**Status:** Approved
+**Status:** Implemented
 
 ## Summary
 
@@ -106,10 +106,9 @@ Patterns identified as placeholders:
 ## Files Changed
 
 - `skills/bootstrap-discovery/SKILL.md` — refactored skill definition
-- `skills/bootstrap-discovery/references/agent-prompts.md` — detailed prompts for 5 agents
-
-## Next Steps
-
-```
-/plan .agent/design/2026-03-01-bootstrap-discovery-v2.md
-```
+- `skills/bootstrap-discovery/references/common-instructions.md` — shared output format and safety rules
+- `skills/bootstrap-discovery/references/stack-agent.md` — STACK agent prompt
+- `skills/bootstrap-discovery/references/structure-agent.md` — STRUCTURE agent prompt
+- `skills/bootstrap-discovery/references/conventions-agent.md` — CONVENTIONS agent prompt
+- `skills/bootstrap-discovery/references/architecture-agent.md` — ARCHITECTURE agent prompt
+- `skills/bootstrap-discovery/references/testing-agent.md` — TESTING agent prompt
