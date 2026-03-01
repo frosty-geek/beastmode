@@ -2,123 +2,52 @@
 
 ## Overview
 
-Git worktrees create isolated workspaces sharing the same repository, allowing work on multiple branches simultaneously without switching.
+The cycle worktree was created by /design. This phase locates and enters it.
 
-**Core principle:** Systematic directory selection + safety verification = reliable isolation.
+**Core principle:** Inherit existing worktree → verify → enter.
 
-**Announce at start:** "Setting up isolated worktree for implementation."
+**Announce at start:** "Setting up implementation - finding cycle worktree."
 
-## Directory Selection Process
+## 1. Read Worktree from Status
 
-Follow this priority order:
-
-### 1. Check Existing Directories
+The cycle worktree was created by /design. Read its location:
 
 ```bash
-# Beastmode uses project-local .agents/worktrees/
-ls -d .agents/worktrees 2>/dev/null
+# Find status file from plan filename
+# Plan: .agents/plan/YYYY-MM-DD-<topic>.md
+# Status: .agents/status/YYYY-MM-DD-<topic>.md
+status_file=".agents/status/YYYY-MM-DD-<topic>.md"
+
+# Extract worktree path
+worktree_path=$(grep -A1 "^## Worktree" "$status_file" | grep "Path:" | sed 's/.*Path:\s*//' | tr -d '`')
+
+# Verify
+if [ -z "$worktree_path" ]; then
+  echo "Error: No active cycle. Run /design first"
+  exit 1
+fi
+
+if [ ! -d "$worktree_path" ]; then
+  echo "Error: Worktree at $worktree_path not found"
+  exit 1
+fi
+
+cd "$worktree_path"
 ```
 
-**If found:** Use that directory.
-
-### 2. Check CLAUDE.md
-
-```bash
-grep -i "worktree.*director" CLAUDE.md 2>/dev/null
-grep -i "worktree.*director" .agents/CLAUDE.md 2>/dev/null
-```
-
-**If preference specified:** Use it without asking.
-
-### 3. Default to .agents/worktrees/
-
-Beastmode convention: all worktrees go in `.agents/worktrees/`
-
-```bash
-mkdir -p .agents/worktrees
-```
-
-## Safety Verification
-
-**MUST verify directory is ignored before creating worktree:**
-
-```bash
-# Check if directory is ignored (respects local, global, and system gitignore)
-git check-ignore -q .agents/worktrees 2>/dev/null
-```
-
-**If NOT ignored:**
-
-Per beastmode convention - fix broken things immediately:
-1. Add `.agents/worktrees/` to .gitignore
-2. Commit the change
-3. Proceed with worktree creation
-
-**Why critical:** Prevents accidentally committing worktree contents to repository.
-
-## Creation Steps
-
-### 1. Extract Branch Name from Plan
-
-```bash
-# From plan filename: 2026-03-01-feature.md → feature
-branch_name="implement/$(basename "$PLAN_PATH" .md | sed 's/^[0-9-]*//')"
-```
-
-### 2. Detect Project Name
-
-```bash
-project=$(basename "$(git rev-parse --show-toplevel)")
-```
-
-### 3. Create Worktree
-
-```bash
-# Full path
-path=".agents/worktrees/$branch_name"
-
-# Create worktree with new branch
-git worktree add "$path" -b "$branch_name"
-cd "$path"
-```
-
-### 4. Report Location
+## 2. Report Location
 
 ```
-Worktree ready at <full-path>
+Using existing cycle worktree at <full-path>
 Branch: <branch-name>
 Ready for Phase 2: Prepare
 ```
 
-## Quick Reference
-
-| Situation | Action |
-|-----------|--------|
-| `.agents/worktrees/` exists | Use it (verify ignored) |
-| Directory not ignored | Add to .gitignore + commit |
-
-## Common Mistakes
-
-### Skipping ignore verification
-
-- **Problem:** Worktree contents get tracked, pollute git status
-- **Fix:** Always use `git check-ignore` before creating project-local worktree
-
-## Red Flags
-
-**Never:**
-- Create worktree without verifying it's ignored
-- Work on main/master branch directly
-
-**Always:**
-- Use `.agents/worktrees/` for beastmode projects
-- Verify directory is ignored for project-local
-
 ## Exit Criteria
 
-✓ Worktree created at `.agents/worktrees/<branch-name>/`
-✓ Branch created: `implement/<feature-name>`
-✓ Directory verified as gitignored
+✓ Worktree found from status file
+✓ Changed into worktree directory
+✓ Branch confirmed: `cycle/<topic>`
 
 **On success:** Proceed to Phase 2: Prepare
-**On failure:** Stop and ask for help
+**On failure:** Error with "Run /design first" message

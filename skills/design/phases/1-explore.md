@@ -10,14 +10,41 @@
 - Understand current architecture
 - Identify related components
 
-## 3. Ask Clarifying Questions
+## 3. Create Cycle Worktree
+
+Create isolated worktree for the entire feature cycle:
+
+```bash
+# Extract topic from arguments or user input
+topic="<topic-name>"
+
+# Create worktree
+mkdir -p .agents/worktrees/cycle
+path=".agents/worktrees/cycle/$topic"
+branch="cycle/$topic"
+
+# Verify worktree dir is gitignored
+git check-ignore -q .agents/worktrees 2>/dev/null || {
+  echo ".agents/worktrees/" >> .gitignore
+  git add .gitignore
+  git commit -m "chore: ignore .agents/worktrees/"
+}
+
+# Create worktree with new branch
+git worktree add "$path" -b "$branch"
+cd "$path"
+```
+
+Report: "Created worktree at `$path` on branch `$branch`"
+
+## 4. Ask Clarifying Questions
 
 - **One question at a time** — don't overwhelm
 - **Multiple choice preferred** — easier to answer
 - Focus on: purpose, constraints, success criteria
 - Follow threads — if answer reveals complexity, dig deeper
 
-## 4. Create Tasks
+## 5. Create Tasks
 
 Create a task for each step in the design process:
 1. Explore project context

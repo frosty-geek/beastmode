@@ -44,12 +44,10 @@ def function(input):
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 5: Verify**
 
-\`\`\`bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
-\`\`\`
+Run all related tests to confirm nothing broke.
+No commit needed — unified commit at /release.
 ```
 
 ## Remember
@@ -58,4 +56,4 @@ git commit -m "feat: add specific feature"
 - Complete code in plan (not "add validation")
 - Exact commands with expected output
 - Reference relevant docs/designs with links
-- DRY, YAGNI, TDD, frequent commits
+- DRY, YAGNI, TDD (commits at /release only)

@@ -11,12 +11,17 @@ Include:
 - Component breakdown
 - Testing strategy
 
-## 2. Commit
+## 2. Update Status with Worktree
 
-```bash
-git add .agents/design/YYYY-MM-DD-<topic>.md
-git commit -m "docs(design): add <topic> design"
+When updating the status file, add `## Worktree` section after `## Context`:
+
+```markdown
+## Worktree
+- **Path**: `.agents/worktrees/cycle/<topic>`
+- **Branch**: `cycle/<topic>`
 ```
+
+**Do NOT commit.** Worktree provides WIP safety.
 
 ## 3. Suggest Next Step
 
