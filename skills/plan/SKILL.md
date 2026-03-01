@@ -13,6 +13,7 @@ No EnterPlanMode or ExitPlanMode — this skill manages its own flow. [→ Why](
 
 ## Phases
 
+0. [Research](phases/0-research.md) — (Optional) Discover unknowns via keywords/complexity
 1. [Prepare](phases/1-prepare.md) — Read design, explore codebase
 2. [Write](phases/2-write.md) — Create tasks with TDD steps
 3. [Handoff](phases/3-handoff.md) — Ask user, provide /implement command

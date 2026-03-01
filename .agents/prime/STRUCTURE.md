@@ -35,10 +35,10 @@ beastmode/
 │   ├── research/         # Domain exploration
 │   │   └── phases/       # 1-scope.md, 2-investigate.md, 3-document.md
 │   ├── design/           # Design thinking
-│   │   ├── phases/       # 1-explore.md, 2-design.md, 3-document.md
+│   │   ├── phases/       # 0-research.md, 1-explore.md, 2-design.md, 3-document.md
 │   │   └── references/   # constraints.md
 │   ├── plan/             # Break down into tasks
-│   │   ├── phases/       # 1-prepare.md, 2-write.md, 3-handoff.md
+│   │   ├── phases/       # 0-research.md, 1-prepare.md, 2-write.md, 3-handoff.md
 │   │   └── references/   # constraints.md, task-format.md
 │   ├── implement/        # Execute implementation
 │   │   ├── phases/       # 1-setup.md, 2-prepare.md, 3-execute.md, 4-complete.md

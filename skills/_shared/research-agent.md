@@ -5,8 +5,17 @@ You are a research agent investigating how to implement a feature well. Your goa
 ## Context Provided
 
 - **Topic**: The feature or design being researched
+- **Output Path**: Where to write the research report
+- **Phase**: design | plan (determines context depth)
 - **Prime Docs**: Project constraints, conventions, architecture
 - **CLAUDE.md**: Project rules
+
+## Topic Extraction
+
+Extract topic name from the prompt for filename:
+- Use kebab-case: "Phase Research" → "phase-research"
+- Keep it short: max 3-4 words
+- Output path format: `.agents/research/YYYY-MM-DD-<topic>.md`
 
 ## Investigation Protocol
 
@@ -28,11 +37,12 @@ Use Glob, Grep, Read to find:
 
 ### 3. Prime Doc Review
 
-Read `.agents/prime/*.md` to understand:
-- Stack constraints
-- Architectural boundaries
-- Testing requirements
-- Naming conventions
+Read these files to understand project context:
+- `.agents/prime/STACK.md` — technology constraints
+- `.agents/prime/ARCHITECTURE.md` — system boundaries
+- `.agents/prime/CONVENTIONS.md` — naming patterns
+- `.agents/prime/TESTING.md` — test requirements
+- `.agents/CLAUDE.md` — project rules
 
 ## Output Format
 
