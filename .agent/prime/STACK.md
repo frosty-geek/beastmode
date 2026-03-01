@@ -6,49 +6,64 @@ Documents the technology stack, dependencies, and versions used in this project.
 
 ## Core Stack
 
-<!-- Fill in your project's core technologies -->
-
 **Runtime:**
-- Language: [e.g., TypeScript 5.x, Python 3.12]
-- Runtime: [e.g., Node.js 20.x, Bun 1.x]
+- Language: Markdown + YAML (documentation/configuration)
+- Runtime: Claude Code (AI-powered CLI for code generation)
 
 **Framework:**
-- [e.g., Next.js 14, FastAPI, SvelteKit]
+- Claude Code plugin system for workflow skills
 
 **Database:**
-- [e.g., PostgreSQL 16, SQLite, MongoDB]
+- None (documentation-driven project)
 
 ## Key Dependencies
 
-<!-- List important dependencies and their purpose -->
-
 | Package | Purpose |
 |---------|---------|
-| [package] | [what it's used for] |
+| Claude Code | AI-powered code generation and workflow automation |
+| GitHub | Version control, repository hosting, plugin marketplace |
+| Git | Version control system |
+| beastmode-marketplace | Claude Code plugin marketplace for distributing skills |
+| Claude Opus 4.6 | LLM model powering the agent interactions |
 
 ## Development Tools
 
 **Build:**
-- [e.g., Vite, esbuild, Webpack]
+- Plugin packaging via `.claude-plugin/` structure
+- GitHub Actions (referenced in workflow)
 
 **Testing:**
-- [e.g., Vitest, pytest, Jest]
+- Manual verification of skill execution
+- Test artifacts stored in `.agent/verify/`
 
 **Linting:**
-- [e.g., ESLint, Ruff, Prettier]
+- Convention adherence documented in CONVENTIONS.md
+- Multi-agent safety rules in AGENTS.md
 
 ## Commands
 
 ```bash
 # Install dependencies
-[command]
+/plugin install beastmode@overrides-marketplace
 
-# Run development server
-[command]
+# Initialize project
+/bootstrap
 
-# Run tests
-[command]
+# Run research phase
+/research
 
-# Build for production
-[command]
+# Run design phase
+/design
+
+# Create implementation plan
+/plan <design-path>
+
+# Execute implementation plan
+/implement .agent/plan/<plan-name>.md
+
+# Verify implementation
+/verify
+
+# Capture learnings
+/retro
 ```
