@@ -3,6 +3,8 @@ name: implement
 description: "Execute implementation plans in isolated git worktrees. Creates .agent/worktrees/ workspace, runs tasks from .agent/plan/*.md, merges back to main on completion. Use when you have a plan ready to implement or when executing multi-task development work."
 ---
 
+@../references/session-tracking.md
+
 # /implement
 
 ## CRITICAL CONSTRAINTS — Read Before Anything Else
@@ -109,3 +111,17 @@ Merge back to main, cleanup worktree, handoff to verify.
 ## Workflow
 
 Part of: bootstrap → prime → research → design → plan → **implement** → status → verify → release → retro
+
+## Session Status Tracking
+
+**On completion (Phase 4: Complete, after merge):**
+
+1. Extract feature name from plan doc filename
+2. Extract date from plan doc filename
+3. Get session path using `get_session_path()` with a unique part of your initial arguments
+4. Update `.agent/status/YYYY-MM-DD-<feature>.md`
+5. Add entry to "Executed Phases" list
+6. Append Implement phase section with:
+   - Summary: tasks completed, merge status
+   - Decisions: any implementation choices made
+   - Issues: blockers encountered, how resolved
