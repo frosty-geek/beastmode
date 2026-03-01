@@ -12,9 +12,12 @@ Gather from this cycle:
 - Status records in `.agents/status/`
 - Conversation history
 
-## 3. Collect Session Paths
+## 3. Collect Context File Paths
 
-Read the status file's "Session Files" section. Collect all listed paths into a list for use in retro agent prompts.
+From the status file, collect all file references for retro agents:
+
+1. **Related artifacts** — Design and Plan doc paths from the Context section
+2. **Session Files** — JSONL paths from the Session Files section
 
 ## 4. Identify Prime Files
 
