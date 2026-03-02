@@ -25,11 +25,13 @@ A simple loop that scales from quick fixes to deep feature work:
 | Skill | Purpose |
 |-------|---------|
 | `/prime` | Load project context into session |
-| `/design` | Think through the approach |
-| `/plan` | Turn design into implementation tasks |
+| `/design` | Think through the approach (auto-triggers research when needed) |
+| `/plan` | Turn design into implementation tasks (auto-triggers research when needed) |
 | `/implement` | Execute the plan, write the code |
 | `/release` | Create changelog and release notes |
 | `/retro` | Capture learnings for next time |
+
+**Phase Research:** Both `/design` and `/plan` can automatically spawn a research phase when they detect keywords like "SOTA", "best practices", or unfamiliar tech. Research findings go to `.agents/research/`.
 
 ### Utilities
 
