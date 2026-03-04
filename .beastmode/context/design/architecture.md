@@ -10,6 +10,11 @@ Beastmode is a workflow system that turns Claude Code into a disciplined enginee
 
 Each workflow phase follows the standard sub-phase anatomy: `0-prime → 1-execute → 2-validate → 3-checkpoint`. This provides consistent structure while allowing phase-specific behavior.
 
+- **0-prime**: Read-only — loads project context (`.beastmode/` L0/L1), meta, and input artifacts (design doc, plan, status file). No side effects, no bash commands, no `cd`.
+- **1-execute**: Action phase — worktree entry/creation is always step 1, followed by skill-specific work (exploration, coding, testing, releasing).
+- **2-validate**: Quality check — verifies work completeness, user approval gates.
+- **3-checkpoint**: Persistence — saves artifacts, captures learnings, suggests next step.
+
 ## Knowledge Architecture
 
 ### L0/L1/L2 Hierarchy

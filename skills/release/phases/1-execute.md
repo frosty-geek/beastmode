@@ -1,6 +1,31 @@
 # 1. Execute
 
-## 1. Categorize Commits
+## 1. Enter Worktree
+
+```bash
+if [ -n "$worktree_path" ] && [ -d "$worktree_path" ]; then
+  cd "$worktree_path"
+fi
+```
+
+## 2. Determine Version
+
+```bash
+# Find last release tag
+last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+
+# List commits since last release
+git log ${last_tag}..HEAD --oneline
+```
+
+Detect version bump from commit messages:
+- Any `BREAKING CHANGE` or `!:` suffix → **major** bump
+- Any `feat:` or `feat(` prefix → **minor** bump
+- Otherwise → **patch** bump
+
+Present suggested version via AskUserQuestion with override option.
+
+## 3. Categorize Commits
 
 ```bash
 last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
@@ -14,7 +39,7 @@ Group commits by type:
 - **Docs** — `docs:` or `docs(`
 - **Chores** — `chore:`, `refactor:`, `ci:`, `build:`
 
-## 2. Generate Release Notes
+## 4. Generate Release Notes
 
 Save to `.beastmode/state/release/YYYY-MM-DD-vX.Y.Z.md`:
 
@@ -46,17 +71,17 @@ Save to `.beastmode/state/release/YYYY-MM-DD-vX.Y.Z.md`:
 
 Omit empty sections (e.g., no Breaking Changes → skip that heading).
 
-## 3. Update CHANGELOG.md
+## 5. Update CHANGELOG.md
 
 If the project has a CHANGELOG.md, prepend the new release section.
 
-## 4. Bump Plugin Version
+## 6. Bump Plugin Version
 
 Update version in both files:
 - `.claude-plugin/plugin.json` → `"version": "X.Y.Z"`
 - `.claude-plugin/marketplace.json` → version in plugins array
 
-## 5. Commit Release Changes
+## 7. Commit Release Changes
 
 Stage and commit release artifacts (changelog, version bumps):
 
@@ -71,11 +96,11 @@ Artifacts:
 "
 ```
 
-## 6. Merge and Cleanup
+## 8. Merge and Cleanup
 
 @../_shared/worktree-manager.md#Merge Options
 
-## 7. Git Tagging
+## 9. Git Tagging
 
 ```bash
 git tag -a vX.Y.Z -m "Release X.Y.Z"
@@ -83,7 +108,7 @@ git tag -a vX.Y.Z -m "Release X.Y.Z"
 
 Suggest: `git push origin vX.Y.Z`
 
-## 8. Plugin Marketplace Update
+## 10. Plugin Marketplace Update
 
 Suggest running:
 ```bash
