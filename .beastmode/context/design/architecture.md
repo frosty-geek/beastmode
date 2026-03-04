@@ -6,7 +6,7 @@ Documents the system design, component relationships, and data flow.
 
 ## Overview
 
-Beastmode is a workflow system that turns Claude Code into a disciplined engineering partner through opinionated workflow patterns. It provides a structured five-phase workflow (design → plan → implement → validate → release) with standalone utilities (/bootstrap, /bootstrap-discovery, /bootstrap-wizard, /status) that scales from quick fixes to deep feature work, enabling Claude agents to systematically design and implement features while maintaining comprehensive project context across sessions through `.beastmode/` artifact storage.
+Beastmode is a workflow system that turns Claude Code into a disciplined engineering partner through opinionated workflow patterns. It provides a structured five-phase workflow (design → plan → implement → validate → release) with standalone utilities (/beastmode, /status) that scales from quick fixes to deep feature work, enabling Claude agents to systematically design and implement features while maintaining comprehensive project context across sessions through `.beastmode/` artifact storage.
 
 Each workflow phase follows the standard sub-phase anatomy: `0-prime → 1-execute → 2-validate → 3-checkpoint`. This provides consistent structure while allowing phase-specific behavior.
 
@@ -34,20 +34,10 @@ Each workflow phase follows the standard sub-phase anatomy: `0-prime → 1-execu
 - Location: `/skills/`
 - Dependencies: Reference templates, Common instructions, .beastmode/ infrastructure
 
-**Commands (Interface Definitions):**
-- Purpose: Define what each phase command reads, writes, and does
-- Location: `/commands/`
-- Contains: design.md, plan.md, implement.md, validate.md, release.md
-
-**Bootstrap Skill:**
-- Purpose: Initialize a new project with .beastmode/ folder structure
-- Location: `/skills/bootstrap/`
-- Dependencies: Templates in `/skills/bootstrap/templates/`, CLAUDE.md bridge
-
-**Bootstrap Discovery Skill:**
-- Purpose: Autonomous parallel codebase analysis with 5 parallel Explore agents to auto-populate context files
-- Location: `/skills/bootstrap-discovery/`
-- Dependencies: Five agent prompt templates, common instructions, .beastmode/context/ directory
+**Beastmode Skill:**
+- Purpose: Project initialization — install .beastmode/ structure, auto-populate context (brownfield), or interactive setup (greenfield)
+- Location: `/skills/beastmode/`
+- Dependencies: Templates, CLAUDE.md bridge, Explore agents for brownfield discovery
 
 **Design Skill:**
 - Purpose: Brainstorm and create design specs through collaborative dialogue with user approval gates
@@ -96,26 +86,25 @@ Each workflow phase follows the standard sub-phase anatomy: `0-prime → 1-execu
 ```
 User workflow intent
   ↓
-Skill execution (design creates cycle worktree)
+Skill execution (design creates feature branch + worktree)
   ↓
-Status file updated with worktree path
+Status file updated with worktree path and feature branch
   ↓
 Subsequent phases (plan, implement, validate) inherit worktree from status
   ↓
-Each phase: cd into worktree → execute → write artifacts (NO commit)
+Each phase: cd into worktree → execute → commit as needed
   ↓
-Release: stage all → single commit → merge → cleanup worktree
+Release: merge feature branch → cleanup worktree + branch
   ↓
 .beastmode/ artifacts + code changes persist on main
 ```
 
 Feature state flows through `.beastmode/state/` directories:
 ```
-state/design/20260303-login-form.md
-  → state/plan/20260303-login-form.md
-  → state/implement/20260303-login-form.md
-  → state/validate/20260303-login-form.md
-  → state/release/20260303-login-form.md
+state/design/2026-03-03-login-form.md
+  → state/plan/2026-03-03-login-form.md
+  → state/validate/2026-03-03-login-form.md
+  → state/release/2026-03-03-login-form.md
 ```
 
 For Retro functionality (now in 3-checkpoint sub-phase):
@@ -131,7 +120,7 @@ Learnings inform future sessions via L1 loading
 
 **Five-Phase Workflow:**
 - Context: Need to support both quick fixes and deep features without overhead
-- Decision: Linear workflow (design → plan → implement → validate → release) with standalone utilities (/bootstrap, /bootstrap-discovery, /bootstrap-wizard, /status)
+- Decision: Linear workflow (design → plan → implement → validate → release) with standalone utilities (/beastmode, /status)
 - Rationale: Matches real engineering practices; design-before-code prevents wasted implementation; validate ensures quality before release; each phase has sub-phases: 0-prime → 1-execute → 2-validate → 3-checkpoint
 
 **L0/L1/L2 Hierarchical Loading:**
@@ -149,15 +138,15 @@ Learnings inform future sessions via L1 loading
 - Decision: Store all phase outputs in .beastmode/ as markdown files that are version-controlled
 - Rationale: Git provides durability and history; markdown is human-readable; .beastmode/ is always loaded by /prime skill
 
-**Commands as Interface Layer:**
+**Skill Interfaces via SKILL.md:**
 - Context: Need clear definition of what each phase reads, writes, and does
-- Decision: `commands/*.md` files define phase interfaces separate from skill implementation
-- Rationale: Interface definitions visible at root; skills implement the interfaces; clear contract between phases
+- Decision: Each skill's SKILL.md defines its interface (phases, inputs, outputs) colocated with implementation
+- Rationale: Interface and implementation live together; SKILL.md serves as both docs and manifest
 
 **Parallel Discovery Agents:**
 - Context: Initial codebase analysis is expensive; want comprehensive findings without sequential wait time
-- Decision: bootstrap-discovery spawns 5 independent Explore agents in parallel (one per prime target: STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING)
-- Rationale: Haiku model is fast enough; parallel execution saves session time; agents merge findings with existing content
+- Decision: `/beastmode init --brownfield` spawns parallel Explore agents to auto-populate context files
+- Rationale: Parallel execution saves session time; agents merge findings with existing content
 
 **Isolated Implementation Worktrees:**
 - Context: Implement skill needs to execute complex plans without disrupting main branch or other agents
@@ -195,7 +184,7 @@ Learnings inform future sessions via L1 loading
 
 **Public Interfaces:**
 - Skill commands (e.g., `/design`, `/plan`, `/implement`, `/validate`, `/release`)
-- Command definitions (`commands/*.md`) — phase interface contracts
+- SKILL.md manifests — phase interface definitions colocated with skills
 - .beastmode/ folder structure (user-facing artifact storage)
 - @import syntax for CLAUDE.md (documentation composition)
 - Root CLAUDE.md (entry point for project brain)

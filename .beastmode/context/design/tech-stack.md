@@ -43,14 +43,13 @@ Beastmode is a meta-framework for Claude Code — it doesn't have traditional pa
 
 ```bash
 # Install plugin
-/plugin marketplace add bugroger/overrides-marketplace
-/plugin install beastmode@overrides-marketplace
+claude plugin marketplace update
+claude plugin update beastmode@beastmode-marketplace --scope project
 
 # Initialize project with beastmode
-/bootstrap
-
-# Discover and populate prime documentation
-/bootstrap-discovery
+/beastmode install              # Initialize .beastmode/ structure
+/beastmode init --brownfield    # Auto-populate context from codebase
+/beastmode init --greenfield    # Interactive project setup
 
 # Run core workflow phases
 /design
@@ -61,11 +60,6 @@ Beastmode is a meta-framework for Claude Code — it doesn't have traditional pa
 
 # Standalone utilities
 /status
-
-# Access individual skills
-/beastmode install     # Initialize .beastmode/ structure
-/beastmode init --brownfield  # Auto-populate context from codebase
-/beastmode init --greenfield  # Interactive project setup
 ```
 
 ## Notes
@@ -73,6 +67,6 @@ Beastmode is a meta-framework for Claude Code — it doesn't have traditional pa
 - **No runtime dependencies:** Beastmode is a workflow/documentation system, not an executable application
 - **Self-bootstrapping:** Uses its own skills to analyze and document codebases
 - **Markdown-first:** All documentation and skill prompts are written in markdown
-- **Parallel execution:** bootstrap-discovery spawns 5 Explore agents simultaneously for STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING analysis
-- **Version:** 0.1.12 (from plugin.json)
+- **Parallel execution:** `/beastmode init --brownfield` spawns parallel Explore agents to auto-populate context
+- **Version:** 0.3.1 (from plugin.json)
 - **Author:** bugroger (github: BugRoger)

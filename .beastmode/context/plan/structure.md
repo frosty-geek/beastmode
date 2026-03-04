@@ -15,12 +15,12 @@ beastmode/
 │   │   ├── design/         # L2: Feature design states
 │   │   ├── PLAN.md         # L1: Plan phase summary
 │   │   ├── plan/           # L2: Feature plan states
-│   │   ├── IMPLEMENT.md    # L1: Implement phase summary
-│   │   ├── implement/      # L2: Feature implement states
 │   │   ├── VALIDATE.md     # L1: Validate phase summary
 │   │   ├── validate/       # L2: Feature validate states
 │   │   ├── RELEASE.md      # L1: Release phase summary
-│   │   └── release/        # L2: Feature release states
+│   │   ├── release/        # L2: Feature release states
+│   │   ├── IMPLEMENT.md    # L1: Implement phase summary
+│   │   └── status/         # Status tracking files
 │   ├── context/            # Build context (architecture, conventions)
 │   │   ├── DESIGN.md       # L1: Design context summary
 │   │   ├── design/         # L2: architecture.md, tech-stack.md
@@ -38,23 +38,15 @@ beastmode/
 │       ├── IMPLEMENT.md    # L1: Implement learnings
 │       ├── VALIDATE.md     # L1: Validate learnings
 │       └── RELEASE.md      # L1: Release learnings
-├── commands/               # Phase interface definitions
-│   ├── design.md           # /design command contract
-│   ├── plan.md             # /plan command contract
-│   ├── implement.md        # /implement command contract
-│   ├── validate.md         # /validate command contract
-│   └── release.md          # /release command contract
 ├── skills/                 # Agent skills (executable workflows)
-│   ├── _shared/           # Shared utilities (0-prime-template, 3-checkpoint-template)
+│   ├── _shared/           # Shared utilities (prime, checkpoint, retro, session, worktree, task-runner, context-report)
+│   ├── beastmode/         # Project initialization (install, init --brownfield, init --greenfield)
 │   ├── design/            # Design thinking (0-prime → 1-execute → 2-validate → 3-checkpoint)
 │   ├── plan/              # Break down into tasks
 │   ├── implement/         # Execute implementation
 │   ├── validate/          # Quality gate
 │   ├── release/           # Release management
-│   ├── status/            # Show project status
-│   ├── bootstrap/         # Initialize projects
-│   ├── bootstrap-wizard/  # Interactive project setup
-│   └── bootstrap-discovery/ # Auto-populate context
+│   └── status/            # Show project status
 ├── agents/                # Agent documentation
 │   ├── discovery.md       # Codebase discovery patterns
 │   └── researcher.md      # Phase research agent
@@ -75,9 +67,9 @@ beastmode/
 - Contains: PRODUCT.md (L0), state/ (feature kanban), context/ (build knowledge), meta/ (learnings), sessions/ (gitignored session state)
 - L1 files always loaded by /prime; L2 files loaded on-demand via @imports
 
-**`commands/`** — Phase Interface Definitions
+**`skills/`** — Agent Skills (Executable Workflows)
 - Purpose: Reusable agent prompts that implement the beastmode workflow
-- Contains: 9 skill definitions (design, plan, implement, validate, release, status, bootstrap, bootstrap-wizard, bootstrap-discovery)
+- Contains: 7 skill definitions (beastmode, design, plan, implement, validate, release, status)
 - Each skill has: SKILL.md (prompt definition) + phases/ subdirectory + optional references/
 - Workflow skills follow standard anatomy: 0-prime → 1-execute → 2-validate → 3-checkpoint
 
@@ -96,13 +88,6 @@ beastmode/
 - `.beastmode/meta/*.md`: Phase-specific learnings and overrides
 - `.claude/settings.local.json`: Local Claude IDE settings
 - `.claude-plugin/plugin.json`: Plugin definition
-
-**Command Interfaces:**
-- `commands/design.md`: Design phase contract
-- `commands/plan.md`: Plan phase contract
-- `commands/implement.md`: Implement phase contract
-- `commands/validate.md`: Validate phase contract
-- `commands/release.md`: Release phase contract
 
 **Core Logic (Workflow Skills):**
 - `skills/design/SKILL.md`: Design & brainstorming
@@ -130,7 +115,6 @@ beastmode/
 **Directories:**
 - `.beastmode/{domain}/`: Four domains — state/, context/, meta/
 - `.beastmode/{domain}/{phase}/`: L2 details per phase
-- `commands/`: Phase interface definitions at root
 - `skills/{skill-name}/`: Skill name uses kebab-case
 
 ## Where to Add New Code
@@ -140,18 +124,10 @@ beastmode/
 - Agent references: `skills/{skill-name}/references/{role}-agent.md`
 - Templates/phases: `skills/{skill-name}/{templates|phases}/`
 
-**New Phase Interface:**
-- Command definition: `commands/{phase}.md`
-
-**New Context Documentation:**
-- Design context: `.beastmode/context/design/{topic}.md`
-- Plan context: `.beastmode/context/plan/{topic}.md`
-- Implement context: `.beastmode/context/implement/{topic}.md`
-
 **New Feature Artifacts:**
-- Design specs: `.beastmode/state/design/{YYYYMMDD-feature}.md`
-- Implementation plans: `.beastmode/state/plan/{YYYYMMDD-feature}.md`
-- Research findings: `.beastmode/state/research/{YYYYMMDD-topic}.md`
+- Design specs: `.beastmode/state/design/{YYYY-MM-DD-feature}.md`
+- Implementation plans: `.beastmode/state/plan/{YYYY-MM-DD-feature}.md`
+- Research findings: `.beastmode/state/research/{YYYY-MM-DD-topic}.md`
 
 **New Agent Documentation:**
 - Discovery guides: `agents/{guide-name}.md`

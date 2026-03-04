@@ -19,7 +19,12 @@ Documents naming patterns, code style, and project-specific conventions.
 
 **Directories:**
 - Skill directories: lowercase-with-hyphens, colocated with SKILL.md manifest
-- Example: `skills/bootstrap/`, `skills/bootstrap-discovery/`, `skills/implement/`
+- Example: `skills/beastmode/`, `skills/design/`, `skills/implement/`
+
+**State Files:**
+- Pattern: `YYYY-MM-DD-feature-name.md` (hyphenated date + kebab-case feature)
+- Location: `.beastmode/state/{phase}/`
+- Example: `state/design/2026-03-04-git-branching-strategy.md`
 
 **Branches:**
 - Feature branches: `feature/<feature>` — spanning entire feature cycle (design → plan → implement → validate → release)
@@ -29,7 +34,7 @@ Documents naming patterns, code style, and project-specific conventions.
 - snake_case: In YAML/structured fields (e.g., sub_issue_id, start_date)
 
 **Functions:**
-- Skill names: lowercase-with-hyphens slash-prefixed (e.g., /bootstrap, /design, /plan)
+- Skill names: lowercase-with-hyphens slash-prefixed (e.g., /beastmode, /design, /plan)
 - Agent names: Descriptive titles, TitleCase (e.g., "CONVENTIONS Agent", "STACK Agent")
 - Internal functions in prompts: descriptive-with-hyphens (e.g., "Spawn agents", "Collect outputs")
 
@@ -107,7 +112,7 @@ Read: references/common-instructions.md
 Append: "\n\n## Current Content\n\n"
 Append: .beastmode/context/{phase}/{detail}.md content
 ```
-Seen in: skills/bootstrap-discovery/SKILL.md
+Seen in: skills/beastmode/SKILL.md
 
 **Placeholder Pattern for Template Substitution:**
 Placeholders use bracket notation with hints:
