@@ -13,16 +13,16 @@ Documents naming patterns, code style, and project-specific conventions.
 - Shared utilities: lowercase (session-tracking.md, context-report.md, worktree-manager.md) — variant content @imported by phases
 
 **Phase Files:**
-- Pattern: `1-name.md`, `2-name.md`, `3-name.md` (numbered prefix for execution order)
+- Pattern: `0-prime.md`, `1-execute.md`, `2-validate.md`, `3-checkpoint.md` (0-indexed for standard anatomy)
 - Location: `skills/{skill}/phases/`
-- Example: `phases/1-explore.md`, `phases/2-design.md`, `phases/3-document.md`
+- Example: `phases/0-prime.md`, `phases/1-execute.md`, `phases/2-validate.md`, `phases/3-checkpoint.md`
 
 **Directories:**
 - Skill directories: lowercase-with-hyphens, colocated with SKILL.md manifest
 - Example: `skills/bootstrap/`, `skills/bootstrap-discovery/`, `skills/implement/`
 
 **Branches:**
-- Cycle branches: `cycle/<topic>` — spanning entire feature cycle (design → plan → implement → retro → release)
+- Cycle branches: `cycle/<topic>` — spanning entire feature cycle (design → plan → implement → validate → release)
 
 **Variables:**
 - camelCase: For variables in documentation (e.g., subagentType, bootstrapPath)
@@ -73,15 +73,17 @@ description: <Action words> — <keywords>. Use when <trigger>. <What it does>.
 
 ## Phases
 
-1. [<Phase>](phases/1-<phase>.md) — <3-5 word description>
-2. [<Phase>](phases/2-<phase>.md) — <3-5 word description>
+0. [Prime](phases/0-prime.md) — Load context, research if needed
+1. [Execute](phases/1-execute.md) — Do the actual work
+2. [Validate](phases/2-validate.md) — Check work, approval gates
+3. [Checkpoint](phases/3-checkpoint.md) — Save artifacts, capture learnings
 ```
 
 **Skill Authoring Rules:**
 - SKILL.md body MUST be under 50 lines
 - Description format: `<Action words> — <keywords>. Use when <trigger>. <What it does>.`
 - HARD-GATE block required if skill has constraints (link to references/constraints.md)
-- 3-5 phases maximum, descriptions are terse (3-5 words)
+- 4 phases (0-prime, 1-execute, 2-validate, 3-checkpoint), descriptions are terse (3-5 words)
 - One sentence overview after heading
 
 **Phase File Rules:**
@@ -126,7 +128,7 @@ Workflow phases organized with progressive detail:
 ```
 High-level overview → Numbered phases → Phase details with entry/exit criteria → Quick reference
 ```
-Example: /implement skill with Setup, Prepare, Execute, Complete phases
+Example: /implement skill with Prime, Execute, Validate, Checkpoint phases
 
 ## Anti-Patterns
 

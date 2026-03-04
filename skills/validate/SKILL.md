@@ -13,7 +13,7 @@ No release without passing validation. [→ Why](references/quality-gates.md)
 
 ## Phases
 
-1. [Prime](phases/1-prime.md) — Load context, identify checks
-2. [Execute](phases/2-execute.md) — Run tests and quality checks
-3. [Validate](phases/3-validate.md) — Analyze results against gates
-4. [Checkpoint](phases/4-checkpoint.md) — Save report, suggest next step
+0. [Prime](phases/0-prime.md) — Load context, identify checks
+1. [Execute](phases/1-execute.md) — Run tests and quality checks
+2. [Validate](phases/2-validate.md) — Analyze results against gates
+3. [Checkpoint](phases/3-checkpoint.md) — Save report, suggest /release or fix

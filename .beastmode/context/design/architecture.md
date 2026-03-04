@@ -6,7 +6,9 @@ Documents the system design, component relationships, and data flow.
 
 ## Overview
 
-Beastmode is a workflow system that turns Claude Code into a disciplined engineering partner through opinionated workflow patterns. It provides a structured five-phase workflow (design → plan → implement → validate → release) with standalone utilities (/bootstrap, /research, /status, /prime, /retro) that scales from quick fixes to deep feature work, enabling Claude agents to systematically design and implement features while maintaining comprehensive project context across sessions through `.beastmode/` artifact storage.
+Beastmode is a workflow system that turns Claude Code into a disciplined engineering partner through opinionated workflow patterns. It provides a structured five-phase workflow (design → plan → implement → validate → release) with standalone utilities (/bootstrap, /bootstrap-discovery, /bootstrap-wizard, /status) that scales from quick fixes to deep feature work, enabling Claude agents to systematically design and implement features while maintaining comprehensive project context across sessions through `.beastmode/` artifact storage.
+
+Each workflow phase follows the standard sub-phase anatomy: `0-prime → 1-execute → 2-validate → 3-checkpoint`. This provides consistent structure while allowing phase-specific behavior.
 
 ## Knowledge Architecture
 
@@ -42,30 +44,15 @@ Beastmode is a workflow system that turns Claude Code into a disciplined enginee
 - Location: `/skills/bootstrap/`
 - Dependencies: Templates in `/skills/bootstrap/templates/`, CLAUDE.md bridge
 
-**Prime Skill:**
-- Purpose: Load curated beastmode context for fast session initialization; reads `.beastmode/` L0/L1 files
-- Location: `/skills/prime/`
-- Dependencies: Bootstrapped beastmode project (.beastmode/ directory), project context
-
 **Bootstrap Discovery Skill:**
 - Purpose: Autonomous parallel codebase analysis with 5 parallel Explore agents to auto-populate context files
 - Location: `/skills/bootstrap-discovery/`
 - Dependencies: Five agent prompt templates, common instructions, .beastmode/context/ directory
 
-**Research Skill:**
-- Purpose: Conduct domain exploration and discovery
-- Location: `/skills/research/`
-- Dependencies: Project context
-
 **Design Skill:**
 - Purpose: Brainstorm and create design specs through collaborative dialogue with user approval gates
 - Location: `/skills/design/`
 - Dependencies: Project context, user interaction
-
-**Phase Research (Optional):**
-- Purpose: Discover unknowns before design or plan phases via keyword/complexity triggers
-- Location: `skills/design/phases/0-research.md`, `skills/plan/phases/0-research.md`
-- Dependencies: `agents/researcher.md`, Context7/WebFetch/WebSearch (tool priority), .beastmode/context/ docs
 
 **Plan Skill:**
 - Purpose: Convert designs into bite-sized implementation tasks with comprehensive documentation
@@ -90,12 +77,7 @@ Beastmode is a workflow system that turns Claude Code into a disciplined enginee
 **Release Skill:**
 - Purpose: Create changelogs, stage unified cycle changes, commit, merge to main, and cleanup worktree
 - Location: `/skills/release/`
-- Dependencies: Git, .beastmode/ artifacts, plan/implement/retro outputs, status file with worktree info
-
-**Retro Skill:**
-- Purpose: Analyze session work to improve agent instructions through parallel review
-- Location: `/skills/retro/`
-- Dependencies: Session artifacts (.beastmode/state/ markdown + session JSONL files), agent instruction files, design/plan docs for architectural decisions
+- Dependencies: Git, .beastmode/ artifacts, status file with worktree info
 
 **Agents:**
 - Purpose: Subagents spawned for specialized tasks (discovery, research)
@@ -118,7 +100,7 @@ Skill execution (design creates cycle worktree)
   ↓
 Status file updated with worktree path
   ↓
-Subsequent phases (plan, implement, validate, retro) inherit worktree from status
+Subsequent phases (plan, implement, validate) inherit worktree from status
   ↓
 Each phase: cd into worktree → execute → write artifacts (NO commit)
   ↓
@@ -136,27 +118,21 @@ state/design/20260303-login-form.md
   → state/release/20260303-login-form.md
 ```
 
-For Retro specifically:
+For Retro functionality (now in 3-checkpoint sub-phase):
 ```
-.beastmode/state/ (with Session Files section)
+3-checkpoint sub-phase triggers learnings capture
   ↓
-Gather phase collects session JSONL paths
+Update .beastmode/meta/ with session insights
   ↓
-Review agents receive paths in prompts
-  ↓
-Agents read JSONL conversations for context
-  ↓
-Findings include conversation-informed recommendations
-  ↓
-Apply phase updates .beastmode/meta/
+Learnings inform future sessions via L1 loading
 ```
 
 ## Key Decisions
 
 **Five-Phase Workflow:**
 - Context: Need to support both quick fixes and deep features without overhead
-- Decision: Linear workflow (design → plan → implement → validate → release) with standalone utilities (/bootstrap, /research, /status, /prime, /retro)
-- Rationale: Matches real engineering practices; design-before-code prevents wasted implementation; validate ensures quality before release; retro captures learnings
+- Decision: Linear workflow (design → plan → implement → validate → release) with standalone utilities (/bootstrap, /bootstrap-discovery, /bootstrap-wizard, /status)
+- Rationale: Matches real engineering practices; design-before-code prevents wasted implementation; validate ensures quality before release; each phase has sub-phases: 0-prime → 1-execute → 2-validate → 3-checkpoint
 
 **L0/L1/L2 Hierarchical Loading:**
 - Context: Need to balance comprehensive context with token efficiency
@@ -218,7 +194,7 @@ Apply phase updates .beastmode/meta/
 - Phase boundary: Each workflow phase produces artifacts consumed by the next phase (design → plan → implement → validate → release)
 
 **Public Interfaces:**
-- Skill commands (e.g., `/prime`, `/design`, `/plan`, `/implement`, `/validate`, `/release`)
+- Skill commands (e.g., `/design`, `/plan`, `/implement`, `/validate`, `/release`)
 - Command definitions (`commands/*.md`) — phase interface contracts
 - .beastmode/ folder structure (user-facing artifact storage)
 - @import syntax for CLAUDE.md (documentation composition)

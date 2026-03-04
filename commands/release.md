@@ -10,9 +10,19 @@ Ship validated code.
 ## Writes
 - `.beastmode/state/release/YYYYMMDD-{feature}.md`
 
+## Anatomy
+
+All workflow phases follow the same sub-phase pattern:
+
+| Sub-Phase | Purpose |
+|-----------|---------|
+| 0-prime | Load context, research if needed |
+| 1-execute | Do the actual work |
+| 2-validate | Check work, approval gates |
+| 3-checkpoint | Save artifacts, capture learnings |
+
 ## Flow
-1. Load context and meta
-2. Read validate state
-3. Commit changes
-4. Generate changelog
-5. Move state from validate/ to release/
+1. **0-prime**: Load artifacts, analyze changes
+2. **1-execute**: Generate changelog, create commit
+3. **2-validate**: Check merge readiness
+4. **3-checkpoint**: Merge to main, cleanup worktree, final retro

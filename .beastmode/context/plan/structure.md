@@ -53,16 +53,13 @@ beastmode/
 │   ├── validate.md         # /validate command contract
 │   └── release.md          # /release command contract
 ├── skills/                 # Agent skills (executable workflows)
-│   ├── _shared/           # Shared utilities
-│   ├── prime/             # Load project context
-│   ├── research/          # Domain exploration
-│   ├── design/            # Design thinking
+│   ├── _shared/           # Shared utilities (0-prime-template, 3-checkpoint-template)
+│   ├── design/            # Design thinking (0-prime → 1-execute → 2-validate → 3-checkpoint)
 │   ├── plan/              # Break down into tasks
 │   ├── implement/         # Execute implementation
-│   ├── validate/          # Quality gate (NEW)
-│   ├── retro/             # Capture learnings
-│   ├── status/            # Show project status
+│   ├── validate/          # Quality gate
 │   ├── release/           # Release management
+│   ├── status/            # Show project status
 │   ├── bootstrap/         # Initialize projects
 │   ├── bootstrap-wizard/  # Interactive project setup
 │   └── bootstrap-discovery/ # Auto-populate context
@@ -98,8 +95,9 @@ beastmode/
 
 **`skills/`** — Agent Skills (Executable Workflows)
 - Purpose: Reusable agent prompts that implement the beastmode workflow
-- Contains: 12 skill definitions (prime, research, design, plan, implement, validate, retro, status, release, bootstrap, bootstrap-wizard, bootstrap-discovery)
+- Contains: 9 skill definitions (design, plan, implement, validate, release, status, bootstrap, bootstrap-wizard, bootstrap-discovery)
 - Each skill has: SKILL.md (prompt definition) + phases/ subdirectory + optional references/
+- Workflow skills follow standard anatomy: 0-prime → 1-execute → 2-validate → 3-checkpoint
 
 **`agents/`** — Agent Documentation
 - Purpose: Subagent prompts for specialized tasks
@@ -125,13 +123,10 @@ beastmode/
 - `commands/release.md`: Release phase contract
 
 **Core Logic (Workflow Skills):**
-- `skills/prime/SKILL.md`: Load codebase context
-- `skills/research/SKILL.md`: Domain exploration
 - `skills/design/SKILL.md`: Design & brainstorming
 - `skills/plan/SKILL.md`: Break into implementation tasks
 - `skills/implement/SKILL.md`: Execute implementation
 - `skills/validate/SKILL.md`: Quality gate before release
-- `skills/retro/SKILL.md`: Capture learnings
 - `skills/release/SKILL.md`: Ship to main
 
 **Project Knowledge Base (Context Documents):**
