@@ -20,13 +20,8 @@ quotes=(
 
 quote=${quotes[$RANDOM % ${#quotes[@]}]}
 
-# Read version from plugin.json
-PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION=$(grep '"version"' "$PLUGIN_DIR/.claude-plugin/plugin.json" 2>/dev/null | head -1 | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-VERSION=${VERSION:-"?.?.?"}
-
 cat << EOF
-========== BEASTMODE v${VERSION} ==========
+========== BEASTMODE v0.3.6 ==========
 $quote
 
 
