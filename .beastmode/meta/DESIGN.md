@@ -28,3 +28,7 @@ Learnings from design phases. Key patterns: competitive analysis beats brainstor
 
 ### 2026-03-04: parallel-wave-upgrade-path
 - **Locked decisions can drift from implementation**: implement-v2 locked "parallel within wave" but implemented sequential with a "parallel is future" comment. When a locked decision is pragmatically deferred during implementation, the design doc should be updated to match reality. Treat locked decisions as a contract — if implementation breaks it, the design needs a revision, not just a code comment.
+
+### 2026-03-04: readme-rework
+- **README inconsistencies compound silently**: The README referenced 3 non-existent skills (/prime, /retro, /research) and omitted /validate. Nobody caught this because internal docs (CLAUDE.md, architecture.md) are correct. README drifts when it's not part of the release checklist. Consider adding README accuracy to /release validation.
+- **Competitive research quantifies intuition**: "Status tables with incomplete items hurt credibility" is an opinion. "No repo above 24k stars shows incomplete features" is evidence. The research agent turned subjective design instincts into data-backed decisions. Use research for any design where the user states a measurable goal (stars, adoption, engagement).
