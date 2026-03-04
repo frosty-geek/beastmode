@@ -2,42 +2,50 @@
 
 ## 1. Check for Beastmode Bootstrap
 
-Check if `.agents/prime/` directory exists.
+Check if `.beastmode/` directory exists.
 
 **If missing:**
 ```
-Print: "⚠ No .agents/prime/ found. Run `/bootstrap` to initialize."
+Print: "No .beastmode/ found. Run `/bootstrap` to initialize."
 ```
 Stop execution.
 
 **If exists:** Continue.
 
-## 2. Load Beastmode Core Context
+## 2. Load Product Context (L0)
 
-Read all prime files (abort if any fail):
-- `.agents/CLAUDE.md`
-- `.agents/prime/META.md`
-- `.agents/prime/AGENTS.md`
-- `.agents/prime/STACK.md`
-- `.agents/prime/STRUCTURE.md`
-- `.agents/prime/CONVENTIONS.md`
-- `.agents/prime/ARCHITECTURE.md`
-- `.agents/prime/TESTING.md`
+Read the product definition:
+- `.beastmode/PRODUCT.md`
 
-**If prime files exist but contain only placeholders:**
-```
-Print: "⚠ Prime files need content. Run `/bootstrap-discovery` to populate."
-```
-Continue (still load context).
+**If missing:** Print warning and continue.
 
-## 3. Load Situational Context
+## 3. Load Context L1 Files
 
-Read if they exist (skip silently if missing):
-- `.agents/status/STATUS.md` — Current state
-- Most recent `.agents/design/*.md` — Active design
-- Most recent `.agents/plan/*.md` — Active plan
+Read all context files (skip silently if missing):
+- `.beastmode/context/DESIGN.md`
+- `.beastmode/context/PLAN.md`
+- `.beastmode/context/IMPLEMENT.md`
+- `.beastmode/context/VALIDATE.md`
+- `.beastmode/context/RELEASE.md`
 
-## 4. Light Git Exploration
+## 4. Load Meta L1 Files
+
+Read all meta files (skip silently if missing):
+- `.beastmode/meta/DESIGN.md`
+- `.beastmode/meta/PLAN.md`
+- `.beastmode/meta/IMPLEMENT.md`
+- `.beastmode/meta/VALIDATE.md`
+- `.beastmode/meta/RELEASE.md`
+
+## 5. Load Situational Context
+
+Read state files if they exist (skip silently if missing):
+- Most recent `.beastmode/state/design/*.md` — Active design
+- Most recent `.beastmode/state/plan/*.md` — Active plan
+- Most recent `.beastmode/state/implement/*.md` — Active implementation
+- Most recent `.beastmode/state/validate/*.md` — Active validation
+
+## 6. Light Git Exploration
 
 Run (skip silently if git unavailable):
 
@@ -49,9 +57,9 @@ git log -5 --oneline
 git status
 ```
 
-## 5. Output Confirmation
+## 7. Output Confirmation
 
 Print only:
 ```
-✓ Primed
+Primed
 ```

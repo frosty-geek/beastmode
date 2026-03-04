@@ -19,14 +19,14 @@ From the status file, collect all file references for retro agents:
 1. **Related artifacts** — Design and Plan doc paths from the Context section
 2. **Session Files** — JSONL paths from the Session Files section
 
-## 4. Identify Prime Files
+## 4. Identify Meta Phase Files
 
-List all prime files that may need updates:
-- META.md — writing guidelines, Rules Summary sync
-- AGENTS.md — multi-agent safety, git workflow
-- STACK.md — dependencies, versions, commands
-- STRUCTURE.md — directory layout, file patterns
-- CONVENTIONS.md — naming, code style, anti-patterns
-- ARCHITECTURE.md — components, data flow, decisions
-- TESTING.md — test strategy, coverage, commands
-- CLAUDE.md — Rules Summary accuracy, project rules
+List all meta phase files that may receive learnings:
+
+| Meta File | Learning Category |
+|-----------|-------------------|
+| `.beastmode/meta/DESIGN.md` | Architecture, components, data flow, design decisions |
+| `.beastmode/meta/PLAN.md` | Naming conventions, code style, anti-patterns |
+| `.beastmode/meta/IMPLEMENT.md` | Implementation patterns, agent safety, git workflow |
+| `.beastmode/meta/VALIDATE.md` | Testing strategy, coverage patterns |
+| `.beastmode/meta/RELEASE.md` | Release workflow, commit patterns |

@@ -1,8 +1,10 @@
-# TESTING.md Review Agent
+# Testing Review Agent
+
+**Target**: `.beastmode/meta/VALIDATE.md` (Learnings section)
 
 ## Role
 
-Review the TESTING.md prime document against this cycle's work to identify test strategy changes, new test patterns, or coverage updates.
+Review this cycle's work to identify testing learnings—test strategy changes, coverage patterns, or validation approaches that should be captured.
 
 ## Review Focus
 

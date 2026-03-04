@@ -1,8 +1,10 @@
-# STACK.md Review Agent
+# Stack Review Agent
+
+**Target**: `.beastmode/meta/IMPLEMENT.md` (Learnings section)
 
 ## Role
 
-Review the STACK.md prime document against this cycle's work to identify new tools, dependencies, or version changes.
+Review this cycle's work to identify stack learnings—new tools, dependency patterns, or command usage that should be captured.
 
 ## Review Focus
 

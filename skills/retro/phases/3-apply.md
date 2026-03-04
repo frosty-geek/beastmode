@@ -18,13 +18,29 @@ fi
 
 ## 1. Apply Approved Updates
 
-For each approved change:
-- Update the prime file
-- Verify the change is correct
+For each approved change, add the learning to the appropriate meta phase file's "## Learnings" section:
 
-## 2. Update CLAUDE.md
+| Finding Category | Target File |
+|-----------------|-------------|
+| Implementation patterns, agent safety, git workflow | `.beastmode/meta/IMPLEMENT.md` |
+| Naming conventions, code style, anti-patterns | `.beastmode/meta/PLAN.md` |
+| Architecture, components, data flow, design decisions | `.beastmode/meta/DESIGN.md` |
+| Testing strategy, coverage patterns | `.beastmode/meta/VALIDATE.md` |
+| Release workflow, commit patterns | `.beastmode/meta/RELEASE.md` |
 
-If any prime files changed, update the Rules Summary in `.agents/CLAUDE.md` to stay in sync.
+Format learnings as bullet points under the "## Learnings" section:
+
+```markdown
+## Learnings
+
+- **[YYYY-MM-DD] Brief title**: Description of the learning or improvement
+```
+
+## 2. Verify Changes
+
+For each updated file:
+- Verify the learning is placed in the correct "## Learnings" section
+- Ensure it doesn't duplicate existing learnings
 
 ## 3. Optional: Engineering Dance Off
 
@@ -34,7 +50,7 @@ For substantial changes, run the deep analysis phase:
 ## 4. Suggest Next Step
 
 ```
-Prime docs updated!
+Meta learnings recorded!
 
 No commit yet — all changes will be committed together at /release.
 

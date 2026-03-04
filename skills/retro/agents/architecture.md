@@ -1,8 +1,10 @@
-# ARCHITECTURE.md Review Agent
+# Architecture Review Agent
+
+**Target**: `.beastmode/meta/DESIGN.md` (Learnings section)
 
 ## Role
 
-Review the ARCHITECTURE.md prime document against this cycle's work to identify system design changes, new components, or data flow updates.
+Review this cycle's work to identify architecture learnings—new components, data flow changes, or design decisions that should be captured.
 
 ## Review Focus
 

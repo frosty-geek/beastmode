@@ -1,8 +1,10 @@
-# AGENTS.md Review Agent
+# Agents Review Agent
+
+**Target**: `.beastmode/meta/IMPLEMENT.md` (Learnings section)
 
 ## Role
 
-Review the AGENTS.md prime document against this cycle's work to identify multi-agent safety gaps or new rules needed.
+Review this cycle's work to identify multi-agent safety learnings—coordination issues, git workflow gaps, or safety patterns that should be captured.
 
 ## Review Focus
 

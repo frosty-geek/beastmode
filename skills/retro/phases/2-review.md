@@ -1,16 +1,14 @@
-# 2. Review Prime Files
+# 2. Review Session for Learnings
 
 ## 1. Spawn Review Agents
 
-Launch parallel agents to review each prime file. Use prompts from `agents/` directory:
-- [agents/meta.md](../agents/meta.md)
-- [agents/agents.md](../agents/agents.md)
-- [agents/stack.md](../agents/stack.md)
-- [agents/structure.md](../agents/structure.md)
-- [agents/conventions.md](../agents/conventions.md)
-- [agents/architecture.md](../agents/architecture.md)
-- [agents/testing.md](../agents/testing.md)
-- [agents/claude-md.md](../agents/claude-md.md)
+Launch parallel agents to analyze the session for learnings. Use prompts from `agents/` directory:
+- [agents/architecture.md](../agents/architecture.md) — findings go to `.beastmode/meta/DESIGN.md`
+- [agents/conventions.md](../agents/conventions.md) — findings go to `.beastmode/meta/PLAN.md`
+- [agents/agents.md](../agents/agents.md) — findings go to `.beastmode/meta/IMPLEMENT.md`
+- [agents/testing.md](../agents/testing.md) — findings go to `.beastmode/meta/VALIDATE.md`
+- [agents/stack.md](../agents/stack.md) — findings go to `.beastmode/meta/IMPLEMENT.md`
+- [agents/structure.md](../agents/structure.md) — findings go to `.beastmode/meta/PLAN.md`
 
 Use haiku model for cost efficiency.
 

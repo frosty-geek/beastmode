@@ -1,8 +1,10 @@
-# STRUCTURE.md Review Agent
+# Structure Review Agent
+
+**Target**: `.beastmode/meta/PLAN.md` (Learnings section)
 
 ## Role
 
-Review the STRUCTURE.md prime document against this cycle's work to identify new directories, files, or structural patterns.
+Review this cycle's work to identify structure learnings—directory layouts, file patterns, or organizational approaches that should be captured.
 
 ## Review Focus
 

@@ -1,8 +1,10 @@
-# CONVENTIONS.md Review Agent
+# Conventions Review Agent
+
+**Target**: `.beastmode/meta/PLAN.md` (Learnings section)
 
 ## Role
 
-Review the CONVENTIONS.md prime document against this cycle's work to identify new naming patterns, style decisions, or anti-patterns.
+Review this cycle's work to identify convention learnings—naming patterns, style decisions, or anti-patterns that should be captured.
 
 ## Review Focus
 
