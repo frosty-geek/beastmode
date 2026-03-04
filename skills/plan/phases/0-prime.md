@@ -31,7 +31,7 @@ Read the design doc from arguments (e.g., `.beastmode/state/design/YYYY-MM-DD-<t
 Read the worktree path from the status file and `cd` into it:
 
 ```bash
-status_file=".agents/status/YYYY-MM-DD-<feature>.md"
+status_file=".beastmode/sessions/status/YYYY-MM-DD-<feature>.md"
 # Extract path from "## Worktree" section
 worktree_path=$(grep -A1 "^## Worktree" "$status_file" | grep "Path:" | sed 's/.*Path:\s*//' | tr -d '`')
 cd "$worktree_path"

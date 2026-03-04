@@ -38,13 +38,6 @@ beastmode/
 │       ├── IMPLEMENT.md    # L1: Implement learnings
 │       ├── VALIDATE.md     # L1: Validate learnings
 │       └── RELEASE.md      # L1: Release learnings
-├── .agents/                 # Legacy + worktrees (transitional)
-│   ├── design/             # Feature specs & brainstorms
-│   ├── plan/               # Implementation plans & tasks
-│   ├── research/           # Domain exploration
-│   ├── status/             # Current state & milestones
-│   ├── release/            # Changelogs
-│   └── worktrees/          # Worktree management (legacy)
 ├── commands/               # Phase interface definitions
 │   ├── design.md           # /design command contract
 │   ├── plan.md             # /plan command contract
@@ -77,22 +70,12 @@ beastmode/
 
 ## Key Directories
 
-**`.beastmode/`** — Project Context & State (NEW)
+**`.beastmode/`** — Project Context & State
 - Purpose: Central hub for all project knowledge organized by domain
-- Contains: PRODUCT.md (L0), state/ (feature kanban), context/ (build knowledge), meta/ (learnings)
+- Contains: PRODUCT.md (L0), state/ (feature kanban), context/ (build knowledge), meta/ (learnings), sessions/ (gitignored session state)
 - L1 files always loaded by /prime; L2 files loaded on-demand via @imports
 
-**`commands/`** — Phase Interface Definitions (NEW)
-- Purpose: Define what each workflow phase reads, writes, and does
-- Contains: design.md, plan.md, implement.md, validate.md, release.md
-- Visible at root for easy reference; skills implement these interfaces
-
-**`.agents/`** — Legacy Artifacts & Worktrees (transitional)
-- Purpose: Feature artifacts and worktree management
-- Contains: design/, plan/, research/, status/, release/, worktrees/
-- Persists across sessions; status files track cycle progress
-
-**`skills/`** — Agent Skills (Executable Workflows)
+**`commands/`** — Phase Interface Definitions
 - Purpose: Reusable agent prompts that implement the beastmode workflow
 - Contains: 9 skill definitions (design, plan, implement, validate, release, status, bootstrap, bootstrap-wizard, bootstrap-discovery)
 - Each skill has: SKILL.md (prompt definition) + phases/ subdirectory + optional references/
@@ -166,9 +149,9 @@ beastmode/
 - Implement context: `.beastmode/context/implement/{topic}.md`
 
 **New Feature Artifacts:**
-- Design specs: `.agents/design/{YYYYMMDD-feature}.md`
-- Implementation plans: `.agents/plan/{YYYYMMDD-feature}.md`
-- Status updates: `.agents/status/{YYYYMMDD-feature}.md`
+- Design specs: `.beastmode/state/design/{YYYYMMDD-feature}.md`
+- Implementation plans: `.beastmode/state/plan/{YYYYMMDD-feature}.md`
+- Research findings: `.beastmode/state/research/{YYYYMMDD-topic}.md`
 
 **New Agent Documentation:**
 - Discovery guides: `agents/{guide-name}.md`

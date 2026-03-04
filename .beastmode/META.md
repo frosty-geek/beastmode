@@ -70,9 +70,8 @@ This file defines how to maintain the `.beastmode/` documentation structure. It 
     ├── IMPLEMENT.md
     ├── VALIDATE.md
     └── RELEASE.md
-
-.agents/             # Session-only (gitignored)
-├── .gitignore
-├── status/          # Current session tracking
-└── worktrees/       # Active work isolation
+├── sessions/            # Session-only (gitignored)
+│   ├── status/          # Current session tracking
+│   └── tasks/           # Task persistence files
+└── worktrees/           # Active work isolation (gitignored)
 ```

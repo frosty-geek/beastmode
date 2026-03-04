@@ -75,7 +75,7 @@ Mark findings in output: `[HIGH]`, `[MEDIUM]`, `[LOW]`
 Extract topic name from the prompt for filename:
 - Use kebab-case: "Phase Research" → "phase-research"
 - Keep it short: max 3-4 words
-- Output path format: `.agents/research/YYYY-MM-DD-<topic>.md`
+- Output path format: `.beastmode/state/research/YYYY-MM-DD-<topic>.md`
 
 ## Investigation Protocol
 
@@ -86,14 +86,14 @@ Use Glob, Grep, Read to find:
 - What conventions are already established?
 - What related components exist?
 
-### 2. Prime Doc Review
+### 2. Context Doc Review
 
 Read these files to understand project context:
-- `.agents/prime/STACK.md` — technology constraints
-- `.agents/prime/ARCHITECTURE.md` — system boundaries
-- `.agents/prime/CONVENTIONS.md` — naming patterns
-- `.agents/prime/TESTING.md` — test requirements
-- `.agents/CLAUDE.md` — project rules
+- `.beastmode/context/design/tech-stack.md` — technology constraints
+- `.beastmode/context/design/architecture.md` — system boundaries
+- `.beastmode/context/plan/conventions.md` — naming patterns
+- `.beastmode/context/implement/testing.md` — test requirements
+- `.beastmode/PRODUCT.md` — project vision
 
 ### 3. External Research
 

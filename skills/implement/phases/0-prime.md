@@ -13,7 +13,7 @@ Read (if they exist):
 
 ## 3. Read Plan
 
-Load the plan from arguments (e.g., `.agents/plan/YYYY-MM-DD-<topic>.md`).
+Load the plan from arguments (e.g., `.beastmode/state/plan/YYYY-MM-DD-<topic>.md`).
 
 ## 4. Enter Feature Worktree
 
@@ -22,7 +22,7 @@ Load the plan from arguments (e.g., `.agents/plan/YYYY-MM-DD-<topic>.md`).
 Read the worktree path from the status file and `cd` into it:
 
 ```bash
-status_file=".agents/status/YYYY-MM-DD-<feature>.md"
+status_file=".beastmode/sessions/status/YYYY-MM-DD-<feature>.md"
 # Extract path from "## Worktree" section
 worktree_path=$(grep -A1 "^## Worktree" "$status_file" | grep "Path:" | sed 's/.*Path:\s*//' | tr -d '`')
 cd "$worktree_path"
@@ -42,4 +42,4 @@ npm install  # or appropriate command
 
 ## 6. Load Task State
 
-Read `.agents/plan/YYYY-MM-DD-<feature>.tasks.json` to resume from last completed task.
+Read `.beastmode/sessions/tasks/YYYY-MM-DD-<feature>.tasks.json` to resume from last completed task.

@@ -19,7 +19,7 @@ Read status file to find:
 - Validation report path
 
 ```bash
-status_file=$(ls -t .agents/status/*.md 2>/dev/null | head -1)
+status_file=$(ls -t .beastmode/sessions/status/*.md 2>/dev/null | head -1)
 
 worktree_path=$(grep -A1 "^## Worktree" "$status_file" | grep "Path:" | sed 's/.*Path:\s*//' | tr -d '`')
 worktree_branch=$(grep -A2 "^## Worktree" "$status_file" | grep "Branch:" | sed 's/.*Branch:\s*//' | tr -d '`')

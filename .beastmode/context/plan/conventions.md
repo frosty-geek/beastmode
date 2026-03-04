@@ -40,7 +40,7 @@ Documents naming patterns, code style, and project-specific conventions.
 ## Code Style
 
 **Imports:**
-- Use @ symbol for internal imports (e.g., @.agents/prime/META.md, @phases/setup.md, @references/common-instructions.md)
+- Use @ symbol for internal imports (e.g., @.beastmode/META.md, @phases/setup.md, @references/common-instructions.md)
 - URL-style references with forward slashes for semantic clarity
 
 **Exports:**
@@ -105,7 +105,7 @@ Prompts are assembled by concatenating multiple source files:
 Read: references/{prime}-agent.md
 Read: references/common-instructions.md
 Append: "\n\n## Current Content\n\n"
-Append: .agents/prime/{PRIME}.md content
+Append: .beastmode/context/{phase}/{detail}.md content
 ```
 Seen in: skills/bootstrap-discovery/SKILL.md
 
@@ -132,7 +132,7 @@ Example: /implement skill with Prime, Execute, Validate, Checkpoint phases
 
 ## Anti-Patterns
 
-- NEVER use relative imports without @ prefix for clarity (use `@.agents/prime/FILE.md` not `../prime/FILE.md`)
+- NEVER use relative imports without @ prefix for clarity (use `@.beastmode/context/FILE.md` not `../context/FILE.md`)
 - AVOID mixing placeholder formats in same section (use consistent brackets across related items)
 - NEVER include code blocks in template placeholders (use `[command]` not `` `command` ``)
 - AVOID single-file skill definitions (structure with SKILL.md in skill directory)

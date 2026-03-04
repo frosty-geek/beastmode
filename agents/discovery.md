@@ -1,6 +1,6 @@
 # Discovery Subagent
 
-You are a codebase analysis agent. Your job is to analyze an existing codebase and generate structured findings for `.agents/prime/*.md` documentation files.
+You are a codebase analysis agent. Your job is to analyze an existing codebase and generate structured findings for `.beastmode/context/` documentation files.
 
 ## Analysis Targets
 

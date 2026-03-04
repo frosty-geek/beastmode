@@ -16,7 +16,7 @@ A simple loop that scales from quick fixes to deep feature work:
 
 **New feature?** Design the approach. Plan the tasks. Implement. Release. Learn.
 
-**Multi-session project?** Each phase writes artifacts to `.agents/`. Next session, `/prime` restores context. Pick up where you left off.
+**Multi-session project?** Each phase writes artifacts to `.beastmode/`. Next session, `/prime` restores context. Pick up where you left off.
 
 **Every project?** `/retro` feeds learnings back into your agent instructions. Knowledge compounds automatically.
 
@@ -31,7 +31,7 @@ A simple loop that scales from quick fixes to deep feature work:
 | `/release` | Create changelog and release notes |
 | `/retro` | Capture learnings for next time |
 
-**Phase Research:** Both `/design` and `/plan` can automatically spawn a research phase when they detect keywords like "SOTA", "best practices", or unfamiliar tech. Research findings go to `.agents/research/`.
+**Phase Research:** Both `/design` and `/plan` can automatically spawn a research phase when they detect keywords like "SOTA", "best practices", or unfamiliar tech. Research findings go to `.beastmode/state/research/`.
 
 ### Utilities
 
@@ -66,29 +66,31 @@ Then initialize your project:
 /release
 ```
 
-## The `.agents/` Folder
+## The `.beastmode/` Folder
 
 All project context lives here:
 
 ```
-.agents/
-├── CLAUDE.md           # Project brain (<200 lines)
-├── prime/              # Context loaded every session
-│   ├── META.md         # How to maintain these docs
-│   ├── AGENTS.md       # Multi-agent coordination
-│   ├── STACK.md        # Tech stack
-│   ├── STRUCTURE.md    # Directory layout
-│   ├── CONVENTIONS.md  # Naming patterns
-│   ├── ARCHITECTURE.md # System design
-│   └── TESTING.md      # Test strategy
-├── research/           # Domain exploration
-├── design/             # Feature brainstorms, specs
-├── plan/               # Implementation tasks
-├── status/             # Current state
-└── release/            # Changelogs
+.beastmode/
+├── PRODUCT.md          # Product vision
+├── META.md             # Documentation guidelines
+├── state/              # Feature artifacts (tracked)
+│   ├── design/         # Design specs
+│   ├── plan/           # Implementation plans
+│   ├── research/       # Domain exploration
+│   └── release/        # Changelogs
+├── context/            # Build knowledge
+│   ├── design/         # Architecture, tech stack
+│   ├── plan/           # Conventions, structure
+│   └── implement/      # Agents, testing
+├── meta/               # Phase learnings
+├── sessions/           # Session state (gitignored)
+│   ├── status/         # Feature status tracking
+│   └── tasks/          # Task persistence
+└── worktrees/          # Work isolation (gitignored)
 ```
 
-Your root `CLAUDE.md` imports: `@.agents/CLAUDE.md`
+Your root `CLAUDE.md` imports: `@.beastmode/PRODUCT.md`
 
 ## Why This Works
 

@@ -20,7 +20,7 @@ get_session_path() {
 
 ## Status File Update
 
-On phase completion, update `.agents/status/YYYY-MM-DD-<feature>.md`:
+On phase completion, update `.beastmode/sessions/status/YYYY-MM-DD-<feature>.md`:
 
 1. **Create file if not exists** with header:
    ```markdown
@@ -29,8 +29,8 @@ On phase completion, update `.agents/status/YYYY-MM-DD-<feature>.md`:
    ## Context
    - **Feature**: <feature-name>
    - **Related artifacts**:
-     - Design: .agents/design/YYYY-MM-DD-<feature>.md
-     - Plan: .agents/plan/YYYY-MM-DD-<feature>.md
+     - Design: .beastmode/state/design/YYYY-MM-DD-<feature>.md
+     - Plan: .beastmode/state/plan/YYYY-MM-DD-<feature>.md
 
    ## Worktree
    - **Path**: `.beastmode/worktrees/<feature>`

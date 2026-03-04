@@ -23,7 +23,7 @@ Report: "Created worktree at `$path` on branch `$branch`"
 Used by: `/plan`, `/implement`, `/validate` 0-prime
 
 ```bash
-status_file=".agents/status/YYYY-MM-DD-<feature>.md"
+status_file=".beastmode/sessions/status/YYYY-MM-DD-<feature>.md"
 worktree_path=$(grep -A1 "^## Worktree" "$status_file" | grep "Path:" | sed 's/.*Path:\s*//' | tr -d '`')
 
 if [ ! -d "$worktree_path" ]; then

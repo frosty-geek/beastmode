@@ -10,22 +10,22 @@ Documents the testing approach, commands, and conventions.
 # Verify bootstrap-discovery on a project
 /bootstrap-discovery
 
-# Verify generated prime files have real content
-grep -v "\[" .agents/prime/*.md | grep -v "^\[" | grep -v "^--" | wc -l
+# Verify generated context files have real content
+grep -v "\[" .beastmode/context/**/*.md | grep -v "^\[" | grep -v "^--" | wc -l
 
 # Review generated documentation
-cat .agents/prime/STACK.md .agents/prime/STRUCTURE.md .agents/prime/TESTING.md
+cat .beastmode/context/design/tech-stack.md .beastmode/context/plan/structure.md .beastmode/context/implement/testing.md
 ```
 
 ## Test Structure
 
 **Verification Tests:**
-- Location: `.agents/prime/` (auto-generated after `/bootstrap-discovery`)
+- Location: `.beastmode/context/` (auto-generated after `/bootstrap-discovery`)
 - Naming: UPPERCASE.md files contain generated content, not placeholder patterns
 
 **Integration Tests:**
 - Location: Project-level verification by running `/bootstrap-discovery` on actual codebases
-- Naming: Manual inspection of generated files in `.agents/prime/`
+- Naming: Manual inspection of generated files in `.beastmode/context/`
 
 ## Conventions
 
