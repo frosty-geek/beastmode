@@ -53,24 +53,19 @@ Beastmode is a meta-framework for Claude Code — it doesn't have traditional pa
 /bootstrap-discovery
 
 # Run core workflow phases
-/prime
 /design
 /plan
 /implement
+/validate
 /release
-/retro
 
 # Standalone utilities
-/research
 /status
 
 # Access individual skills
-/bootstrap              # Initialize .agents/ structure
-/bootstrap-discovery   # Autonomous codebase analysis
-/bootstrap-wizard      # Interactive project setup
-/plan                  # Create implementation plans
-/implement             # Execute plans in worktree
-/retro                 # Capture learnings
+/beastmode install     # Initialize .beastmode/ structure
+/beastmode init --brownfield  # Auto-populate context from codebase
+/beastmode init --greenfield  # Interactive project setup
 ```
 
 ## Notes

@@ -22,7 +22,7 @@ If triggered, spawn Explore agent and save findings.
 
 ## 4. Read Design Document
 
-Read the design doc from arguments (e.g., `.agents/design/YYYY-MM-DD-<topic>.md`).
+Read the design doc from arguments (e.g., `.beastmode/state/design/YYYY-MM-DD-<topic>.md`).
 
 ## 5. Enter Cycle Worktree
 
