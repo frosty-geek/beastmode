@@ -22,11 +22,11 @@ Each workflow phase follows the standard sub-phase anatomy: `0-prime → 1-execu
 Each level follows the same fractal pattern: summary + section summaries of children + @imports to the next level.
 
 - **L0**: `PRODUCT.md` — Richest standalone project summary. Sufficient for any agent starting cold.
-- **L1**: Phase summaries (`{domain}/{PHASE}.md`) — Domain summary + section summaries per L2 + @imports. Loaded via `.beastmode/CLAUDE.md` manifest.
+- **L1**: Phase summaries (`{domain}/{PHASE}.md`) — Domain summary + section summaries per L2 + @imports. Loaded via root `CLAUDE.md`.
 - **L2**: Detail files (`{domain}/{phase}/{detail}.md`) — Full topic detail + "Related Decisions" linking to L3 artifacts.
 - **L3**: State artifacts (`state/{phase}/{date}-{feature}.md`) — Raw design docs, plans, validation records, release notes.
 
-`.beastmode/CLAUDE.md` is a pure manifest (@imports only, no prose) that wires all L0 and L1 files into sessions.
+`.beastmode/CLAUDE.md` imports L0 files (PRODUCT.md, META.md). Root `CLAUDE.md` imports `.beastmode/CLAUDE.md` plus all L1 files (context/, meta/, state/ summaries) and Prime Directives.
 
 ### Four Data Domains
 
@@ -168,10 +168,10 @@ Learnings inform future sessions via L1 loading
 - Decision: Design creates worktree, all phases write artifacts without committing, Release owns single commit + merge + cleanup
 - Rationale: Reduces commit noise; maintains WIP safety via worktree isolation; clear endpoint for merge/cleanup logic; single commit simplifies history
 
-**CLAUDE.md Imports from .beastmode/:**
+**Two-Level CLAUDE.md Wiring:**
 - Context: Need minimal project brain in root while keeping comprehensive docs organized
-- Decision: Root CLAUDE.md imports @.beastmode/PRODUCT.md and @.beastmode/context/*.md
-- Rationale: Clear precedent for project context; @imports reduce duplication; context files loaded hierarchically
+- Decision: `.beastmode/CLAUDE.md` imports L0 files (PRODUCT.md, META.md). Root `CLAUDE.md` imports `.beastmode/CLAUDE.md` + all L1 domain summaries (context/, meta/, state/) + Prime Directives
+- Rationale: Root file is the single entry point; .beastmode/CLAUDE.md scopes L0; all L1 imports listed explicitly in root for visibility; @imports reduce duplication
 
 ## Boundaries
 
