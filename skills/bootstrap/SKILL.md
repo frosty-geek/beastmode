@@ -11,3 +11,5 @@ Initialize a project with the canonical `.agents/` folder structure.
 
 1. [Create](phases/1-create.md) — Build directory tree and copy templates
 2. [Handoff](phases/2-handoff.md) — Show structure, suggest next steps
+
+@_shared/task-runner.md

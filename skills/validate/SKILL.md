@@ -17,3 +17,5 @@ No release without passing validation. [→ Why](references/quality-gates.md)
 1. [Execute](phases/1-execute.md) — Run tests and quality checks
 2. [Validate](phases/2-validate.md) — Analyze results against gates
 3. [Checkpoint](phases/3-checkpoint.md) — Save report, suggest /release or fix
+
+@_shared/task-runner.md

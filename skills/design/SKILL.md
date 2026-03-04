@@ -17,3 +17,5 @@ No implementation until design is approved. [→ Why](references/constraints.md)
 1. [Execute](phases/1-execute.md) — Propose approaches, iterate design
 2. [Validate](phases/2-validate.md) — Completeness check, user approval
 3. [Checkpoint](phases/3-checkpoint.md) — Save doc, update status, suggest /plan
+
+@_shared/task-runner.md

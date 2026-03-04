@@ -17,3 +17,5 @@ No EnterPlanMode or ExitPlanMode — this skill manages its own flow. [→ Why](
 1. [Execute](phases/1-execute.md) — Create tasks with steps
 2. [Validate](phases/2-validate.md) — Completeness check, user approval
 3. [Checkpoint](phases/3-checkpoint.md) — Save plan, suggest /implement
+
+@_shared/task-runner.md

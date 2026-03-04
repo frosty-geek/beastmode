@@ -12,3 +12,5 @@ Autonomous codebase analysis with parallel agents.
 1. [Prepare](phases/1-prepare.md) — Check prereqs, assemble prompts
 2. [Analyze](phases/2-analyze.md) — Spawn 5 parallel agents
 3. [Complete](phases/3-complete.md) — Write files, update CLAUDE.md
+
+@_shared/task-runner.md

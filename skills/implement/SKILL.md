@@ -17,3 +17,5 @@ No EnterPlanMode or ExitPlanMode — worktree isolation only. [→ Why](referenc
 1. [Execute](phases/1-execute.md) — Run tasks, write code
 2. [Validate](phases/2-validate.md) — Run tests, check build
 3. [Checkpoint](phases/3-checkpoint.md) — Update status, suggest /validate
+
+@_shared/task-runner.md
