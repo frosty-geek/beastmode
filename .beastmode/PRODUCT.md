@@ -47,4 +47,4 @@ Each skill (/design, /plan, /implement, /validate, /release) follows the same fo
 
 ## Current Version
 
-v0.5.3 — 18 releases
+v0.5.4 — 19 releases
