@@ -44,7 +44,12 @@ Detect version bump from commit messages:
 - Any `feat:` or `feat(` prefix → **minor** bump
 - Otherwise → **patch** bump
 
+<!-- HITL-GATE: release.version-confirmation | APPROVAL -->
+@../_shared/gate-check.md
+
 Increment from `$current_version` (not from tag). Present suggested version via AskUserQuestion with override option.
+
+- **auto**: Claude uses the auto-detected version bump without asking. Log: "Gate `release.version-confirmation` → auto: vX.Y.Z"
 
 ## 4. Categorize Commits
 

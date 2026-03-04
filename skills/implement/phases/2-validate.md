@@ -60,4 +60,9 @@ If all checks pass:
 If any check still fails after fix loop:
 - Report failures with full context
 - Do NOT proceed to checkpoint
+<!-- HITL-GATE: implement.validation-failure | CONDITIONAL -->
+@../_shared/gate-check.md
+
 - Ask user: "Fix manually and re-run /implement, or investigate together?"
+
+- **auto**: Claude attempts additional investigation and targeted fixes. After exhausting options, log the failures and proceed to checkpoint with a warning. Do NOT proceed to next phase if critical tests fail.

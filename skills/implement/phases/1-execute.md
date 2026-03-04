@@ -58,10 +58,15 @@ If spec check fails:
 Process the agent's deviation report per @../references/deviation-rules.md:
 
 - **Auto-fix / Blocking**: Log to deviation tracker, continue
+<!-- HITL-GATE: implement.architectural-deviation | CONDITIONAL -->
+@../_shared/gate-check.md
+
 - **Architectural**: Present to user via AskUserQuestion:
   - "Proceed with proposed change"
   - "Different approach" (user specifies)
   - "Skip this task" (mark blocked)
+
+- **auto**: Claude evaluates the deviation and proceeds with the proposed change. If the deviation is clearly safe, continue. If ambiguous, proceed cautiously and log. Log: "Gate `implement.architectural-deviation` → auto: <decision>"
 
 ### 1.5 Update Task Persistence
 
@@ -87,7 +92,12 @@ After ALL tasks in the current wave complete:
 
 If a task is blocked and has dependents in later waves:
 - Report to user: "Task N is blocked. Tasks [X, Y] in Wave M depend on it."
+<!-- HITL-GATE: implement.blocked-task-decision | CONDITIONAL -->
+@../_shared/gate-check.md
+
 - Ask: "Skip dependent tasks or investigate?"
+
+- **auto**: Claude investigates the blocked task. If resolvable, fix and continue. If not, skip dependent tasks and log the decision.
 
 ## 3. Completion
 

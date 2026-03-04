@@ -26,6 +26,9 @@ Do NOT skip approval. Short designs still need the gate.
 
 ## 3. User Approval Gate
 
+<!-- HITL-GATE: design.design-approval | APPROVAL -->
+@../_shared/gate-check.md
+
 <HARD-GATE>
 User must explicitly approve the design before proceeding.
 </HARD-GATE>
@@ -35,3 +38,4 @@ Ask: "Does this design look complete? Ready to document?"
 Options:
 - Yes, document it
 - No, let's revise [specify what]
+- **auto**: Claude self-approves and proceeds to checkpoint. Log: "Gate `design.design-approval` → auto: approved"

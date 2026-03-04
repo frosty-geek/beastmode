@@ -54,6 +54,9 @@ Wave 3: 2 tasks, 1 overlap → resequenced Task 5 to Wave 4
 
 ## 4. User Approval Gate
 
+<!-- HITL-GATE: plan.plan-approval | APPROVAL -->
+@../_shared/gate-check.md
+
 <HARD-GATE>
 User must explicitly approve the plan before proceeding.
 </HARD-GATE>
@@ -63,3 +66,5 @@ Ask: "Plan complete. Ready to save and proceed to implementation?"
 Options:
 - Yes, save and continue
 - No, let's revise [specify what]
+
+- **auto**: Claude self-approves the plan and proceeds to checkpoint. Log: "Gate `plan.plan-approval` → auto: approved"

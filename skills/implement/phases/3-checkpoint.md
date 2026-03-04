@@ -30,6 +30,9 @@ If no deviations, skip this step.
 
 @../_shared/context-report.md
 
-## 4. Suggest Next Step
+## 4. Phase Transition
 
-    /validate
+<!-- HITL-GATE: transitions.implement-to-validate | TRANSITION -->
+@../_shared/transition-check.md
+
+Next skill: `/validate`

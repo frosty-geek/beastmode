@@ -34,10 +34,11 @@ If no clear criteria emerged during discussion, include:
 
 @../_shared/context-report.md
 
-## 5. Suggest Next Step
+## 5. Phase Transition
 
-```
-/plan .beastmode/state/design/YYYY-MM-DD-<topic>.md
-```
+<!-- HITL-GATE: transitions.design-to-plan | TRANSITION -->
+@../_shared/transition-check.md
 
-The terminal state is suggesting /plan. Do NOT invoke any implementation skill.
+Next skill: `/plan .beastmode/state/design/YYYY-MM-DD-<topic>.md`
+
+Do NOT invoke any implementation skill directly — only via transition-check auto mode.

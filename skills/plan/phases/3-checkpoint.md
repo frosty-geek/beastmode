@@ -27,12 +27,13 @@ Save to `.beastmode/state/plan/YYYY-MM-DD-<feature-name>.tasks.json`:
 
 @../_shared/context-report.md
 
-## 5. Suggest Next Step
+## 5. Phase Transition
 
 <HARD-GATE>
-DO NOT call EnterPlanMode or ExitPlanMode. DO NOT automatically start implementation.
+DO NOT call EnterPlanMode or ExitPlanMode.
 </HARD-GATE>
 
-```
-/implement .beastmode/state/plan/YYYY-MM-DD-<feature-name>.md
-```
+<!-- HITL-GATE: transitions.plan-to-implement | TRANSITION -->
+@../_shared/transition-check.md
+
+Next skill: `/implement .beastmode/state/plan/YYYY-MM-DD-<feature-name>.md`
