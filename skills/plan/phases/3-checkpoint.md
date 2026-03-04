@@ -2,15 +2,15 @@
 
 ## 1. Save Plan
 
-Save to `.agents/plan/YYYY-MM-DD-<feature-name>.md`
+Save to `.beastmode/state/plan/YYYY-MM-DD-<feature-name>.md`
 
 ## 2. Create Task Persistence File
 
-Save to `.agents/plan/YYYY-MM-DD-<feature-name>.tasks.json`:
+Save to `.beastmode/state/plan/YYYY-MM-DD-<feature-name>.tasks.json`:
 
 ```json
 {
-  "planPath": ".agents/plan/YYYY-MM-DD-feature.md",
+  "planPath": ".beastmode/state/plan/YYYY-MM-DD-feature.md",
   "tasks": [
     {"id": 0, "subject": "Task 0: ...", "status": "pending"},
     {"id": 1, "subject": "Task 1: ...", "status": "pending"}
@@ -42,5 +42,5 @@ DO NOT call EnterPlanMode or ExitPlanMode. DO NOT automatically start implementa
 </HARD-GATE>
 
 ```
-/implement .agents/plan/YYYY-MM-DD-<feature-name>.md
+/implement .beastmode/state/plan/YYYY-MM-DD-<feature-name>.md
 ```

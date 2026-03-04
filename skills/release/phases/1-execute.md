@@ -30,7 +30,7 @@ git commit -m "feat(<feature>): <summary>
 
 <detailed description>
 
-Design: .agents/design/YYYY-MM-DD-<feature>.md
-Plan: .agents/plan/YYYY-MM-DD-<feature>.md
+Design: .beastmode/state/design/YYYY-MM-DD-<feature>.md
+Plan: .beastmode/state/plan/YYYY-MM-DD-<feature>.md
 "
 ```

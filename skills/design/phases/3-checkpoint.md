@@ -2,7 +2,7 @@
 
 ## 1. Write Design Doc
 
-Save to `.agents/design/YYYY-MM-DD-<topic>.md`
+Save to `.beastmode/state/design/YYYY-MM-DD-<topic>.md`
 
 Include:
 - Goal statement
@@ -41,7 +41,7 @@ If notable design decisions or patterns discovered, update `.beastmode/meta/DESI
 ## 6. Suggest Next Step
 
 ```
-/plan .agents/design/YYYY-MM-DD-<topic>.md
+/plan .beastmode/state/design/YYYY-MM-DD-<topic>.md
 ```
 
 The terminal state is suggesting /plan. Do NOT invoke any implementation skill.

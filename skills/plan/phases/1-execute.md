@@ -11,7 +11,7 @@
 
 **Tech Stack:** [Key technologies/libraries]
 
-**Design Doc:** [Link to .agents/design/ doc]
+**Design Doc:** [Link to .beastmode/state/design/ doc]
 
 ---
 ```
