@@ -40,5 +40,6 @@ Learnings from design phases. Key patterns: competitive analysis beats brainstor
 ### 2026-03-04: product-md-rollup
 - **Separation of propagation concerns simplifies reasoning**: Splitting L2→L1 (retro, every phase) from L1→L0 (release, at ship time) eliminated the "skip if minor" ambiguity that caused L0 to never update. When two mechanisms share responsibility for an outcome, neither takes ownership. Assign each level transition to exactly one workflow step.
 
-### 2026-03-04: worktree-session-discovery
-- **Cross-session state loss is a design gap, not a bug**: When a mechanism relies on in-session context (like the feature name derived during /design), it will silently break across sessions. Any state that subsequent phases need must be either persisted to disk or re-derivable from arguments. Treat session boundaries as a hard reset.
+### 2026-03-04: vision-readme-consolidation
+- **Audit before consolidation surfaces orphaned content**: Comparing VISION.md section-by-section against README + PRODUCT.md + architecture.md revealed 6 sections with no home (Progressive Autonomy, SAFe positioning, Roadmap, "What Beastmode Is NOT", parallel features, agent teams). Without the audit, these would have been silently lost when deleting VISION.md.
+- **"README is REAL" as a content policy**: The user's principle — README and PRODUCT.md contain only shipped features, aspirational content goes to ROADMAP.md — eliminates the recurring design question of "where does this future thing go?" Apply this rule to all future content decisions.
