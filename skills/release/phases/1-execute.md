@@ -8,29 +8,23 @@ if [ -n "$worktree_path" ] && [ -d "$worktree_path" ]; then
 fi
 ```
 
-## 2. Sync with Main
+## 2. WIP Commit
 
-Rebase the feature branch onto main to pick up the latest version before bumping.
-
-```bash
-git fetch origin main
-git rebase origin/main
-```
-
-If rebase conflicts on version files (plugin.json, marketplace.json, session-start.sh), accept main's version:
+Stage and commit all uncommitted changes from implement/validate phases so the worktree is clean for merge.
 
 ```bash
-git checkout --theirs .claude-plugin/plugin.json .claude-plugin/marketplace.json hooks/session-start.sh
-git add .claude-plugin/plugin.json .claude-plugin/marketplace.json hooks/session-start.sh
-git rebase --continue
+git add -A
+if ! git diff --cached --quiet; then
+  git commit -m "WIP: pre-release changes"
+fi
 ```
 
-Report: "Synced with main. Feature branch is now up-to-date."
+Report: "Worktree clean. Ready for release."
 
 ## 3. Determine Version
 
 ```bash
-# Read current version from plugin.json (post-rebase, this is main's version)
+# Read current version from plugin.json
 current_version=$(grep -o '"version": "[^"]*"' .claude-plugin/plugin.json | head -1 | cut -d'"' -f4)
 echo "Current version: $current_version"
 
@@ -125,14 +119,13 @@ Roll up L1 summaries and release features into `.beastmode/PRODUCT.md`.
    - Keep existing entries that are still accurate
    - Format: `- **Bold label**: One-sentence description`
 5. Update **How It Works** section if the release changes workflow mechanics
-6. Update **Current Version** to the new version and release count
 
 <!-- HITL-GATE: release.product-md-approval | CONDITIONAL -->
 @../_shared/gate-check.md
 
 **Significance check:**
-- If only Current Version changed → auto-apply silently
 - If Capabilities or How It Works changed → present the before/after diff for user approval
+- If neither changed → auto-apply silently
 
 - **auto**: Claude auto-applies all changes and logs: "Gate `release.product-md-approval` → auto: updated PRODUCT.md with N new capabilities"
 

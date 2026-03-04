@@ -30,7 +30,3 @@ Turn Claude Code into a disciplined engineering partner through opinionated work
 ## How It Works
 
 Each skill (/design, /plan, /implement, /validate, /release) follows the same four sub-phases: prime loads context, execute does the work, validate checks quality, checkpoint saves artifacts and captures learnings. Features flow through `.beastmode/state/` directories as they progress through the workflow. Git worktrees provide isolation — created at /design, inherited through /plan and /implement, merged by /release. The retro sub-phase propagates changes upward through the L2→L1 knowledge hierarchy, while /release rolls up L1 summaries into this L0 document.
-
-## Current Version
-
-v0.6.0 — 19 releases
