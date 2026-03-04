@@ -1,6 +1,6 @@
 # Release Meta
 
-How to improve the release phase.
+Learnings from release phases. Key pattern: worktrees branch from older commits so version files are always stale — the release flow must sync with main before bumping.
 
 ## Defaults
 
@@ -12,4 +12,4 @@ How to improve the release phase.
 
 ## Learnings
 
-<!-- From /retro -->
+- **Version conflicts are structural, not accidental** (2026-03-04): Worktrees branch from older commits, so version files are always stale. The release flow must sync with main before bumping. Also, `hooks/session-start.sh` was missing from the version bump list — all version-bearing files must be enumerated explicitly.
