@@ -86,6 +86,8 @@ Knowledge compounds. After each cycle, learnings feed back into your project con
 
 Built on ideas from [superpowers](https://github.com/obra/superpowers) and [get-shit-done](https://github.com/gsd-build/get-shit-done).
 
+See the full [Changelog](CHANGELOG.md).
+
 ## License
 
 MIT
