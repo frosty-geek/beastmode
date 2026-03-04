@@ -12,6 +12,7 @@ Determine current phase and feature:
    - Phase artifacts (design doc, plan doc paths)
 3. Read the phase's context docs from `.beastmode/context/{phase}/`
 4. Read the phase's meta doc from `.beastmode/meta/{PHASE}.md`
+5. Gather feature diff: `git diff --stat main...HEAD` to see what changed this feature
 
 ## 2. Quick-Exit Check
 
@@ -42,6 +43,9 @@ Include in both agent prompts:
 - **Feature**: {feature name}
 - **Artifacts**: {list of design/plan/status doc paths}
 - **Session JSONL**: {session file path if available}
+
+## Changes This Feature
+{output of git diff --stat main...HEAD}
 ```
 
 ## 4. Present Findings
