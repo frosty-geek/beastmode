@@ -1,3 +1,30 @@
+# Roadmap Audit Implementation Plan
+
+> **For Claude:** Use /implement to execute this plan task-by-task.
+
+**Goal:** Update ROADMAP.md to reflect actual implementation status — move shipped features to Now, clarify Next, reorder Later.
+
+**Architecture:** Single file edit. Replace all four sections (Now, Next, Later, Not Planned) with accurate content based on codebase audit.
+
+**Tech Stack:** Markdown
+
+**Design Doc:** `.beastmode/state/design/2026-03-05-roadmap-audit.md`
+
+---
+
+### Task 0: Rewrite ROADMAP.md
+
+**Wave:** 1
+**Depends on:** -
+
+**Files:**
+- Modify: `ROADMAP.md:1-42`
+
+**Step 1: Replace entire file content**
+
+Replace the full contents of `ROADMAP.md` with:
+
+```markdown
 # Roadmap
 
 > What's shipped, what's next, and what we're not building.
@@ -44,3 +71,18 @@ Deliberately out of scope.
 - **Product phase** — deciding *what* to build. Beastmode handles Development (Feature → Story), not Portfolio or Program layers. Stay in your lane.
 - **CI/CD integration** — use your existing pipelines. Beastmode produces code; your CI ships it.
 - **Project management** — no sprints, no story points, no standups, no burndown charts. If you need those, use a project management tool.
+```
+
+**Step 2: Verify no stale references**
+
+Run: `grep -c "compact" ROADMAP.md`
+Expected: `0`
+
+Run: `grep -c "Progressive Autonomy Stage 2" ROADMAP.md`
+Expected: `0`
+
+Run: `grep -c "Phase auto-chaining" ROADMAP.md`
+Expected: `1`
+
+Run: `grep -c "Dynamic retro walkers" ROADMAP.md`
+Expected: `1`

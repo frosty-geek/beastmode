@@ -4,6 +4,11 @@ All notable changes to beastmode.
 
 ---
 
+### v0.12.1 — The Audit (Mar 2026)
+
+- **ROADMAP accuracy audit** — moved shipped features (auto-chaining, persona) to Now, clarified partial implementations in Next, added designed-but-unshipped features (dynamic retro walkers), reordered Later by implementation proximity
+- **Stale references removed** — "Progressive Autonomy Stage 2" with incorrect /compact references replaced by accurate "Phase auto-chaining" entry
+
 ### v0.11.1 — The Reflow (Mar 2026)
 
 - **README restructure** — "What Makes It Different" → expanded "How It Works" + new "What Makes It Work" section
