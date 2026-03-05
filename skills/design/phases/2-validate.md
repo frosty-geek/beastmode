@@ -24,18 +24,23 @@ If the design produced fewer than 3 decisions, print:
 
 Do NOT skip approval. Short designs still need the gate.
 
-## 3. User Approval Gate
+## 3. Gate: design.design-approval
 
-<!-- HITL-GATE: design.design-approval | APPROVAL -->
-@../_shared/gate-check.md
+Read `.beastmode/config.yaml` → check `gates.design.design-approval`.
+Default: `human`. Execute ONLY the matching option below.
+Remove non-matching options from the task list.
 
-<HARD-GATE>
-User must explicitly approve the design before proceeding.
-</HARD-GATE>
+### 3.1 human — User Approval
 
 Ask: "Does this design look complete? Ready to document?"
 
 Options:
 - Yes, document it
 - No, let's revise [specify what]
-- **auto**: Claude self-approves and proceeds to checkpoint. Log: "Gate `design.design-approval` → auto: approved"
+
+Wait for user response before continuing.
+
+### 3.2 auto — Self-Approve
+
+Log: "Gate `design.design-approval` → auto: approved"
+Proceed to checkpoint.
