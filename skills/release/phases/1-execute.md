@@ -8,18 +8,15 @@ if [ -n "$worktree_path" ] && [ -d "$worktree_path" ]; then
 fi
 ```
 
-## 2. WIP Commit
+## 2. Stage Uncommitted Changes
 
-Stage and commit all uncommitted changes from implement/validate phases so the worktree is clean for merge.
+Stage all uncommitted changes from implement/validate phases so they're included in the squash merge.
 
 ```bash
 git add -A
-if ! git diff --cached --quiet; then
-  git commit -m "WIP: pre-release changes"
-fi
 ```
 
-Report: "Worktree clean. Ready for release."
+Report: "All changes staged. Ready for release."
 
 ## 3. Determine Version
 
@@ -143,24 +140,35 @@ Default: `auto`. Execute ONLY the matching option below.
 Auto-apply all changes.
 Log: "Gate `release.product-md-approval` → auto: updated PRODUCT.md with N new capabilities"
 
-## 9. Commit Release Changes
+## 9. Squash Merge to Main
 
-Stage and commit release artifacts (changelog, version bumps):
+@../_shared/worktree-manager.md#Merge Options
+
+**Important:** For "Merge locally", the squash merge stages changes but does NOT commit. Proceed to step 10 to create the commit.
+
+## 10. Commit Release
+
+Create the single commit with GitHub release style message:
 
 ```bash
 git add -A
-git commit -m "feat(<feature>): <summary-from-changelog>
+git commit -m "Release vX.Y.Z — <Title from CHANGELOG>
 
-Artifacts:
+## Features
+- <feature 1>
+- <feature 2>
+
+## Fixes
+- <fix 1>
+
+## Artifacts
 - Design: .beastmode/state/design/YYYY-MM-DD-<feature>.md
 - Plan: .beastmode/state/plan/YYYY-MM-DD-<feature>.md
 - Release: .beastmode/state/release/YYYY-MM-DD-vX.Y.Z.md
 "
 ```
 
-## 10. Merge and Cleanup
-
-@../_shared/worktree-manager.md#Merge Options
+Use the release notes generated in step 5 and categorized commits from step 4 as the commit body. Omit empty sections (no Fixes if none exist).
 
 ## 11. Git Tagging
 

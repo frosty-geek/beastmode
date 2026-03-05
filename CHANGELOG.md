@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.11.0 — The Squash (Mar 2026)
+
+- **Squash-per-release** — `/release` uses `git merge --squash` to collapse feature branches into one commit on main
+- **Archive tagging** — Feature branch tips preserved as `archive/feature/<name>` tags before deletion
+- **GitHub release style commits** — `Release vX.Y.Z — Title` with categorized Features/Fixes/Artifacts body
+- **Retroactive rewrite script** — `scripts/squash-history.sh` rebuilds main as one commit per version tag
+
 ### v0.10.0 — The Visible Gate (Mar 2026)
 
 - **Task-runner gate detection** — Gate steps processed by task runner with config.yaml lookup and mode-based substep pruning
