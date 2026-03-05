@@ -39,3 +39,6 @@ Learnings from design phases. Key patterns: competitive analysis beats brainstor
 ### 2026-03-05: key-differentiators
 - **Research informs structure, not authority**: Using perplexity to survey how successful projects organize philosophy docs yielded the docs/ folder + README bullets pattern. The user kept the structural insight but rejected citing other projects as justification. When presenting research-informed options, justify on merit, not on who else does it.
 - **Users reject borrowed authority, keep borrowed structure**: "Not sure about the react/htmx shit" rejected framework name-dropping but kept the underlying pattern. Present structures as self-evident choices, not as imitations of successful projects.
+
+### 2026-03-05: design-approval-summary
+- **Users prefer concise approval views over verbose ones**: When offered "full design doc preview" vs "executive summary," the user initially picked full but then switched to executive summary when given the format choice. For approval gates, default to the minimal information needed for a go/no-go decision.
