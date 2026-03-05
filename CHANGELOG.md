@@ -4,10 +4,12 @@ All notable changes to beastmode.
 
 ---
 
-### v0.10.1 — The Front Door (Mar 2026)
+### v0.10.1 — The Ungated Retro (Mar 2026)
 
+- **Configurable retro gates** — 4 per-category `Gate:` steps (learnings, sops, overrides, context-changes) replace HTML comment annotations
+- **Merge strategy gate** — Release merge/PR/keep/discard decision now configurable via `release.merge-strategy` gate
+- **5 new config keys** — Fine-grained autonomous control for retro and merge phases
 - **README differentiators section** — New "What Makes It Different" section with four substantial inline arguments: progressive hierarchy, compounding knowledge, session-surviving context, design-before-code
-- **Removed "Why This Works"** — Content promoted into the new differentiators section
 
 ### v0.10.0 — The Visible Gate (Mar 2026)
 
