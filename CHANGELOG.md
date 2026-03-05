@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.10.0 — The Visible Gate (Mar 2026)
+
+- **Task-runner gate detection** — Gate steps processed by task runner with config.yaml lookup and mode-based substep pruning
+- **Inline gate steps** — 15 `## N. Gate:` steps replace `<!-- HITL-GATE -->` annotations + `@gate-check.md`/`@transition-check.md` imports across all skill phases
+- **Two-tier HITL system** — `<HARD-GATE>` for unconditional constraints, `## N. Gate:` for configurable human/auto behavior
+
 ### v0.6.1 — No More Rebase (Mar 2026)
 
 - **Merge-only release** — Replaced `git rebase origin/main` with merge-only strategy; conflicts resolve once instead of per-commit replay
