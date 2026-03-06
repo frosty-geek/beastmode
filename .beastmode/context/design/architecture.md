@@ -10,6 +10,11 @@ Beastmode is a workflow system that turns Claude Code into a disciplined enginee
 
 Each workflow phase follows the standard sub-phase anatomy: `0-prime → 1-execute → 2-validate → 3-checkpoint`. This provides consistent structure while allowing phase-specific behavior.
 
+- **0-prime**: Read-only — loads project context (`.beastmode/` L0/L1), meta, and input artifacts (design doc, plan, status file). No side effects, no bash commands, no `cd`.
+- **1-execute**: Action phase — worktree entry/creation is always step 1, followed by skill-specific work (exploration, coding, testing, releasing).
+- **2-validate**: Quality check — verifies work completeness, user approval gates.
+- **3-checkpoint**: Persistence — saves artifacts, captures learnings, suggests next step.
+
 ## Knowledge Architecture
 
 ### L0/L1/L2 Hierarchy
@@ -162,11 +167,6 @@ Learnings inform future sessions via L1 loading
 - Context: Need minimal project brain in root while keeping comprehensive docs organized
 - Decision: Root CLAUDE.md imports @.beastmode/PRODUCT.md and @.beastmode/context/*.md
 - Rationale: Clear precedent for project context; @imports reduce duplication; context files loaded hierarchically
-
-**Session JSONL Access for Retro Inspection:**
-- Context: Retro agents need access to actual conversation history, not just markdown summaries
-- Decision: Store absolute paths to session JSONL files in status markdown under "Session Files" section; agents read files directly
-- Rationale: Raw conversation context enables agents to identify patterns and provide informed recommendations
 
 ## Boundaries
 
