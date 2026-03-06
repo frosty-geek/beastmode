@@ -33,7 +33,7 @@ For each runnable task in the wave:
 
 1. Read the task's **Files** section — pre-read the listed files
 2. Build the agent prompt:
-   - Read `@../references/implementer-agent.md` for the agent role
+   - Read `@../../agents/implement-implementer.md` for the agent role
    - Append: full task text (all steps, files, verification)
    - Append: pre-read file contents
    - Append: project conventions from `.beastmode/context/IMPLEMENT.md`

@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.18 — The Agent Extraction Audit (Mar 2026)
+
+- **Agent centralization** — Moved 6 agent prompts from skill-local `references/` dirs into `agents/` with `{phase}-{role}.md` naming
+- **Dead code removal** — Deleted `agents/discovery.md`, replaced by 5 specialized init agents
+- **Researcher rename** — `agents/researcher.md` → `agents/common-researcher.md` following `common-{role}` convention
+- **Missing reference fix** — Plan prime now references `common-researcher.md` (was missing entirely)
+- **Import path updates** — All 5 affected skill files updated to new agent locations
+
+
 ### v0.14.16 — The Split-Brain Fix (Mar 2026)
 
 - **Context report authority cleanup** — Eliminated duplication between visual-language.md and context-report.md; each file now has clear ownership boundaries

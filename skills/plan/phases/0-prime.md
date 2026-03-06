@@ -49,7 +49,7 @@ Research triggers if ANY:
 - Design references unfamiliar technology
 - Complex integration required
 
-If triggered, spawn Explore agent, save findings, summarize to user and continue to next step.
+If triggered, spawn Explore agent with `@../../agents/common-researcher.md`, save findings, summarize to user and continue to next step.
 
 ## 5. Read Design Document
 
