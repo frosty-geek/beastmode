@@ -104,7 +104,7 @@ fi
 
 For each of 5 agents (STACK, STRUCTURE, CONVENTIONS, ARCHITECTURE, TESTING):
 
-Read agent prompt template from `@../references/discovery-agents/{agent}-agent.md`
+Read agent prompt template from `@../../../agents/init-{agent}.md`
 Read common instructions from `@../references/discovery-agents/common-instructions.md`
 Read current content from `.beastmode/context/{phase}/{file}.md`
 

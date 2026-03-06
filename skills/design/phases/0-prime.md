@@ -32,7 +32,7 @@ Research triggers if ANY:
 
 If triggered:
 1. Extract topic from arguments
-2. Spawn Explore agent with `@../../agents/researcher.md`
+2. Spawn Explore agent with `@../../agents/common-researcher.md`
 3. Save findings to `.beastmode/state/research/YYYY-MM-DD-<topic>.md`
 4. Summarize findings to user and continue to next step
 

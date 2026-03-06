@@ -23,7 +23,7 @@ Research triggers if ANY:
 - External API/service integration
 - User expresses uncertainty
 
-If triggered, spawn Explore agent with `@../../agents/researcher.md`.
+If triggered, spawn Explore agent with `@../../agents/common-researcher.md`.
 
 ## 4. Enter Cycle Worktree (if applicable)
 
