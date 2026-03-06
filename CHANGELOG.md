@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.10 — The Spec Update (Mar 2026)
+
+- **Three Domains section** — `docs/progressive-hierarchy.md` now documents Context, Meta, and State as first-class domains
+- **Write Protection section** — Promotion path rules (state-only writes, retro gatekeeper) added to the spec
+- **Workflow section** — Five-phase pipeline and sub-phase anatomy documented in the spec
+- **Level description fixes** — L0 line count corrected (~80), L1 dual-domain pattern shown
+
+
 ### v0.14.9 — The Banner Fix, For Real This Time (Mar 2026)
 
 - **L0 Prime Directive** — Banner display instruction moved to BEASTMODE.md (autoloaded) with BEFORE-priority wording

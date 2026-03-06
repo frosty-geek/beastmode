@@ -43,14 +43,16 @@ floats to the top of a similarity search. It navigates a known structure.
 Beastmode organizes project knowledge into four levels:
 
 **L0 — System Manual** (`BEASTMODE.md`)
-The sole autoloaded file (~120 lines). Contains hierarchy spec, persona definition,
+The sole autoloaded file (~80 lines). Contains hierarchy spec, persona definition,
 writing rules, and conventions. Enough for any agent to orient after compression.
 Always loaded via CLAUDE.md.
 
-**L1 — Domain Summaries** (e.g., `context/DESIGN.md`, `meta/PLAN.md`)
-One file per phase per domain. Each contains a summary paragraph plus 2-3 sentence
-descriptions of each topic below it. Loaded by skill primes (not autoloaded). An
-agent reading L1 files knows where everything is without loading everything.
+**L1 — Domain Summaries** (e.g., `context/DESIGN.md`, `meta/DESIGN.md`)
+One file per phase per domain — both context and meta. Ten L1 files total (five
+phases times two domains). Each contains a summary paragraph plus 2-3 sentence
+descriptions of each topic below it. Loaded during the prime sub-phase of each
+workflow phase (not autoloaded). An agent reading L1 files knows where everything
+is without loading everything.
 
 **L2 — Detail Files** (e.g., `context/design/architecture.md`)
 Full topic detail. Architecture decisions, code conventions, test strategies.
@@ -61,6 +63,20 @@ current task touches that domain.
 Raw design documents, implementation plans, validation records. Referenced from L2
 "Related Decisions" sections. Rarely loaded in full — agents find them through L2
 links when they need provenance.
+
+### Three Domains
+
+Beastmode separates knowledge by purpose into three domains, each with its own
+directory tree under `.beastmode/`:
+
+| Domain | Path | Purpose | Example |
+|--------|------|---------|---------|
+| **Context** | `context/` | Published knowledge. What the project knows. | `context/design/architecture.md` |
+| **Meta** | `meta/` | Learnings, SOPs, overrides. How the project works. | `meta/design/learnings.md` |
+| **State** | `state/` | Checkpoint artifacts. What happened when. | `state/design/2026-03-06-feature.md` |
+
+Context and Meta both span L1 and L2. State lives at L3 only. Every phase has its
+own subdirectory in each domain.
 
 ### The Fractal Pattern
 
@@ -79,9 +95,46 @@ When the retro sub-phase runs at the end of each workflow phase, it reviews L2 f
 for accuracy, updates L1 summaries to match, and propagates changes upward. The
 hierarchy stays accurate because maintenance is built into the workflow, not bolted on.
 
+### Write Protection
+
+Knowledge flows upward through a strict promotion path. Phases write artifacts to
+`state/` only — never directly to `context/` or `meta/`. The retro sub-phase, which
+runs at the end of every phase, is the sole gatekeeper for upward promotion:
+
+| Writer | Allowed Targets | Mechanism |
+|--------|----------------|-----------|
+| Phase checkpoints | `state/` | Direct write |
+| Retro | L1, L2 | Bottom-up promotion |
+| Release | L0 | Release-time L1->L0 rollup |
+| Init | L0, L1, L2 | Bootstrap exemption |
+
+This prevents phases from corrupting published knowledge. A design phase can't
+accidentally overwrite an architecture decision in `context/design/architecture.md`
+— it writes its design doc to `state/design/`, and retro decides what gets promoted.
+
+## The Workflow That Drives It
+
+The hierarchy doesn't maintain itself. It stays accurate because maintenance is
+structural — built into a five-phase workflow that every feature passes through:
+
+**design** -> **plan** -> **implement** -> **validate** -> **release**
+
+Each phase follows the same four sub-phases: **prime** (load context) -> **execute**
+(do the work) -> **validate** (check quality) -> **checkpoint** (save artifacts,
+run retro).
+
+The retro sub-phase runs inside every checkpoint. It compares the phase's output
+against existing L1 and L2 files, proposes updates, and promotes changes upward
+through the hierarchy. This is how the hierarchy compounds — every phase cycle is an
+opportunity to refine what the project knows about itself.
+
+Retro is also gated: a configurable HITL (human-in-the-loop) gate system controls
+whether context writes, learnings, SOPs, and overrides require human approval or
+auto-apply. Gates are defined in `.beastmode/config.yaml`.
+
 ## Why This Matters
 
-**Token efficiency.** Agents load L0 by default (~120 lines). L1 loaded during
+**Token efficiency.** Agents load L0 by default (~80 lines). L1 loaded during
 prime. L2 and L3 loaded on demand. A flat system would load 10-50x more tokens for
 the same effective context.
 
