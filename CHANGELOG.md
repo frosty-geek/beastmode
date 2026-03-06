@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.1 — The Agent's Handbook (Mar 2026)
+
+- **L0 rework** — BEASTMODE.md rewritten as agent survival guide: prime directives, persona, workflow, knowledge hierarchy, domains, configuration
+- **CLAUDE.md simplified** — Reduced to single `@.beastmode/BEASTMODE.md` import
+- **Prime directives consolidated** — Moved from CLAUDE.md into BEASTMODE.md where they survive compression
+- **Internal mechanisms removed** — Loading tables, compaction flow, writing guidelines, meta domain structure stripped from L0
+
 ### v0.14.0 — The Hierarchy Cleanup (Mar 2026)
 
 - **BEASTMODE.md replaces L0 trio** — Single system manual (~108 lines) replaces PRODUCT.md, META.md, and .beastmode/CLAUDE.md as the sole autoload

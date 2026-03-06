@@ -26,6 +26,11 @@ Each level follows the same fractal pattern: summary + section summaries of chil
 - **L2**: Detail files (`{domain}/{phase}/{detail}.md`) — Full topic detail + "Related Decisions" linking to L3 artifacts.
 - **L3**: State artifacts (`state/{phase}/{date}-{feature}.md`) — Raw design docs, plans, validation records, release notes.
 
+L2 domains follow a tiered taxonomy based on project-type relevance:
+- **Tier 1 (Universal)**: Created by default for all projects — architecture, tech-stack, domain-model, conventions, structure, error-handling, testing, build, quality-gates, versioning, changelog, deployment.
+- **Tier 2 (High-frequency)**: Created on project-type triggers — api-contracts, security, environments, state-management, observability, data-access, performance, distribution.
+- **Tier 3 (Specialized)**: Created when specialized needs arise through retro-driven gap detection — constraints, dependencies, integration, compatibility, compliance, migration.
+
 `CLAUDE.md` imports `@.beastmode/BEASTMODE.md` directly. Skills load L1 during prime. No @imports between levels.
 
 ### Three Data Domains
@@ -118,15 +123,23 @@ state/design/2026-03-03-login-form.md
 
 For Retro functionality (now in 3-checkpoint sub-phase):
 ```
-3-checkpoint sub-phase triggers retro-meta agent
+3-checkpoint sub-phase triggers retro-context + retro-meta agents (parallel)
   ↓
-Agent classifies findings as SOP, override, or learning
+Meta agent classifies findings as SOP, override, or learning
   ↓
 Tiered HITL gates: learnings (interactive), SOPs/overrides (approval)
   ↓
 Writes routed to meta/{phase}/sops.md, overrides.md, or learnings.md
   ↓
 Recurring learnings (3+ sessions) auto-promoted to SOPs
+  ↓
+Context agent detects accuracy issues AND missing L2 domains
+  ↓
+Gap proposals with confidence scores: HIGH (immediate), MEDIUM (2nd), LOW (3rd)
+  ↓
+HITL gate (retro.l2-write): approve/reject new L2 file creation
+  ↓
+On approval: session-seeded L2 file created, parent L1 updated with @import
   ↓
 Classified knowledge informs future sessions via L1 loading
 ```
@@ -214,3 +227,4 @@ Classified knowledge informs future sessions via L1 loading
 - Meta domain restructured to fractal L2 hierarchy. See [meta-hierarchy](../../state/design/2026-03-05-meta-hierarchy.md)
 - HITL gate configuration with config.yaml. See [hitl-gate-config](../../state/design/2026-03-04-hitl-gate-config.md)
 - HITL gate adherence with task-runner integration. See [hitl-adherence](../../state/design/2026-03-05-hitl-adherence.md)
+- Retro-driven L2 domain expansion with confidence-scored promotion. See [l2-domain-expansion](../../state/design/2026-03-06-l2-domain-expansion.md)

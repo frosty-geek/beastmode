@@ -7,7 +7,7 @@ Product vision, capabilities, and differentiators. Beastmode turns Claude Code i
 design/product.md
 
 ## Architecture
-System design with L0/L1/L2/L3 knowledge hierarchy, three data domains (Context/State/Meta), worktree isolation for implementation, squash-per-release commits, two-tier HITL gate system, and artifact-based context persistence across sessions.
+System design with L0/L1/L2/L3 knowledge hierarchy, tiered L2 domain taxonomy (universal/high-frequency/specialized), three data domains (Context/State/Meta), worktree isolation for implementation, squash-per-release commits, two-tier HITL gate system, retro-driven L2 domain promotion, and artifact-based context persistence across sessions.
 design/architecture.md
 
 ## Tech Stack
