@@ -56,10 +56,27 @@ Does the artifact introduce a concept that has no L2 home?
    - Filename: `context/{phase}/{domain}.md`
    - Seed content: extracted from the artifact's key decisions and approach
    - Parent L1 section: summary to add to `context/{PHASE}.md`
+3. For each section in the new L2 file, propose a corresponding L3 record:
+   - Directory: `context/{phase}/{domain}/`
+   - Filename: `context/{phase}/{domain}/{section-name}.md`
+   - Format: Context/Decision/Rationale/Source (standard L3 structure)
+   - Source: the state artifact path
 
-This is NOT gap detection. No confidence scoring, no accumulation thresholds. Just: "this concept has no doc home, here's a draft."
+Every L2 section MUST have a corresponding L3 record. L2 files without L3 records are incomplete.
 
-### 5. Emit Changes
+This is NOT gap detection. No confidence scoring, no accumulation thresholds. Just: "this concept has no doc home, here's a draft with L3 provenance."
+
+### 5. L3 Completeness Check
+
+For each existing L2 file flagged in step 3:
+
+1. List sections (`##` headings) in the L2 file
+2. List L3 records in the corresponding `context/{phase}/{domain}/` directory
+3. If any L2 section has no matching L3 record → propose the missing L3:
+   - Format: Context/Decision/Rationale/Source
+   - Source: infer from the artifact or mark as "Source artifact unknown — backfill needed"
+
+### 6. Emit Changes
 
 Return a structured list of all proposed changes.
 
@@ -88,6 +105,7 @@ No changes needed. L1 summaries already account for this artifact.
 
 - **Artifact-scoped** — only check docs relevant to the new artifact
 - **L1 first** — use L1 as a fast exit before reading L2 files
+- **L3 completeness** — every L2 section MUST have a corresponding L3 record with Source provenance
 - **Be specific** — include exact sections/lines to change
 - **Preserve structure** — suggest edits within existing document structure
 - **No gap detection** — only recognize obvious new areas, don't scan for patterns

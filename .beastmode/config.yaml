@@ -3,7 +3,7 @@
 
 gates:
   design:
-    existing-design-choice: human    # INTERACTIVE — prior design found, ask what to do
+    existing-design-choice: auto    # INTERACTIVE — prior design found, ask what to do
     gray-area-selection: human       # INTERACTIVE — which areas to discuss
     gray-area-discussion: human      # INTERACTIVE — question loop per area
     section-review: human            # INTERACTIVE — section-by-section review
@@ -19,9 +19,13 @@ gates:
 
   retro:
     context-write: human             # APPROVAL — all context doc writes (L2 edits + new L2 files)
+    learnings: human                 # APPROVAL — append learnings to meta
+    sops: human                      # APPROVAL — write SOPs to meta
+    overrides: human                 # APPROVAL — write overrides to meta
 
   release:
-    version-confirmation: human      # APPROVAL — version bump override
+    version-confirmation: auto       # APPROVAL — version bump override
+    beastmode-md-approval: auto      # APPROVAL — L0 update proposal application
 
 transitions:
   design-to-plan: auto               # TRANSITION
