@@ -58,3 +58,6 @@ Friction and insights captured during design retros.
 
 ### 2026-03-05: dynamic-persona-greetings
 - **Static hook + Claude-side intelligence is the right split for pre-session features**: The hook provides raw material (banner, tagline) before Claude loads; Claude provides interpretation (context-awareness, persona voice) after loading. When a feature needs both pre-Claude delivery and reasoning, keep the hook dumb and let Claude add intelligence. Don't try to make bash smart.
+
+### 2026-03-05: roadmap-audit
+- **ROADMAP drift is predictable with the worktree model**: Features ship on feature branches but ROADMAP lives on main. The retro bubble updates context/ and meta/ docs but not ROADMAP.md. External-facing docs (README, ROADMAP, CHANGELOG) need their own audit cadence — the retro walker doesn't touch them.

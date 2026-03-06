@@ -26,9 +26,12 @@ Designed or partially built. Coming soon.
 
 On the radar. Not yet designed.
 
+- **Community learning loop** — retro learnings don't stay in your project. Friction and patterns bubble up as issues to the beastmode repo automatically — crowdsourcing improvements from every user. The meta layer goes from project-scoped to ecosystem-scoped.
+- **GitHub feature tracking** — features become GitHub issues. A kanban board tracks them through design → plan → implement → validate → release. State management updates labels as features move through phases. PRs link to artifacts, design docs, and plans. `.beastmode/state/` stays in sync, but now you can see everything in GitHub too.
+- **Model profile control** — configure which model each subagent uses (Opus, Sonnet, Haiku) via `.beastmode/config.yaml`. Per-agent cost/quality tradeoffs. Budget mode for high-volume work, quality mode for critical architecture.
+- **Retro confidence scoring** — weight learnings by frequency and recency instead of raw count. A learning seen 3 times this week matters more than one seen 3 times over 3 months. Confidence decay for stale patterns, growth for recurring ones. Smarter auto-promotion to SOPs.
 - **Progressive Autonomy Stage 3** — agent teams. Multiple agents pull features from a shared tasklist. Peers, not hierarchy. Each agent runs the full design → release pipeline independently.
 - **Parallel features** — multiple features in separate worktrees simultaneously, with independent progress tracking.
-- **GitHub Issues as tasklist backend** — features as Issues, status as labels. For teams that want visibility beyond the filesystem.
 - **Integration phase** — multi-feature coordination and merge conflict handling between parallel feature branches.
 - **Other agentic tools** — Cursor, Copilot Workspace, and other AI coding environments beyond Claude Code.
 
