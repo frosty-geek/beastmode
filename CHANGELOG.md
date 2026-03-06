@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.9 — The Banner Fix, For Real This Time (Mar 2026)
+
+- **L0 Prime Directive** — Banner display instruction moved to BEASTMODE.md (autoloaded) with BEFORE-priority wording
+- **Task-runner cleanup** — Removed dead Session Banner Check step; @import indirection never auto-expanded
+- **Root cause** — Prior fixes targeted wording (v0.14.5) and task-runner (v0.14.6), but the real issue was @import non-expansion in HARD-GATE sections
+
+
 ### v0.14.8 — The Declutter (Mar 2026)
 
 - **Remove CONTEXT.md** — L0 domain entry for Context removed; routing table duplicated by hierarchy conventions, zero consumers

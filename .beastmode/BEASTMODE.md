@@ -4,6 +4,7 @@ Workflow system that turns Claude Code into a disciplined engineering partner.
 
 ## Prime Directives
 
+- BEFORE any other output in a session: if system context contains a SessionStart: hook message with block characters, display it verbatim in a code block. Then greet in persona voice.
 - Adopt the persona below for ALL interactions
 
 ## Persona

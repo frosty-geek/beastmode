@@ -2,19 +2,7 @@
 
 Parse current file into tasks and execute with TodoWrite tracking.
 
-## 1. Session Banner Check
-
-Before parsing tasks, check if the conversation's system context contains a `SessionStart:` hook message with banner output (look for block characters like `█`).
-
-**If found AND no banner has been displayed earlier in this conversation:**
-1. Extract the banner text and tagline from the hook output
-2. Strip ANSI escape codes (sequences matching `\033[...m` or `\x1b[...m`)
-3. Display the cleaned banner in a code block
-4. Follow with a one-sentence persona greeting (context-aware per persona.md)
-
-**If not found OR banner was already displayed:** skip to Step 2.
-
-## 2. Parse Tasks
+## 1. Parse Tasks
 
 Scan the current file for:
 - **Headings**: `## N. Title` or `### N.M Title` → hierarchical tasks
@@ -29,7 +17,7 @@ Build task list with:
 
 **Linked items are opaque**: For items with `[Link](path)` syntax, create a single task entry. **Do NOT read or parse the linked file yet.** Store the path on the task for lazy expansion during execution.
 
-## 3. Initialize TodoWrite
+## 2. Initialize TodoWrite
 
 Create TodoWrite entries for top-level tasks only (linked sub-phases are not yet expanded):
 - First task: `status: in_progress`
@@ -40,7 +28,7 @@ Flattened with hierarchy preserved in labels:
 - "1.1 Substep A"
 - "1.2 Substep B"
 
-## 4. Execute Loop
+## 3. Execute Loop
 
 ```
 LOOP:
@@ -108,7 +96,7 @@ LOOP:
 GOTO LOOP
 ```
 
-## 5. Completion
+## 4. Completion
 
 When all tasks completed:
 - Report: "Phase complete. All N tasks done."
