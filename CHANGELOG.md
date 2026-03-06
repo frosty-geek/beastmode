@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.10 — The Declutter, Part II (Mar 2026)
+
+- **L0 simplification** — BEASTMODE.md cut from 81 to 42 lines; removed knowledge hierarchy tables, domain definitions, write protection table, sub-phase anatomy, slash commands, and configuration explanation
+- **Persona pointer** — persona.md converted from full duplication to pointer referencing L0; unique content (context-awareness detail, skill announces) retained
+
+
+
 ### v0.14.9 — The Banner Fix, For Real This Time (Mar 2026)
 
 - **L0 Prime Directive** — Banner display instruction moved to BEASTMODE.md (autoloaded) with BEFORE-priority wording
