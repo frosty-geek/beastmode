@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.14 — The Declutter, Part III (Mar 2026)
+
+- **State L1 removal** — Deleted 5 dead state index files (`state/DESIGN.md` through `state/RELEASE.md`) that nothing consumed or maintained
+- **Release skill cleanup** — Removed state L1 references from L0 proposal generation step
+
+
 ### v0.14.13 — The Visual Progress Language (Mar 2026)
 
 - **Visual language spec** — New `skills/_shared/visual-language.md` defining `█▓░▒` block-element vocabulary for progress displays
