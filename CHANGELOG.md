@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.10 — The Spec Update (Mar 2026)
+
+- **Three Domains section** — `docs/progressive-hierarchy.md` now documents Context, Meta, and State as first-class domains
+- **Write Protection section** — Promotion path rules (state-only writes, retro gatekeeper) added to the spec
+- **Workflow section** — Five-phase pipeline and sub-phase anatomy documented in the spec
+- **Level description fixes** — L0 line count corrected (~80), L1 dual-domain pattern shown
+
 ### v0.14.6 — The Banner Fix (Mar 2026)
 
 - **Task-runner banner check** — New Step 1 in task-runner.md checks system context for SessionStart banner and displays it before skill execution
