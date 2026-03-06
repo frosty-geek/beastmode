@@ -28,14 +28,14 @@ Rules for Claude and agents working on this project. Ensures safe multi-agent co
 ## Feature Workflow (Branch + Worktree)
 
 - **Branch naming**: `feature/<feature>` — created by /design, used by all phases, merged by /release
-- **Status file coordination**: All phases read worktree path from `.agents/status/YYYY-MM-DD-<feature>.md`
+- **Status file coordination**: All phases read worktree path from `.beastmode/sessions/status/YYYY-MM-DD-<feature>.md`
 - **Natural commits**: Phases may commit as needed. No forced commit policy.
 - **Worktree safety**: Worktree at `.beastmode/worktrees/<feature>` provides isolation
 - **Release owns merge**: /release merges feature branch to main and cleans up worktree + branch
 
 ## Refactoring
 
-- **Implementation plans are authoritative**: When executing a `.agents/plan/*.md` file, the plan takes precedence over existing documentation or code comments
+- **Implementation plans are authoritative**: When executing a `.beastmode/state/plan/*.md` file, the plan takes precedence over existing documentation or code comments
 - **Grep for old names**: When renaming/deleting, run `grep -r "old-name" .` to find all references
 
 ## Reports

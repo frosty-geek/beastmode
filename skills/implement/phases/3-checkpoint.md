@@ -2,7 +2,7 @@
 
 ## 1. Update Status
 
-Update `.agents/status/YYYY-MM-DD-<topic>.md`:
+Update `.beastmode/sessions/status/YYYY-MM-DD-<topic>.md`:
 - Add Implement phase entry
 - Record tasks completed
 

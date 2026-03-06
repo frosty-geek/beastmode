@@ -14,7 +14,7 @@ Include:
 
 ## 2. Update Status
 
-Update `.agents/status/YYYY-MM-DD-<topic>.md`:
+Update `.beastmode/sessions/status/YYYY-MM-DD-<topic>.md`:
 
 **MANDATORY — include the Worktree section** so subsequent phases can find it:
 

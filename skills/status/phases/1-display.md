@@ -11,19 +11,19 @@
 ### Default (no args)
 
 ```bash
-ls -t .agents/status/*.md 2>/dev/null | head -1 | xargs cat
+ls -t .beastmode/sessions/status/*.md 2>/dev/null | head -1 | xargs cat
 ```
 
 ### List
 
 ```bash
-ls -lt .agents/status/*.md 2>/dev/null
+ls -lt .beastmode/sessions/status/*.md 2>/dev/null
 ```
 
 ### Feature
 
 ```bash
-cat .agents/status/*-<feature>.md 2>/dev/null
+cat .beastmode/sessions/status/*-<feature>.md 2>/dev/null
 ```
 
 ## 3. Display Output

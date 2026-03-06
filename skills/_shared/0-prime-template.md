@@ -30,7 +30,7 @@ If triggered, spawn Explore agent with `@../../agents/researcher.md`.
 
 ```bash
 # Read worktree path from status file
-status_file=".agents/status/YYYY-MM-DD-<topic>.md"
+status_file=".beastmode/sessions/status/YYYY-MM-DD-<topic>.md"
 worktree_path=$(grep -A1 "^## Worktree" "$status_file" | grep "Path:" | sed 's/.*Path:\s*//' | tr -d '`')
 
 if [ -n "$worktree_path" ] && [ -d "$worktree_path" ]; then

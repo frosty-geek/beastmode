@@ -1,6 +1,0 @@
-# Session-specific artifacts
-status/
-worktrees/
-
-# Task tracking files (session state)
-plan/*.tasks.json
