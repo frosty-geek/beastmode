@@ -61,3 +61,6 @@ Friction and insights captured during design retros.
 
 ### 2026-03-05: roadmap-audit
 - **ROADMAP drift is predictable with the worktree model**: Features ship on feature branches but ROADMAP lives on main. The retro bubble updates context/ and meta/ docs but not ROADMAP.md. External-facing docs (README, ROADMAP, CHANGELOG) need their own audit cadence — the retro walker doesn't touch them.
+
+### 2026-03-06: banner-visibility-fix
+- **Wording changes to behavioral instructions have outsized impact**: Replacing "display it" with "greet in persona voice" in the CLAUDE.md Prime Directive silently broke banner visibility. The old instruction was a concrete action ("display"), the new one was an interpretation prompt ("greet in persona voice"). When rewriting instructions that control Claude's output behavior, preserve the concrete action verbs and add new behavior on top — don't replace them.
