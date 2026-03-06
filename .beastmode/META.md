@@ -4,17 +4,27 @@
 
 This file defines how to maintain the `.beastmode/` documentation structure. It is always imported into CLAUDE.md to ensure consistent documentation practices.
 
-## L0/L1/L2 Documentation Hierarchy
+## Knowledge Hierarchy (Fractal Progressive Enhancement)
 
-**Context Loading Strategy**:
-- **L0**: Product vision (`.beastmode/PRODUCT.md`) — always loaded
-- **L1**: Phase summaries (`.beastmode/{domain}/{PHASE}.md`) — loaded by `/prime` in relevant phase
-- **L2**: Detail files (`.beastmode/{domain}/{phase}/{detail}.md`) — loaded on-demand via @imports
+Every level follows the same pattern: summary + section summaries of children + @imports to the next level down. Full detail lives only at the deepest level.
+
+**Levels:**
+- **L0**: `PRODUCT.md` — Richest standalone project summary. Sufficient for any agent starting cold.
+- **L1**: Phase summaries (`{domain}/{PHASE}.md`) — Domain summary + section summaries per L2 + @imports. Loaded via root `CLAUDE.md`.
+- **L2**: Detail files (`{domain}/{phase}/{detail}.md`) — Full topic detail + "Related Decisions" section linking to L3 artifacts.
+- **L3**: State artifacts (`state/{phase}/{date}-{feature}.md`) — Raw design docs, plans, validation records, release notes.
+
+**Loading:**
+- `.beastmode/CLAUDE.md` imports L0 files (PRODUCT.md, META.md)
+- Root `CLAUDE.md` imports `@.beastmode/CLAUDE.md` + all L1 domain summaries (context/, meta/, state/) + Prime Directives
 
 **Rule**: When updating documentation, maintain the hierarchy:
 1. L0 files: Product-level changes only
-2. L1 files: Brief summaries with @imports to L2 files
-3. L2 files: Detailed, specific content for that domain/phase
+2. L1 files: Summary + section summaries per L2 child + @imports
+3. L2 files: Detailed content + "Related Decisions" with one-liner links to L3
+4. L3 files: Raw artifacts (no upward references needed)
+
+**Bottom-Up Retro Bubble**: 3-checkpoint retro walks L2 → L1 → L0: update detail, re-summarize parent, re-summarize grandparent. Verify linked files exist, prune stale entries, add new.
 
 ## Writing Guidelines
 
@@ -36,42 +46,3 @@ This file defines how to maintain the `.beastmode/` documentation structure. It 
 
 - **UPPERCASE.md** — Invariant meta files (always exist, same structure)
 - **lowercase.md** — Variant files (plans, research docs, date-prefixed)
-
-## Folder Structure
-
-```
-.beastmode/
-├── META.md          # L0: System explanation
-├── PRODUCT.md       # L0: Product vision
-├── state/           # Feature state (kanban)
-│   ├── DESIGN.md    # L1: Design phase summary
-│   ├── design/      # L2: Design artifacts
-│   ├── PLAN.md      # L1: Plan phase summary
-│   ├── plan/        # L2: Plan artifacts
-│   ├── IMPLEMENT.md # L1: Implement phase summary
-│   ├── VALIDATE.md  # L1: Validate phase summary
-│   ├── RELEASE.md   # L1: Release phase summary
-│   ├── release/     # L2: Release artifacts
-│   └── research/    # L2: Research artifacts
-├── context/         # Build knowledge
-│   ├── DESIGN.md    # L1: Design context summary
-│   ├── design/      # L2: architecture.md, tech-stack.md
-│   ├── PLAN.md      # L1: Plan context summary
-│   ├── plan/        # L2: conventions.md, structure.md
-│   ├── IMPLEMENT.md # L1: Implement context summary
-│   ├── implement/   # L2: agents.md, testing.md
-│   ├── VALIDATE.md  # L1: Validate context summary
-│   ├── validate/    # L2: quality gates
-│   ├── RELEASE.md   # L1: Release context summary
-│   └── release/     # L2: versioning, changelog
-└── meta/            # Self-improvement
-    ├── DESIGN.md    # Phase learnings
-    ├── PLAN.md
-    ├── IMPLEMENT.md
-    ├── VALIDATE.md
-    └── RELEASE.md
-├── sessions/            # Session-only (gitignored)
-│   ├── status/          # Current session tracking
-│   └── tasks/           # Task persistence files
-└── worktrees/           # Active work isolation (gitignored)
-```

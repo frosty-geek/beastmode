@@ -68,7 +68,6 @@ claude plugin update beastmode@beastmode-marketplace --scope project
 - **Self-bootstrapping:** Uses its own skills to analyze and document codebases
 - **Markdown-first:** All documentation and skill prompts are written in markdown
 - **Parallel execution:** `/beastmode init --brownfield` spawns parallel Explore agents to auto-populate context
-- **Version:** 0.3.1 (from plugin.json)
 - **Author:** bugroger (github: BugRoger)
 
 ## Related Decisions
