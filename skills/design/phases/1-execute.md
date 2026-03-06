@@ -40,6 +40,9 @@ Analyze the topic to find decisions that would change the outcome:
 Bad: "UI", "UX", "Behavior"
 Good: "Layout style", "Loading pattern", "Empty state handling", "Error recovery approach"
 
+<!-- HITL-GATE: design.gray-area-selection | INTERACTIVE -->
+@../_shared/gate-check.md
+
 ## 4. Present Gray Areas
 
 Use `AskUserQuestion` with `multiSelect: true`:
@@ -51,6 +54,11 @@ Use `AskUserQuestion` with `multiSelect: true`:
 - Annotate with prior decisions: "(You chose X in the Y design)"
 
 At least 1 area must be discussed. Do NOT include "skip all."
+
+- **auto**: Claude selects all areas for internal analysis without asking. Proceed to discuss each using Claude's judgment.
+
+<!-- HITL-GATE: design.gray-area-discussion | INTERACTIVE -->
+@../_shared/gate-check.md
 
 ## 5. Discuss Selected Areas
 
@@ -67,6 +75,8 @@ For each selected area:
    "That sounds like its own feature — I'll note it as a deferred idea. Back to [area]."
 5. Maintain running "Deferred Ideas" list internally
 
+- **auto**: Claude makes reasonable decisions for each area based on codebase context and prior decisions. Log each decision inline. No AskUserQuestion calls.
+
 ## 6. Propose Approaches
 
 - Present 2-3 different approaches with trade-offs
@@ -74,11 +84,15 @@ For each selected area:
 - Annotate with codebase context: "Approach A reuses existing X"
 - Informed by gray area discussions — don't re-ask decided points
 
+<!-- HITL-GATE: design.section-review | INTERACTIVE -->
+@../_shared/gate-check.md
+
 ## 7. Present Design
 
 Once requirements understood:
 - Scale each section to complexity
 - Ask after each section if it looks right
+- **auto**: Claude presents the full design without per-section approval pauses. Proceed directly to validation.
 - Cover: architecture, components, data flow, error handling, testing
 
 ## 8. Iterate Until Ready for Validation

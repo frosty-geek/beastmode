@@ -55,6 +55,10 @@ If arguments point to an existing PRD, spec, or requirements document (not a `.b
 2. Skip gray area identification in execute
 3. Jump directly to "Propose Approaches" with the doc as input
 
+<!-- HITL-GATE: design.existing-design-choice | INTERACTIVE -->
+@../_shared/gate-check.md
+
 If a prior design doc exists for the same topic (matching feature name):
 - Ask: "Found existing design for this topic. What do you want to do?"
 - Options: Update existing / View first / Start fresh
+- **auto**: Claude reads the existing design and decides whether to update or start fresh based on how different the new requirements are. Log the decision.

@@ -12,16 +12,18 @@ Save to `.beastmode/state/validate/YYYYMMDD-{feature}.md`
 
 @../_shared/context-report.md
 
-## 4. Suggest Next Step
-
-If PASS:
-```
-Validation passed! Ready for release:
-/release
-```
+## 4. Phase Transition
 
 If FAIL:
 ```
 Validation failed. Fix issues and re-run:
 /validate
 ```
+STOP — do not proceed to transition check.
+
+If PASS:
+
+<!-- HITL-GATE: transitions.validate-to-release | TRANSITION -->
+@../_shared/transition-check.md
+
+Next skill: `/release`
