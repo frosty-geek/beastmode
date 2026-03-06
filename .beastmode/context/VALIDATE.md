@@ -9,13 +9,9 @@ Gate definitions — standard checks (tests, lint, types), custom structural gat
 2. NEVER proceed to release with failing quality gates
 3. Acceptance criteria from design docs are the primary gate for markdown-only projects
 
-validate/quality-gates.md
-
 ## Validation Patterns
 Conventions for validation report structure and verification methodology. All reports follow the same skeleton: metadata header, standard gate sections, custom gates table, acceptance criteria, observations. Evidence standards require concrete proof for every PASS.
 
 1. ALWAYS follow the standard report structure for validation artifacts
 2. ALWAYS trace custom gates back to design acceptance criteria
 3. NEVER assert PASS without verifiable evidence
-
-validate/validation-patterns.md

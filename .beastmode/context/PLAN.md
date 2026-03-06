@@ -11,8 +11,6 @@ Naming patterns (UPPERCASE.md for invariant, lowercase.md for variant), skill ma
 4. ALWAYS use gate syntax: `## N. [GATE|namespace.gate-id]` with GATE-OPTION subsections
 5. ALWAYS use `feature/<feature>` branch naming convention
 
-plan/conventions.md
-
 ## Structure
 Directory layout with `.beastmode/` as central context hub (context/, meta/, state/ + config.yaml + worktrees/), `skills/` for agent workflows, `agents/` for subagent prompts, `hooks/` for plugin lifecycle scripts, `docs/` for external-facing essays, `scripts/` for maintenance utilities. Write protection enforces state/-only writes during phases with retro-gated promotion.
 
@@ -20,8 +18,6 @@ Directory layout with `.beastmode/` as central context hub (context/, meta/, sta
 2. NEVER store context outside `.beastmode/` — it's the single source of truth
 3. Agent prompts live in `/agents/`, shared utilities in `skills/_shared/`
 4. Worktrees live at `.beastmode/worktrees/<feature>`, gitignored
-
-plan/structure.md
 
 ## Task Format
 Wave-ordered task format for implementation plans. Tasks have Wave and Depends-on fields for ordering, Parallel-safe flags set by /plan's file isolation analysis, bite-sized granularity (one action per step), and file sections with exact paths.
@@ -31,13 +27,9 @@ Wave-ordered task format for implementation plans. Tasks have Wave and Depends-o
 3. NEVER mark a wave Parallel-safe without file isolation analysis
 4. ALWAYS include verification steps with expected output
 
-plan/task-format.md
-
 ## Workflow
 Phase lifecycle, session tracking, context reports, parallel execution, retro agents, release git workflow, persona system, and autonomous phase chaining with configurable gates.
 
 1. ALWAYS follow phase lifecycle: design -> plan -> implement -> validate -> release
 2. NEVER commit during individual phases — unified commit at /release
 3. ALWAYS update status file on phase completion with session paths
-
-plan/workflow.md

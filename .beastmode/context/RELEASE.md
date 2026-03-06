@@ -10,8 +10,6 @@ Versioning strategy, commit message format, and archive tagging conventions. Ver
 3. ALWAYS follow commit format: `Release vX.Y.Z — Title` with categorized sections
 4. NEVER skip retro before the release commit
 
-release/versioning.md
-
 ## Release Process
 Merge strategy, retro timing, L0 rollup, and version file management. Evolved from rebase-then-merge (v0.3.7) to merge-only (v0.6.1). Retro runs in execute phase before commit. L1 summaries rolled into BEASTMODE.md via L0 proposal at ship time.
 
@@ -20,8 +18,6 @@ Merge strategy, retro timing, L0 rollup, and version file management. Evolved fr
 3. ALWAYS prepare L0 update proposal from L1 summaries at release time (targets BEASTMODE.md)
 4. NEVER spread version across more than 3 files (plugin.json, marketplace.json, CHANGELOG.md)
 
-release/release-process.md
-
 ## Changelog
 Release artifact format, consolidated CHANGELOG.md, and commit categorization conventions. Per-release state docs follow Highlights/Features/Fixes/Full Changelog structure. Consolidated CHANGELOG.md lives at repo root (introduced v0.6.0).
 
@@ -29,5 +25,3 @@ Release artifact format, consolidated CHANGELOG.md, and commit categorization co
 2. ALWAYS categorize changes as Features, Fixes, Docs, or Chores
 3. ALWAYS maintain consolidated CHANGELOG.md at repo root
 4. NEVER include empty category sections — only sections with content
-
-release/changelog.md
