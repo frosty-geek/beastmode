@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.15 — The Consistency Fix (Mar 2026)
+
+- **Unified state file naming** — All phases now use `YYYY-MM-DD-<feature>.md` convention
+- **Release file renames** — 51 release state files renamed from version-based to feature-based naming
+- **Validate date fix** — 5 validate state files fixed from `YYYYMMDD-` to `YYYY-MM-DD-`
+- **Skill template updates** — Release, validate, and retro templates updated to use new naming convention
+
+
 ### v0.14.14 — The Declutter, Part III (Mar 2026)
 
 - **State L1 removal** — Deleted 5 dead state index files (`state/DESIGN.md` through `state/RELEASE.md`) that nothing consumed or maintained

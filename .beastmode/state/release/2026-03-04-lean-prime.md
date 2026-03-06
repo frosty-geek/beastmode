@@ -1,4 +1,4 @@
-# Release v0.3.4
+# Release v0.3.2
 
 **Date:** 2026-03-04
 

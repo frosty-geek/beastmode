@@ -2,7 +2,7 @@
 
 ## 1. Save Report
 
-Save to `.beastmode/state/validate/YYYYMMDD-{feature}.md`
+Save to `.beastmode/state/validate/YYYY-MM-DD-<feature>.md`
 
 ## 2. Phase Retro
 

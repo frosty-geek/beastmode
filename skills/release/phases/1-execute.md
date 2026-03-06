@@ -65,11 +65,12 @@ Group commits by type:
 
 ## 5. Generate Release Notes
 
-Save to `.beastmode/state/release/YYYY-MM-DD-vX.Y.Z.md`:
+Save to `.beastmode/state/release/YYYY-MM-DD-<feature>.md`:
 
 ```markdown
-# Release vX.Y.Z
+# Release: <feature>
 
+**Version:** vX.Y.Z
 **Date:** YYYY-MM-DD
 
 ## Highlights
@@ -120,10 +121,10 @@ Roll up L1 summaries and release features into an L0 update proposal.
    - Format: `- **Bold label**: One-sentence description`
 5. Prepare proposed **How It Works** section if the release changes workflow mechanics
 
-Save the proposal to `.beastmode/state/release/YYYY-MM-DD-vX.Y.Z-l0-proposal.md`:
+Save the proposal to `.beastmode/state/release/YYYY-MM-DD-<feature>-l0-proposal.md`:
 
 ```markdown
-# L0 Update Proposal — vX.Y.Z
+# L0 Update Proposal — <feature> (vX.Y.Z)
 
 ## Proposed Capabilities
 
@@ -165,7 +166,7 @@ git commit -m "Release vX.Y.Z — <Title from CHANGELOG>
 ## Artifacts
 - Design: .beastmode/state/design/YYYY-MM-DD-<feature>.md
 - Plan: .beastmode/state/plan/YYYY-MM-DD-<feature>.md
-- Release: .beastmode/state/release/YYYY-MM-DD-vX.Y.Z.md
+- Release: .beastmode/state/release/YYYY-MM-DD-<feature>.md
 "
 ```
 

@@ -171,7 +171,7 @@ Log: "Gate `retro.overrides` → auto: wrote {N} overrides"
 
 If running in the release phase, check for an L0 update proposal:
 
-1. Look for `.beastmode/state/release/YYYY-MM-DD-vX.Y.Z-l0-proposal.md`
+1. Look for `.beastmode/state/release/YYYY-MM-DD-<feature>-l0-proposal.md`
 2. If no proposal file exists → skip (no L0 changes needed)
 3. If proposal exists → apply the proposed sections to `.beastmode/BEASTMODE.md`:
    - Replace **Capabilities** section with proposed version
