@@ -61,43 +61,72 @@ Show user a summary:
 - Auto-promotions: {count} detected
 ```
 
-## 5. Apply Changes
+## 5. Gate: retro.learnings
 
-### 5.1 Learnings
+Read `.beastmode/config.yaml` → check `gates.retro.learnings`.
+Default: `human`. Execute ONLY the matching option below.
+Remove non-matching options from the task list.
 
-<!-- HITL-GATE: retro.learnings-write | INTERACTIVE -->
-@gate-check.md
+### 5.1 human — Review Learnings
 
-- **human**: Show learnings to user, then auto-append to `.beastmode/meta/{phase}/learnings.md` under the appropriate date-headed section
-- **auto**: Auto-append without showing
+Show learnings to user, then auto-append to `.beastmode/meta/{phase}/learnings.md` under the appropriate date-headed section.
 
-### 5.2 SOPs
+### 5.2 auto — Auto-Append Learnings
 
-<!-- HITL-GATE: retro.sops-write | APPROVAL -->
-@gate-check.md
+Auto-append learnings silently.
+Log: "Gate `retro.learnings` → auto: appended {N} learnings"
 
-- **human**: Present each proposed SOP (including auto-promoted ones) and ask for approval before writing to `.beastmode/meta/{phase}/sops.md`
-- **auto**: Auto-write all proposed SOPs
+## 6. Gate: retro.sops
 
-On approval of auto-promoted SOPs: annotate the source learning entries in `learnings.md` with `→ promoted to SOP`.
+Read `.beastmode/config.yaml` → check `gates.retro.sops`.
+Default: `human`. Execute ONLY the matching option below.
+Remove non-matching options from the task list.
 
-### 5.3 Overrides
+### 6.1 human — Review SOPs
 
-<!-- HITL-GATE: retro.overrides-write | APPROVAL -->
-@gate-check.md
+Present each proposed SOP (including auto-promoted ones) and ask for approval before writing to `.beastmode/meta/{phase}/sops.md`.
+On approval of auto-promoted SOPs: annotate source learning entries in `learnings.md` with `→ promoted to SOP`.
 
-- **human**: Present each proposed override and ask for approval before writing to `.beastmode/meta/{phase}/overrides.md`
-- **auto**: Auto-write all proposed overrides
+### 6.2 auto — Auto-Write SOPs
 
-### 5.4 Context Changes
+Auto-write all proposed SOPs.
+On auto-promoted SOPs: annotate source learning entries in `learnings.md` with `→ promoted to SOP`.
+Log: "Gate `retro.sops` → auto: wrote {N} SOPs"
 
-- **Context changes**: Present each proposed edit and ask for approval before applying
-  - High confidence: "Apply this change? [Y/n]"
-  - Medium/Low confidence: "Review suggested change: [apply / skip / edit]"
+## 7. Gate: retro.overrides
 
-If no findings from either agent, report: "Phase retro: no changes needed."
+Read `.beastmode/config.yaml` → check `gates.retro.overrides`.
+Default: `human`. Execute ONLY the matching option below.
+Remove non-matching options from the task list.
 
-## 6. Bottom-Up Summary Bubble
+### 7.1 human — Review Overrides
+
+Present each proposed override and ask for approval before writing to `.beastmode/meta/{phase}/overrides.md`.
+
+### 7.2 auto — Auto-Write Overrides
+
+Auto-write all proposed overrides.
+Log: "Gate `retro.overrides` → auto: wrote {N} overrides"
+
+## 8. Gate: retro.context-changes
+
+Read `.beastmode/config.yaml` → check `gates.retro.context-changes`.
+Default: `human`. Execute ONLY the matching option below.
+Remove non-matching options from the task list.
+
+### 8.1 human — Review Context Changes
+
+Present each proposed edit with confidence annotations.
+Ask per-category: "Apply these context changes? [Y/n]"
+
+### 8.2 auto — Auto-Apply Context Changes
+
+Apply all context changes silently.
+Log: "Gate `retro.context-changes` → auto: applied {N} context changes"
+
+If no findings from either agent, report: "Phase retro: no changes needed." and skip gates 5-8.
+
+## 9. Bottom-Up Summary Bubble
 
 After applying L2 changes, propagate summaries upward:
 

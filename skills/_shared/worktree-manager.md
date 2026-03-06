@@ -70,9 +70,11 @@ pwd
 
 Report: "Working in worktree at `$worktree_path`"
 
-## Merge Options
+## Merge Options (Reference Only)
 
-Used by: `/release` 1-execute
+> This section is reference documentation. The active merge gate is in `release/phases/1-execute.md` step 10.
+>
+> Previously used by: `/release` 1-execute
 
 Ask user via AskUserQuestion:
 

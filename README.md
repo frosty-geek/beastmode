@@ -34,6 +34,34 @@ Beastmode fixes this. Five phases. Context persists. Patterns compound.
 **New feature?** Design the approach. Plan the tasks. Implement. Validate. Release.
 **Multi-session?** Each phase writes artifacts to `.beastmode/`. Next session picks up where you left off.
 
+## What Makes It Different
+
+**Structured context, not flat retrieval.**
+
+Embedding-based retrieval treats your codebase as a flat bag of chunks. As the codebase grows, precision collapses — agents get noise instead of signal, spending tokens on irrelevant context.
+
+Beastmode organizes project knowledge into four levels: product vision, domain summaries, detail files, and raw artifacts. Agents navigate curated summaries at each level, loading detail only when the current task requires it. Deterministic navigation through a known structure, not probabilistic search through a vector space.
+
+[Read the full argument →](docs/progressive-hierarchy.md)
+
+**Knowledge compounds.**
+
+Most AI tools start every session from scratch. Mistakes repeat. Patterns are rediscovered. Nothing accumulates.
+
+Beastmode captures learnings at the end of every phase. Retro agents classify findings into standard procedures, project-specific overrides, and session insights. Recurring patterns auto-promote to SOPs. Each cycle makes Claude smarter about *your* codebase — not just any codebase.
+
+**Context survives sessions.**
+
+New session, blank slate, explain the architecture again. This is the default experience with AI coding tools.
+
+Beastmode writes artifacts to `.beastmode/` — design specs, implementation plans, validation records, release notes. All stored as markdown in git. No vector database to maintain, no embeddings to regenerate. Context survives sessions, branches, and collaborators because it's just files in your repo.
+
+**Design before code.**
+
+Ask an AI for a login form and you might get an entire auth system. Without structure, scope explodes and implementation goes sideways.
+
+Beastmode provides five phases: design the approach, plan the tasks, implement in isolation, validate quality, release to main. Trivial change? Skip to implement. Complex feature? Run every phase. The structure scales to complexity without adding overhead to simple work.
+
 ## Install
 
 ```bash
@@ -70,18 +98,6 @@ The `.beastmode/` folder organizes four domains:
 - **Meta** — what you've learned (phase retros that improve future sessions)
 
 Knowledge compounds. After each cycle, learnings feed back into your project context. Claude gets smarter about *your* codebase over time.
-
-## Why This Works
-
-**Structured context, not flat retrieval.** Most AI coding tools treat your codebase as a bag of embeddings. Beastmode organizes project knowledge into a [hierarchy](docs/progressive-hierarchy.md) — agents navigate curated summaries before diving into detail.
-
-**Context survives sessions.** Every phase writes artifacts to `.beastmode/`. Next session, Claude starts with full project knowledge. No repeated explanations.
-
-**Knowledge compounds.** Phase retros capture what worked, what didn't, and feed it back into project context. Claude gets smarter about *your* codebase over time.
-
-**Scales to complexity.** Trivial change? Skip to implement. Complex feature? Run every phase.
-
-**No ceremony.** No sprint planning. No story points. No standups. Just you, Claude, and the work.
 
 ## Credits
 
