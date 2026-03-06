@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.8 — The Declutter (Mar 2026)
+
+- **Remove CONTEXT.md** — L0 domain entry for Context removed; routing table duplicated by hierarchy conventions, zero consumers
+- **Remove STATE.md** — L0 domain entry for State removed; kanban unused, `/beastmode:status` covers status needs
+
+
 ### v0.14.6 — The Banner Fix (Mar 2026)
 
 - **Task-runner banner check** — New Step 1 in task-runner.md checks system context for SessionStart banner and displays it before skill execution
