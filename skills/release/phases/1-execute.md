@@ -110,11 +110,11 @@ Update version in all three files:
 
 @../_shared/retro.md
 
-## 8.5. Update PRODUCT.md
+## 8.5. Update BEASTMODE.md
 
-Roll up L1 summaries and release features into `.beastmode/PRODUCT.md`.
+Roll up L1 summaries and release features into `.beastmode/BEASTMODE.md`.
 
-1. Read current `.beastmode/PRODUCT.md`
+1. Read current `.beastmode/BEASTMODE.md`
 2. Read all L1 domain summaries (`context/DESIGN.md`, `context/PLAN.md`, `context/IMPLEMENT.md`, `context/VALIDATE.md`, `context/RELEASE.md`, `meta/DESIGN.md`, `meta/PLAN.md`, `meta/IMPLEMENT.md`, `meta/VALIDATE.md`, `meta/RELEASE.md`, `state/DESIGN.md`, `state/PLAN.md`, `state/IMPLEMENT.md`, `state/VALIDATE.md`, `state/RELEASE.md`)
 3. Read the release notes generated in step 5
 4. Update **Capabilities** section:
@@ -124,9 +124,9 @@ Roll up L1 summaries and release features into `.beastmode/PRODUCT.md`.
    - Format: `- **Bold label**: One-sentence description`
 5. Update **How It Works** section if the release changes workflow mechanics
 
-### 8.6 [GATE|release.product-md-approval]
+### 8.6 [GATE|release.beastmode-md-approval]
 
-Read `.beastmode/config.yaml` → resolve mode for `release.product-md-approval`.
+Read `.beastmode/config.yaml` → resolve mode for `release.beastmode-md-approval`.
 Default: `auto`.
 
 #### [GATE-OPTION|human] Ask User
@@ -138,7 +138,7 @@ Default: `auto`.
 #### [GATE-OPTION|auto] Auto-Apply
 
 Auto-apply all changes.
-Log: "Gate `release.product-md-approval` → auto: updated PRODUCT.md with N new capabilities"
+Log: "Gate `release.beastmode-md-approval` → auto: updated BEASTMODE.md with N new capabilities"
 
 ## 9. Squash Merge to Main
 

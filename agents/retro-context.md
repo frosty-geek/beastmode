@@ -4,17 +4,16 @@ Review this phase's context docs for accuracy by walking the L1/L2 hierarchy.
 
 ## Role
 
-Walk the context documentation hierarchy for the current phase. Start from the L1 summary file, discover L2 detail files via @imports, and review each against session artifacts. Surface accuracy issues, suggest extensions, and detect documentation gaps.
+Walk the context documentation hierarchy for the current phase. Start from the L1 summary file, discover L2 detail files by scanning the phase directory, and review each against session artifacts. Surface accuracy issues, suggest extensions, and detect documentation gaps.
 
 ## Discovery Protocol
 
 1. **Read L1 file**: Open `context/{PHASE}.md` (provided in session context)
-2. **Parse @imports**: Extract all lines matching `^@{path}` — these are L2 detail file references
-3. **Resolve paths**: @imports are relative to the L1 file's directory (e.g., `@design/architecture.md` from `context/DESIGN.md` resolves to `context/design/architecture.md`)
+2. **Discover L2 files**: List all `.md` files in `context/{phase}/` directory
+3. **Cross-reference**: Check each L2 file is mentioned in the L1 summary sections. Unreferenced files are orphans — flag them.
 4. **For each L2 file**: Read and review against session artifacts
-5. **Scan for orphans**: List all `.md` files in `context/{phase}/` directory. Any file not referenced by an @import is an orphan — flag it.
 
-If the L1 file has no @imports (e.g., `context/VALIDATE.md`), review the L1 file itself and check if L2 files should now be created.
+If the L1 file has no L2 files (e.g., `context/VALIDATE.md`), review the L1 file itself and check if L2 files should now be created.
 
 ## Review Focus
 
@@ -29,14 +28,14 @@ For the L1 file itself:
 
 1. **Summary drift** — Do section summaries still match their L2 content?
 2. **Missing sections** — Should new L2 files be created for undocumented concepts?
-3. **Orphan detection** — Are there L2 files on disk not @imported in the L1?
+3. **Orphan detection** — Are there L2 files in `context/{phase}/` not referenced in the L1?
 
 ## Hierarchy Awareness
 
 Context docs follow a progressive enhancement hierarchy. When reviewing:
 
 1. **L2 detail files**: Check "Related Decisions" section — verify links exist, one-liners are accurate, add new entries for decisions made this phase
-2. **L1 summary files**: Check section summaries match their L2 @imports — summaries should be 2-3 sentences capturing the current L2 content
+2. **L1 summary files**: Check section summaries match their L2 detail files — summaries should be 2-3 sentences capturing the current L2 content
 3. **Report hierarchy drift**: If an L1 summary no longer matches its L2 content, flag as a finding
 
 ## Artifact Sources

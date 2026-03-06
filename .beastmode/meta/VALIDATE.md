@@ -4,12 +4,12 @@ Learnings from validation phases. No notable patterns captured yet — validate 
 
 ## SOPs
 No validate SOPs established yet. SOPs will be added by retro classification or auto-promoted from recurring learnings.
-@validate/sops.md
+validate/sops.md
 
 ## Overrides
 No project-specific validate overrides yet. Overrides will be added by retro classification or user.
-@validate/overrides.md
+validate/overrides.md
 
 ## Learnings
 No notable learnings from validation phases yet.
-@validate/learnings.md
+validate/learnings.md

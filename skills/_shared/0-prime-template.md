@@ -7,7 +7,6 @@
 ## 2. Load Project Context
 
 Read (if they exist):
-- `.beastmode/PRODUCT.md` (L0)
 - `.beastmode/context/{PHASE}.md` (L1)
 - `.beastmode/meta/{PHASE}.md` (L1)
 

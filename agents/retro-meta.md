@@ -9,10 +9,9 @@ Walk the meta documentation for the current phase. Read the L1 meta file, unders
 ## Discovery Protocol
 
 1. **Read L1 file**: Open `meta/{PHASE}.md` (provided in session context)
-2. **Parse existing structure**: Identify sections (Defaults, Project Overrides, Learnings) and their content
-3. **Parse existing learnings**: Extract all learning entries with their dates and feature names
-4. **Scan for L2 files**: Check if `meta/{phase}/` directory exists with detail files. If so, read and review each.
-5. **If no L2 directory**: Review the L1 file directly (current standard — all meta content is in L1)
+2. **Discover L2 files**: List all `.md` files in `meta/{phase}/` directory (sops.md, overrides.md, learnings.md)
+3. **Parse existing learnings**: Extract all learning entries with their dates and feature names from learnings.md
+4. **For each L2 file**: Read and review against session artifacts
 
 ## Categories
 

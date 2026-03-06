@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.0 — The Hierarchy Cleanup (Mar 2026)
+
+- **BEASTMODE.md replaces L0 trio** — Single system manual (~108 lines) replaces PRODUCT.md, META.md, and .beastmode/CLAUDE.md as the sole autoload
+- **@imports removed** — All L1 files use convention-based paths instead of @imports for L2 navigation
+- **Three data domains** — Product domain merged into Context via `context/design/product.md`; four domains simplified to three (State/Context/Meta)
+- **Skill primes updated** — All 5 phases load `context/{PHASE}.md` + `meta/{PHASE}.md` during prime (BEASTMODE.md autoloaded separately)
+- **Retro agents modernized** — Convention-based L2 discovery replaces @import parsing
+
 ### v0.12.2 — The Cleanup (Mar 2026)
 
 - **Unified gate syntax** — `[GATE|id]` / `[GATE-OPTION|mode]` replaces old `Gate:` format across all 20 gates

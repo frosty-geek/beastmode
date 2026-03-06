@@ -93,7 +93,7 @@ Read these files to understand project context:
 - `.beastmode/context/design/architecture.md` — system boundaries
 - `.beastmode/context/plan/conventions.md` — naming patterns
 - `.beastmode/context/implement/testing.md` — test requirements
-- `.beastmode/PRODUCT.md` — project vision
+- `.beastmode/BEASTMODE.md` — system manual
 
 ### 3. External Research
 

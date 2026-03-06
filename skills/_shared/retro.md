@@ -126,14 +126,15 @@ If no findings from either agent, report: "Phase retro: no changes needed." and 
 
 After applying L2 changes, propagate summaries upward:
 
-1. **Update L1 summaries** — For each L1 file in the current domain (`context/{PHASE}.md`, `meta/{PHASE}.md`, `state/{PHASE}.md`):
-   - Re-read all L2 @imported files
+1. **Update L1 summaries** — For each L1 file in the current domain (`context/{PHASE}.md`, `meta/{PHASE}.md`):
+   - List all L2 files in the corresponding directory (`context/{phase}/`, `meta/{phase}/`)
    - Rewrite the section summary (2-3 sentences) to reflect current L2 content
    - Rewrite the top-level summary paragraph to reflect all sections
+   - Ensure each L2 file is referenced as a plain text path (not @import)
 
 2. **Prune stale entries** — In L2 "Related Decisions" sections:
    - Verify each linked state file still exists
    - Remove entries where the link target is missing
    - Flag entries where the one-liner no longer matches the linked file's goal
 
-L0 (PRODUCT.md) updates are handled by /release step 8.5, not by the retro bubble.
+L0 (BEASTMODE.md) updates are handled by /release, not by the retro bubble.

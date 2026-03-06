@@ -39,9 +39,9 @@ For each section (PRODUCT, DESIGN, PLAN, IMPLEMENT):
 - Present draft after each section
 - Write on approval
 
-### 5. Write PRODUCT.md
+### 5. Write BEASTMODE.md
 
-Based on answers, populate `.beastmode/PRODUCT.md` with real content.
+Based on answers, populate `.beastmode/BEASTMODE.md` with real content.
 
 ### 6. Write context files
 
@@ -58,7 +58,7 @@ Populate all context L2 files:
 If `CLAUDE.md` doesn't exist, create with:
 
 ```markdown
-@.beastmode/PRODUCT.md
+@.beastmode/BEASTMODE.md
 @.beastmode/context/DESIGN.md
 @.beastmode/context/PLAN.md
 @.beastmode/context/IMPLEMENT.md
@@ -72,7 +72,7 @@ If exists, ask user before updating.
 Greenfield init complete.
 
 Files created:
-- .beastmode/PRODUCT.md
+- .beastmode/BEASTMODE.md
 - .beastmode/context/design/architecture.md
 - .beastmode/context/design/tech-stack.md
 - .beastmode/context/plan/conventions.md
@@ -182,7 +182,7 @@ If any agent times out or errors:
 If `CLAUDE.md` doesn't exist, create with:
 
 ```markdown
-@.beastmode/PRODUCT.md
+@.beastmode/BEASTMODE.md
 @.beastmode/context/DESIGN.md
 @.beastmode/context/PLAN.md
 @.beastmode/context/IMPLEMENT.md

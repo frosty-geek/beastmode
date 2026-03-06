@@ -42,18 +42,19 @@ floats to the top of a similarity search. It navigates a known structure.
 
 Beastmode organizes project knowledge into four levels:
 
-**L0 — Product** (`PRODUCT.md`)
-The richest standalone summary. Describes what the project is, what it does, and
-how it works. Enough for any agent starting cold with zero context. Always loaded.
+**L0 — System Manual** (`BEASTMODE.md`)
+The sole autoloaded file (~120 lines). Contains hierarchy spec, persona definition,
+writing rules, and conventions. Enough for any agent to orient after compression.
+Always loaded via CLAUDE.md.
 
 **L1 — Domain Summaries** (e.g., `context/DESIGN.md`, `meta/PLAN.md`)
 One file per phase per domain. Each contains a summary paragraph plus 2-3 sentence
-descriptions of each topic below it. Always loaded via `CLAUDE.md` imports. An agent
-reading L1 files knows where everything is without loading everything.
+descriptions of each topic below it. Loaded by skill primes (not autoloaded). An
+agent reading L1 files knows where everything is without loading everything.
 
 **L2 — Detail Files** (e.g., `context/design/architecture.md`)
 Full topic detail. Architecture decisions, code conventions, test strategies.
-Loaded on demand via `@import` references in L1 files. Only loaded when the agent's
+Loaded on demand via convention-based paths. Only loaded when the agent's
 current task touches that domain.
 
 **L3 — State Artifacts** (e.g., `state/design/2026-03-05-feature.md`)
@@ -63,8 +64,8 @@ links when they need provenance.
 
 ### The Fractal Pattern
 
-Every level follows the same structure: **summary + section summaries + @imports to
-the next level down.** This pattern repeats at every level, which is why we call it
+Every level follows the same structure: **summary + section summaries + convention
+paths to the next level down.** This pattern repeats at every level, which is why we call it
 fractal. An agent at any level can decide whether to go deeper or stay at the current
 summary.
 
@@ -80,9 +81,9 @@ hierarchy stays accurate because maintenance is built into the workflow, not bol
 
 ## Why This Matters
 
-**Token efficiency.** Agents load L0 + L1 by default (~2-4k tokens of curated
-context). L2 and L3 are loaded only when needed. A flat system would load 10-50x more
-tokens for the same effective context.
+**Token efficiency.** Agents load L0 by default (~120 lines). L1 loaded during
+prime. L2 and L3 loaded on demand. A flat system would load 10-50x more tokens for
+the same effective context.
 
 **Precision.** A curated summary written during the last retro is more relevant than
 the top-5 embedding matches for "how does auth work." Summaries capture intent and

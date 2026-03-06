@@ -9,11 +9,10 @@ Greet in persona voice. One sentence. Set expectations for what this phase does 
 ## 2. Load Project Context
 
 Read (if they exist):
-- `.beastmode/PRODUCT.md`
 - `.beastmode/context/RELEASE.md`
 - `.beastmode/meta/RELEASE.md`
 
-Follow links in these L1 files to L2 details when relevant to the current topic.
+Follow L2 convention paths (`context/release/{domain}.md`) when relevant to the current topic.
 Prior decisions, conventions, and learnings inform this phase — don't re-decide what's already been decided.
 
 ## 3. Load Artifacts

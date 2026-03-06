@@ -19,22 +19,21 @@ Each workflow phase follows the standard sub-phase anatomy: `0-prime → 1-execu
 
 ### Knowledge Hierarchy (Progressive Enhancement)
 
-Each level follows the same fractal pattern: summary + section summaries of children + @imports to the next level.
+Each level follows the same fractal pattern: summary + section summaries of children + convention paths to the next level.
 
-- **L0**: `PRODUCT.md` — Richest standalone project summary. Sufficient for any agent starting cold.
-- **L1**: Phase summaries (`{domain}/{PHASE}.md`) — Domain summary + section summaries per L2 + @imports. Loaded via root `CLAUDE.md`.
+- **L0**: `BEASTMODE.md` — System manual (~120 lines). Hierarchy spec, persona, writing rules, conventions. Sole autoload.
+- **L1**: Phase summaries (`{domain}/{PHASE}.md`) — Domain summary + section summaries per L2. Loaded by skill primes.
 - **L2**: Detail files (`{domain}/{phase}/{detail}.md`) — Full topic detail + "Related Decisions" linking to L3 artifacts.
 - **L3**: State artifacts (`state/{phase}/{date}-{feature}.md`) — Raw design docs, plans, validation records, release notes.
 
-`.beastmode/CLAUDE.md` imports L0 files (PRODUCT.md, META.md). Root `CLAUDE.md` imports `.beastmode/CLAUDE.md` plus all L1 files (context/, meta/, state/ summaries) and Prime Directives.
+`CLAUDE.md` imports `@.beastmode/BEASTMODE.md` directly. Skills load L1 during prime. No @imports between levels.
 
-### Four Data Domains
+### Three Data Domains
 
 | Domain | Purpose | Location |
 |--------|---------|----------|
-| **Product** | What we're building | `.beastmode/PRODUCT.md` |
-| **State** | Where features are in workflow (kanban) | `.beastmode/state/` |
-| **Context** | How to build (architecture, conventions, testing) | `.beastmode/context/` |
+| **State** | Where features are in workflow | `.beastmode/state/` |
+| **Context** | How to build (architecture, conventions, product) | `.beastmode/context/` |
 | **Meta** | How to improve (SOPs, overrides, learnings) | `.beastmode/meta/` |
 
 ## Components
@@ -88,7 +87,7 @@ Each level follows the same fractal pattern: summary + section summaries of chil
 **.beastmode/ Infrastructure:**
 - Purpose: Central context storage that persists across sessions
 - Location: `/.beastmode/`
-- Contains: PRODUCT.md (L0), state/, context/, meta/ (L1/L2)
+- Contains: BEASTMODE.md (L0), state/, context/, meta/ (L1/L2)
 - Dependencies: None (root structure)
 
 ## Data Flow
@@ -144,10 +143,10 @@ Classified knowledge informs future sessions via L1 loading
 - Decision: Three-level hierarchy — L0 (product vision), L1 (phase summaries always loaded), L2 (details on-demand)
 - Rationale: L1 summaries provide enough context for most tasks; L2 details loaded only when needed
 
-**Four Data Domains (Product/State/Context/Meta):**
+**Three Data Domains (State/Context/Meta):**
 - Context: Different types of information have different lifecycles and purposes
-- Decision: Separate product vision, feature state (kanban), build context, and self-improvement into distinct domains
-- Rationale: Clear separation enables focused updates; state as kanban maps to feature workflow; meta enables continuous improvement
+- Decision: Separate feature state, build context (including product), and self-improvement into distinct domains
+- Rationale: Clear separation enables focused updates; state as kanban maps to feature workflow; product lives in context/DESIGN.md; meta enables continuous improvement
 
 **Artifact-Based Context Persistence:**
 - Context: Multi-session work requires context to survive between Claude Code sessions
@@ -174,10 +173,10 @@ Classified knowledge informs future sessions via L1 loading
 - Decision: Release uses `git merge --squash` to collapse entire feature branch into one commit on main. Feature branch tips archived as `archive/feature/<name>` tags before deletion. Commit message follows GitHub release style: `Release vX.Y.Z — Title` with categorized Features/Fixes/Artifacts sections.
 - Rationale: One commit per version on main; full branch history preserved via archive tags; `git log --oneline main` becomes a scannable release history
 
-**Two-Level CLAUDE.md Wiring:**
-- Context: Need minimal project brain in root while keeping comprehensive docs organized
-- Decision: `.beastmode/CLAUDE.md` imports L0 files (PRODUCT.md, META.md). Root `CLAUDE.md` imports `.beastmode/CLAUDE.md` + all L1 domain summaries (context/, meta/, state/) + Prime Directives
-- Rationale: Root file is the single entry point; .beastmode/CLAUDE.md scopes L0; all L1 imports listed explicitly in root for visibility; @imports reduce duplication
+**Single-Level CLAUDE.md Wiring:**
+- Context: Need minimal autoload in root while keeping docs organized
+- Decision: Root `CLAUDE.md` imports `@.beastmode/BEASTMODE.md` directly. No `.beastmode/CLAUDE.md` intermediary.
+- Rationale: One import. ~120 lines autoloaded. Skills load L1 during prime. No @imports between levels.
 
 **Two-Tier HITL Gate System:**
 - Context: Workflow phases have human-in-the-loop gates (approvals, interactive choices, transitions) that need to be configurable for autonomous operation
@@ -195,14 +194,14 @@ Classified knowledge informs future sessions via L1 loading
 - Skill boundary: Each verb (design, plan, implement, validate, release) is isolated in `/skills/{verb}/`
 - Agent boundary: Subagents are spawned for specific tasks and exit after completion
 - Context boundary: .beastmode/ folder is the single source of truth for project context across sessions
-- Domain boundary: Product, State, Context, Meta are separate concerns with distinct update patterns
+- Domain boundary: State, Context, Meta are separate concerns with distinct update patterns
 - Phase boundary: Each workflow phase produces artifacts consumed by the next phase (design → plan → implement → validate → release)
 
 **Public Interfaces:**
 - Skill commands (e.g., `/design`, `/plan`, `/implement`, `/validate`, `/release`)
 - SKILL.md manifests — phase interface definitions colocated with skills
 - .beastmode/ folder structure (user-facing artifact storage)
-- @import syntax for CLAUDE.md (documentation composition)
+- Convention-based paths for documentation navigation
 - Root CLAUDE.md (entry point for project brain)
 
 ## Related Decisions

@@ -1,11 +1,15 @@
 # Design Context
 
-Architecture and technology decisions for how we build beastmode. The system follows a plugin architecture on Claude Code with markdown-first skill definitions, git worktree isolation for implementation, and a four-domain knowledge organization (Product, Context, State, Meta).
+Architecture, technology decisions, and product definition for beastmode. The system follows a plugin architecture on Claude Code with markdown-first skill definitions, git worktree isolation for implementation, and a knowledge hierarchy organized across Context, Meta, and State domains.
+
+## Product
+Product vision, capabilities, and differentiators. Beastmode turns Claude Code into a disciplined engineering partner with five-phase workflow, context persistence, self-improving retro loop, and progressive knowledge hierarchy.
+design/product.md
 
 ## Architecture
-System design with fractal L0/L1/L2/L3 knowledge hierarchy, four data domains (Product/Context/State/Meta), worktree isolation for implementation, squash-per-release commits (one commit per version on main via `git merge --squash`), two-tier HITL gate system (HARD-GATE + configurable Gate steps), and artifact-based context persistence across sessions.
-@design/architecture.md
+System design with L0/L1/L2/L3 knowledge hierarchy, three data domains (Context/State/Meta), worktree isolation for implementation, squash-per-release commits, two-tier HITL gate system, and artifact-based context persistence across sessions.
+design/architecture.md
 
 ## Tech Stack
 Claude Code plugin platform with markdown + YAML frontmatter for skill definitions. No runtime dependencies — pure agentic workflow system interpreted directly by Claude Code.
-@design/tech-stack.md
+design/tech-stack.md

@@ -9,7 +9,7 @@ Documents the directory layout and where different types of files belong.
 ```
 beastmode/
 ├── .beastmode/              # Project context & state (L0/L1/L2 hierarchy)
-│   ├── PRODUCT.md          # L0: Product vision
+│   ├── BEASTMODE.md          # L0: System manual
 │   ├── state/              # Feature state (kanban)
 │   │   ├── DESIGN.md       # L1: Design phase summary
 │   │   ├── design/         # L2: Feature design states
@@ -75,7 +75,7 @@ beastmode/
 
 **`.beastmode/`** — Project Context & State
 - Purpose: Central hub for all project knowledge organized by domain
-- Contains: PRODUCT.md (L0), state/ (feature kanban), context/ (build knowledge), meta/ (learnings)
+- Contains: BEASTMODE.md (L0), state/ (feature kanban), context/ (build knowledge), meta/ (learnings)
 - L1 files always loaded by /prime; L2 files loaded on-demand via @imports
 
 **`skills/`** — Agent Skills (Executable Workflows)
@@ -91,13 +91,13 @@ beastmode/
 **`docs/`** — External-Facing Documentation
 - Purpose: Deep-dive essays on design philosophy and differentiators
 - Contains: Standalone markdown essays linked from README
-- Not imported by agents (same rule as ROADMAP.md) — agents reference via PRODUCT.md
+- Not imported by agents (same rule as ROADMAP.md) — agents reference via BEASTMODE.md
 
 ## Key File Locations
 
 **Entry Points:**
 - `CLAUDE.md`: Root project rules (imports @.beastmode/)
-- `.beastmode/PRODUCT.md`: Product vision (L0)
+- `.beastmode/BEASTMODE.md`: System manual (L0)
 - `README.md`: Workflow overview & installation instructions
 
 **Configuration:**
@@ -123,7 +123,7 @@ beastmode/
 ## Naming Conventions
 
 **Files:**
-- `UPPERCASE.md`: L1 summary files (always loaded) — PRODUCT.md, DESIGN.md, PLAN.md, etc.
+- `UPPERCASE.md`: L1 summary files (always loaded) — BEASTMODE.md, DESIGN.md, PLAN.md, etc.
 - `lowercase.md`: L2 detail files (loaded on-demand) — architecture.md, conventions.md
 - `SKILL.md`: Agent skill definitions (always in skill root directory)
 - `*-agent.md`: Agent prompts (in `agents/` directory or skill `references/` subdirectories)

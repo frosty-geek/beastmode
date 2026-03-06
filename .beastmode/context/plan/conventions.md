@@ -45,7 +45,7 @@ Documents naming patterns, code style, and project-specific conventions.
 ## Code Style
 
 **Imports:**
-- Use @ symbol for internal imports (e.g., @.beastmode/META.md, @phases/setup.md, @references/common-instructions.md)
+- Use @ symbol for internal imports (e.g., @.beastmode/BEASTMODE.md, @phases/setup.md, @references/common-instructions.md)
 - URL-style references with forward slashes for semantic clarity
 
 **@ Import Semantics:**
