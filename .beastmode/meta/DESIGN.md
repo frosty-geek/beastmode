@@ -36,3 +36,6 @@ Learnings from design phases. Key patterns: competitive analysis beats brainstor
 ### 2026-03-04: readme-rework
 - **README inconsistencies compound silently**: The README referenced 3 non-existent skills (/prime, /retro, /research) and omitted /validate. Nobody caught this because internal docs (CLAUDE.md, architecture.md) are correct. README drifts when it's not part of the release checklist. Consider adding README accuracy to /release validation.
 - **Competitive research quantifies intuition**: "Status tables with incomplete items hurt credibility" is an opinion. "No repo above 24k stars shows incomplete features" is evidence. The research agent turned subjective design instincts into data-backed decisions. Use research for any design where the user states a measurable goal (stars, adoption, engagement).
+
+### 2026-03-04: product-md-rollup
+- **Separation of propagation concerns simplifies reasoning**: Splitting L2→L1 (retro, every phase) from L1→L0 (release, at ship time) eliminated the "skip if minor" ambiguity that caused L0 to never update. When two mechanisms share responsibility for an outcome, neither takes ownership. Assign each level transition to exactly one workflow step.
