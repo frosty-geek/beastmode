@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.13 — The Visual Progress Language (Mar 2026)
+
+- **Visual language spec** — New `skills/_shared/visual-language.md` defining `█▓░▒` block-element vocabulary for progress displays
+- **Phase indicator** — Gradient density phase indicator at session start and phase announce showing completed/current/pending phases
+- **Context bar** — Full diagnostic context bar with percentage, bar visualization, and token breakdown at checkpoints
+- **Prime Directive update** — BEASTMODE.md now includes phase indicator display at session start
+- **Context report update** — Switched from prose instructions to visual format with handoff guidance
+
+
 ### v0.14.12 — The Argument Docs (Mar 2026)
 
 - **Retro loop doc** — Dedicated argumentative essay at `docs/retro-loop.md` covering the self-improving retro mechanism
