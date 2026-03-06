@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.6 — The Banner Fix (Mar 2026)
+
+- **Task-runner banner check** — New Step 1 in task-runner.md checks system context for SessionStart banner and displays it before skill execution
+- **Prime Directive cleanup** — Removed redundant banner display directive from BEASTMODE.md; task-runner is sole owner
+- **ANSI stripping** — Banner display strips escape codes so code blocks render cleanly
+
+
 ### v0.14.4 — The Format Standard (Mar 2026)
 
 - **L1/L2/L3 format spec** — All context files standardized as rule-lists: dense summaries + numbered NEVER/ALWAYS rules
