@@ -79,6 +79,11 @@ gate fires when implementation hits something the plan didn't anticipate. On
 `human`, you decide how to proceed. On `auto`, Claude applies deviation rules
 and continues.
 
+The diagram above shows phase gates. The retro sub-phase and release phase have
+additional gates: `retro.context-write`, `retro.records`, `retro.promotions`,
+`release.version-confirmation`, and `release.beastmode-md-approval`. See
+`.beastmode/config.yaml` for the full gate inventory.
+
 ## Tuning the Dial
 
 All gate configuration lives in a single file: `.beastmode/config.yaml`.

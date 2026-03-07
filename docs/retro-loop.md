@@ -36,33 +36,28 @@ accurate. It compares what the agent just did against what the documentation say
 If the architecture doc says "auth uses JWT" but the implementation just switched
 to session cookies, the context walker flags the drift and proposes an update.
 
-**The Meta Walker** extracts operational insights from the session. It classifies
-each finding into one of three categories:
+**The Meta Walker** extracts operational insights from the session. Findings range
+from one-off observations ("the test suite takes 4 minutes with coverage enabled")
+to reusable procedures ("always run `db:migrate` before `db:seed`") to
+project-specific rules ("never auto-format `.sql` files — the team uses a custom
+style").
 
-- **Learnings** — observations from this session. "The test suite takes 4 minutes
-  when run with coverage enabled." Kept as timestamped notes.
-- **SOPs** — reusable procedures. "Always run `db:migrate` before `db:seed` in
-  this project." Written as actionable instructions that future agents follow.
-- **Overrides** — project-specific rules that customize default behavior. "Never
-  auto-format `.sql` files — the team uses a custom style." Applied as constraints
-  during execution.
-
-Each category has a different shelf life and a different promotion path.
+Each finding is recorded with a confidence level that reflects how well-established
+the pattern is.
 
 ### The Promotion Mechanism
 
-Learnings are provisional. A single observation might be noise. But when the same
-learning appears across three separate sessions, it's a pattern — and the meta
-walker auto-promotes it to an SOP.
+A single observation might be noise. But when the same finding recurs across
+sessions, its confidence rises — and recurring patterns automatically promote
+to procedures that load during every future prime phase.
 
 ```
-Session 3: "snake_case for DB columns"  — learning
-Session 5: "snake_case for DB columns"  — learning (recurring)
-Session 7: "snake_case for DB columns"  — promoted to SOP
+Session 3: "snake_case for DB columns"  — recorded (low confidence)
+Session 5: "snake_case for DB columns"  — recurring (medium confidence)
+Session 7: "snake_case for DB columns"  — promoted to procedure (high confidence)
 ```
 
-After promotion, the SOP loads during every future prime phase. The agent doesn't
-re-discover the convention. It already knows.
+After promotion, the agent doesn't re-discover the convention. It already knows.
 
 ### The Bubble-Up Path
 
@@ -79,9 +74,9 @@ upward through the knowledge hierarchy:
    changes into the always-loaded project context
 
 Each level is a curated compression of the level below. The retro process keeps
-them in sync. When session 7 promotes a naming convention to SOP, it updates
-the conventions detail file (L2), recomputes the plan summary (L1), and at the
-next release, the system manual (L0) reflects it.
+them in sync. When session 7 promotes a naming convention to a procedure, it
+updates the conventions detail file (L2), recomputes the plan summary (L1), and
+at the next release, the system manual (L0) reflects it.
 
 ## What Compounds
 
@@ -89,17 +84,17 @@ The retro loop doesn't just prevent repeated mistakes. It builds institutional
 knowledge.
 
 **Week 1:** The agent discovers your project's error handling pattern during
-implementation. Retro captures it as a learning.
+implementation. Retro captures it as a finding.
 
 **Week 3:** The same pattern surfaces in two more sessions. Retro promotes it
-to an SOP: "Wrap service calls in `Result<T, AppError>`, never throw."
+to a procedure: "Wrap service calls in `Result<T, AppError>`, never throw."
 
 **Week 5:** A new feature requires an API endpoint. During prime, the agent loads
-the SOP. It writes the error handling correctly on the first try. No re-discovery.
+the procedure. It writes the error handling correctly on the first try. No re-discovery.
 No correction cycle.
 
 **Week 8:** A new team member runs `/beastmode init --brownfield` on their clone.
-The brownfield discovery agent reads the SOPs and conventions. The new contributor's
+The brownfield discovery agent reads the procedures and conventions. The new contributor's
 first AI-assisted session already knows how the team handles errors, names
 variables, and structures tests.
 
@@ -123,7 +118,7 @@ you trust it with more. The retro loop is the mechanism that makes progressive
 autonomy credible — you flip gates to `auto` because the agent has demonstrated
 it learned your conventions.
 
-**Team knowledge, not individual memory.** SOPs and conventions live in
+**Team knowledge, not individual memory.** Procedures and conventions live in
 `.beastmode/`, version-controlled in git. When a team member leaves, their
 accumulated corrections stay. When a new member joins, they inherit the full
 knowledge base. The retro loop turns individual sessions into team-wide

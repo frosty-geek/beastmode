@@ -72,7 +72,7 @@ directory tree under `.beastmode/`:
 | Domain | Path | Purpose | Example |
 |--------|------|---------|---------|
 | **Context** | `context/` | Published knowledge. What the project knows. | `context/design/architecture.md` |
-| **Meta** | `meta/` | Learnings, SOPs, overrides. How the project works. | `meta/design/learnings.md` |
+| **Meta** | `meta/` | Process knowledge. How the project works. | `meta/DESIGN.md` |
 | **State** | `state/` | Checkpoint artifacts. What happened when. | `state/design/2026-03-06-feature.md` |
 
 Context and Meta both span L1 and L2. State lives at L3 only. Every phase has its
@@ -129,8 +129,8 @@ through the hierarchy. This is how the hierarchy compounds — every phase cycle
 opportunity to refine what the project knows about itself.
 
 Retro is also gated: a configurable HITL (human-in-the-loop) gate system controls
-whether context writes, learnings, SOPs, and overrides require human approval or
-auto-apply. Gates are defined in `.beastmode/config.yaml`.
+whether context changes and meta findings require human approval or auto-apply.
+Gates are defined in `.beastmode/config.yaml`.
 
 ## Why This Matters
 

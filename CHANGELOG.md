@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.20 — The Docs Consistency Audit (Mar 2026)
+
+- **Domain count fix** — README updated from "four domains" to three (Product merged into Context at v0.14.0)
+- **Retro terminology abstraction** — retro-loop.md and README replaced Learnings/SOPs/Overrides taxonomy with confidence-based findings/procedures language
+- **Meta path fix** — progressive-hierarchy.md meta domain example updated to valid `meta/DESIGN.md` path
+- **Gate coverage** — configurable-gates.md now mentions retro and release gates with config.yaml pointer
+- **Roadmap sync** — Moved auto-chaining, confidence promotion, checkpoint restart to Now; removed stale /compact reference
+
+
 ### v0.14.19 — The Meta Retro Rework (Mar 2026)
 
 - **Meta hierarchy rebuild** — Replaced flat sops.md/overrides.md/learnings.md with L1/L2/L3 progressive knowledge hierarchy mirroring the context walker

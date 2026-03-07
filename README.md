@@ -51,12 +51,11 @@ Prime loads context from `.beastmode/`. Execute does the work. Validate checks q
 
 `.beastmode/` is the shared bus. Design specs, implementation plans, validation records, release notes. All markdown, all in git. Your root `CLAUDE.md` imports the project context. Every session starts with full knowledge of your project.
 
-Four domains organize what gets persisted:
+Three domains organize what gets persisted:
 
-- **Product** — what you're building (vision, goals)
-- **Context** — how to build it (architecture, conventions, testing)
+- **Context** — what the project knows (architecture, conventions, product vision)
 - **State** — where features are in the workflow (design through release)
-- **Meta** — what you've learned (SOPs, overrides, session insights)
+- **Meta** — what you've learned (procedures, process insights, project-specific rules)
 
 ## What's Different
 
@@ -76,13 +75,7 @@ No vector database to maintain. No embeddings to regenerate. Context survives se
 
 Most AI coding tools treat every session as their first. Past mistakes teach nothing. Solved problems recur.
 
-Beastmode captures what worked and what failed at every checkpoint. Retro agents classify each finding:
-
-- **SOPs** — reusable procedures that apply across sessions
-- **Overrides** — project-specific rules that customize phase behavior
-- **Learnings** — session insights, friction points, patterns noticed
-
-Recurring learnings promote to SOPs after three sessions. Each cycle sharpens Claude's understanding of *your* codebase, not codebases in general.
+Beastmode captures what worked and what failed at every checkpoint. Retro agents review each finding and record it with a confidence level. Recurring patterns promote to procedures that load automatically in future sessions. Each cycle sharpens Claude's understanding of *your* codebase, not codebases in general.
 
 <img src="docs/assets/retro-bubble-up.svg" alt="Retro Bubble-Up" width="100%">
 
