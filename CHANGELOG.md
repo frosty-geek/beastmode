@@ -4,6 +4,10 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.33 — The Handoff Fix (Mar 2026)
+
+- **Removed contradictory handoff spec** — Deleted "Next Step" section from `visual-language.md` that specified file-path format for handoff links, conflicting with checkpoint templates and worktree-manager's path rejection logic
+
 ### v0.14.32 — The Worktree Enforcer (Mar 2026)
 
 - **HARD-GATE worktree enforcement** — `<HARD-GATE>` blocks before worktree steps in all 5 phase files prevent Claude from rationalizing "lightweight" exceptions
