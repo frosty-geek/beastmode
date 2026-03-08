@@ -9,7 +9,7 @@ Unified command for project management.
 
 ## Subcommands
 
-- `init` — Populate context files (interactive or autonomous)
+- `init` — Discover project knowledge and populate context hierarchy
 - `status` — Show features grouped by workflow phase
 - `ideas` — Surface and reconcile deferred ideas from design docs
 
@@ -31,7 +31,7 @@ If no recognized subcommand:
 Usage: /beastmode <subcommand>
 
 Subcommands:
-  init          Populate context files (interactive or autonomous)
+  init          Discover project knowledge and populate context hierarchy
   status        Show features grouped by workflow phase
   ideas         Surface and reconcile deferred ideas
 

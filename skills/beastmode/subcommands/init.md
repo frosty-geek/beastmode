@@ -1,6 +1,6 @@
 # init
 
-Populate `.beastmode/` context files interactively or autonomously.
+Populate `.beastmode/` context hierarchy by discovering and organizing all existing project knowledge.
 
 ## Preconditions
 
@@ -8,171 +8,155 @@ If `.beastmode/` directory doesn't exist, run the install step automatically:
 1. Find the plugin directory (this skill's parent path)
 2. Copy `assets/.beastmode` skeleton to project root
 3. Report: ".beastmode/ skeleton installed."
-4. Continue to mode detection
+4. Continue to discovery
 
 ## Mode Detection
 
 Examine the project:
-- If the project has existing source files (beyond `.beastmode/`) → default to brownfield mode
-- If the project is empty or only has `.beastmode/` → default to greenfield mode
-- User can override with `--greenfield` or `--brownfield` flags
+- If the project has existing source files (beyond `.beastmode/`) → run full 3-phase discovery
+- If the project is empty or only has `.beastmode/` → report "Empty project — skeleton installed. Start with /design." and STOP
 
-## --greenfield Mode
+No `--greenfield` or `--brownfield` flags. Empty projects evolve through /design sessions.
 
-Interactive wizard fills context files through Q&A.
+## Phase 1: Inventory (Single Orchestrator)
 
-### 1. Check prerequisites
+### 1. Announce
 
-```bash
-if [ ! -d ".beastmode" ]; then
-  echo "Error: .beastmode/ not found. Run /beastmode install first."
-  exit 1
-fi
-```
+"Scanning project for existing knowledge."
 
-### 2. Announce mode
-
-"Running greenfield init — I'll ask questions to understand your project."
-
-### 3. Load question bank
-
-Read `@../references/wizard/question-bank.md`
-
-### 4. Conduct interactive Q&A
-
-For each section (PRODUCT, DESIGN, PLAN, IMPLEMENT):
-- Ask questions one at a time
-- Allow skip/later
-- Present draft after each section
-- Write on approval
-
-### 5. Write BEASTMODE.md
-
-Based on answers, populate `.beastmode/BEASTMODE.md` with real content.
-
-### 6. Write context files
-
-Populate all context L2 files:
-- `.beastmode/context/design/architecture.md`
-- `.beastmode/context/design/tech-stack.md`
-- `.beastmode/context/plan/conventions.md`
-- `.beastmode/context/plan/structure.md`
-- `.beastmode/context/implement/agents.md`
-- `.beastmode/context/implement/testing.md`
-
-### 7. Update CLAUDE.md
-
-If `CLAUDE.md` doesn't exist, create with:
-
-```markdown
-@.beastmode/BEASTMODE.md
-@.beastmode/context/DESIGN.md
-@.beastmode/context/PLAN.md
-@.beastmode/context/IMPLEMENT.md
-```
-
-If exists, ask user before updating.
-
-### 8. Report completion
-
-```
-Greenfield init complete.
-
-Files created:
-- .beastmode/BEASTMODE.md
-- .beastmode/context/design/architecture.md
-- .beastmode/context/design/tech-stack.md
-- .beastmode/context/plan/conventions.md
-- .beastmode/context/plan/structure.md
-- .beastmode/context/implement/agents.md
-- .beastmode/context/implement/testing.md
-
-Next: Start your first feature with /design
-```
-
-## --brownfield Mode
-
-Autonomous discovery spawns agents to analyze codebase.
-
-### 1. Check prerequisites
-
-```bash
-if [ ! -d ".beastmode" ]; then
-  echo "Error: .beastmode/ not found. Run /beastmode install first."
-  exit 1
-fi
-```
-
-### 2. Announce mode
-
-"Running brownfield init — spawning discovery agents to analyze codebase."
-
-### 3. Spawn 5 parallel agents
-
-Launch ALL agents in a SINGLE message using registered agent types:
+### 2. Spawn inventory agent
 
 ```yaml
 Agent:
-  subagent_type: "beastmode:init-stack"
-  description: "Analyze tech stack"
-  prompt: "Analyze this project's technology stack. Write results to .beastmode/context/design/tech-stack.md"
-
-Agent:
-  subagent_type: "beastmode:init-structure"
-  description: "Analyze structure"
-  prompt: "Analyze this project's directory structure. Write results to .beastmode/context/plan/structure.md"
-
-Agent:
-  subagent_type: "beastmode:init-conventions"
-  description: "Analyze conventions"
-  prompt: "Analyze this project's coding conventions. Write results to .beastmode/context/plan/conventions.md"
-
-Agent:
-  subagent_type: "beastmode:init-architecture"
-  description: "Analyze architecture"
-  prompt: "Analyze this project's system architecture. Write results to .beastmode/context/design/architecture.md"
-
-Agent:
-  subagent_type: "beastmode:init-testing"
-  description: "Analyze testing"
-  prompt: "Analyze this project's testing setup. Write results to .beastmode/context/implement/testing.md"
+  subagent_type: "beastmode:init-inventory"
+  description: "Inventory project knowledge"
+  prompt: |
+    Analyze this project and produce a structured knowledge map.
+    Working directory: {project root}
+    Today's date: {YYYY-MM-DD}
 ```
 
-### 4. Verify agent outputs
+### 3. Receive knowledge map
 
-Confirm each target file was updated by checking modification times or reading a sample.
+Parse the JSON knowledge map returned by the inventory agent. If the agent fails or returns invalid JSON, report the error and STOP.
+
+### 4. Report inventory summary
+
+Print the agent's summary field and the number of items per topic:
+
+```
+Discovery complete: {summary}
+
+Topics found:
+- product: {N} items
+- architecture: {N} items
+- tech-stack: {N} items
+- conventions: {N} items
+- structure: {N} items
+- testing: {N} items
+[- dynamic-topic: {N} items]
+```
+
+## Phase 2: Populate (Parallel Writers)
+
+### 1. Announce
+
+"Writing context files."
+
+### 2. Ensure L3 directories exist
+
+For each topic in the knowledge map:
+
+```bash
+mkdir -p .beastmode/context/<phase>/<topic>/
+```
+
+### 3. Spawn writer agents in parallel
+
+Launch ALL writer agents in a SINGLE message. One agent per topic:
+
+```yaml
+# For each topic in knowledge_map.topics:
+Agent:
+  subagent_type: "beastmode:init-writer"
+  description: "Write {topic} context"
+  prompt: |
+    Write L2 and L3 files for topic: {topic}
+    L2 path: .beastmode/{l2Path}
+    Phase: {phase}
+    Today's date: {YYYY-MM-DD}
+
+    Knowledge items:
+    {JSON array of items for this topic}
+```
+
+### 4. Verify writer outputs
+
+For each topic, confirm the L2 file exists and has content:
+
+```bash
+test -s .beastmode/context/<phase>/<topic>.md && echo "OK: <topic>" || echo "WARN: <topic> empty"
+```
 
 ### 5. Handle errors
 
-If any agent times out or errors:
-- Preserve existing file content
-- Log warning
-- Continue with other agents
+If any writer agent fails:
+- Log warning: "Writer for {topic} failed — preserving existing content"
+- Continue with remaining topics
+- Do not abort the entire init
 
-### 6. Update CLAUDE.md
+## Phase 3: Synthesize (Single Agent)
 
-If `CLAUDE.md` doesn't exist, create with:
+### 1. Announce
 
-```markdown
-@.beastmode/BEASTMODE.md
-@.beastmode/context/DESIGN.md
-@.beastmode/context/PLAN.md
-@.beastmode/context/IMPLEMENT.md
+"Generating summaries and updating CLAUDE.md."
+
+### 2. Spawn synthesize agent
+
+```yaml
+Agent:
+  subagent_type: "beastmode:init-synthesize"
+  description: "Synthesize L1 summaries"
+  prompt: |
+    Generate L1 summaries from L2 files and rewrite CLAUDE.md.
+    Working directory: {project root}
+    Today's date: {YYYY-MM-DD}
+
+    Topics written: {list of topic names that succeeded in Phase 2}
+    CLAUDE.md residual items: {claudeMdResidual from knowledge map}
 ```
 
-If exists, ask user before updating.
+### 3. Verify outputs
 
-### 7. Report completion
+Confirm L1 files were generated:
+
+```bash
+for f in DESIGN PLAN IMPLEMENT; do
+  test -s .beastmode/context/$f.md && echo "OK: $f.md" || echo "WARN: $f.md empty"
+done
+```
+
+## Report
+
+Print final summary:
 
 ```
-Brownfield init complete.
+Init complete.
 
-Files updated:
-- .beastmode/context/design/architecture.md
-- .beastmode/context/design/tech-stack.md
-- .beastmode/context/plan/conventions.md
-- .beastmode/context/plan/structure.md
-- .beastmode/context/implement/testing.md
+Files created/updated:
+- .beastmode/context/DESIGN.md
+- .beastmode/context/PLAN.md
+- .beastmode/context/IMPLEMENT.md
+- .beastmode/context/design/product.md ({N} L3 records)
+- .beastmode/context/design/architecture.md ({N} L3 records)
+- .beastmode/context/design/tech-stack.md ({N} L3 records)
+- .beastmode/context/plan/conventions.md ({N} L3 records)
+- .beastmode/context/plan/structure.md ({N} L3 records)
+- .beastmode/context/implement/testing.md ({N} L3 records)
+[- .beastmode/context/<phase>/<dynamic-topic>.md ({N} L3 records)]
+- CLAUDE.md (rewritten)
 
-Next: Review the generated context, then /design your first feature
+Total: {N} L2 files, {M} L3 records
+
+Review the generated context, then /design your first feature.
 ```
