@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.16.0 — The Discovery Engine (Mar 2026)
+
+- **Init system redesigned** — Replaced 5 narrow init agents + greenfield wizard with 3-phase layered discovery: Inventory (orchestrator reads all project knowledge) → Populate (parallel writers create L2 summaries + L3 records) → Synthesize (generates L1 summaries, rewrites CLAUDE.md)
+- **Knowledge map architecture** — Inventory agent reads 7 source types (CLAUDE.md, README, docs, plans, source structure, git history, config files) and produces structured knowledge map with L2 topic assignments
+- **L3 record creation** — Writer agents create L3 decision records with source attribution from all discoverable sources
+- **Dynamic topic discovery** — Proposes new L2 topics when 3+ items cluster beyond the 6 base topics
+- **Greenfield mode removed** — Empty projects get skeleton only and evolve through /design sessions
+
 ### v0.15.0 — The Hook Fix (Mar 2026)
 
 - **Hook field removed from plugin.json** — The `hooks` reference to `./hooks/hooks.json` caused plugin loading issues; removed to restore correct behavior
