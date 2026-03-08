@@ -1,5 +1,7 @@
 # Phase Retro
 
+> **NEVER** print next-step commands, transition guidance, or session-restart instructions. The transition gate in the checkpoint phase handles this exclusively.
+
 Review this phase's work for context doc accuracy and meta learnings.
 
 ## 1. Gather Phase Context

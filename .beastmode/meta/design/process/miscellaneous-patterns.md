@@ -155,3 +155,15 @@ Present structures as self-evident choices, not as imitations
 state/design/2026-03-05-key-differentiators.md
 ### Confidence
 [LOW] — single feature
+
+## Observation 14
+### Context
+During phase-end-guidance design, 2026-03-08
+### Observation
+Context report and transition gate must be fully separated concerns. Context report handles phase position and token usage. Transition gate handles what to do next. Mixing them (e.g., context report saying "start a new session") blurs responsibility and creates duplicate guidance.
+### Rationale
+Output domains that serve different purposes should not cross-reference each other's content
+### Source
+state/design/2026-03-08-phase-end-guidance.md
+### Confidence
+[LOW] — first observation of output concern separation

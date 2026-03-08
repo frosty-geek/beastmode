@@ -1,11 +1,11 @@
 # Workflow
 
 ## Phase Lifecycle
-- ALWAYS follow five-phase core: design -> plan -> implement -> validate -> release — invariant sequence
-- ALWAYS suggest next phase at checkpoint completion — guides user
-- NEVER skip phases — each builds on the previous
-- Each phase follows sub-phase anatomy: prime -> execute -> validate -> checkpoint — standardized lifecycle
-- Standalone utilities: /beastmode (init), /status — outside the phase chain
+Five-phase core workflow: design -> plan -> implement -> validate -> release. Each phase follows sub-phase anatomy: prime -> execute -> validate -> checkpoint. Standalone utilities: /beastmode (init), /status. Retro runs within each checkpoint.
+
+1. ALWAYS follow five-phase core: design -> plan -> implement -> validate -> release
+2. ALWAYS suggest next phase at checkpoint completion
+3. ONLY the transition gate in checkpoint sub-phases may print next-step commands — retro, context report, and sub-agents are banned from producing transition guidance
 
 ## Session Tracking
 - ALWAYS update status file on phase completion — `.beastmode/status/YYYY-MM-DD-<feature>.md`
@@ -13,8 +13,10 @@
 - Shared reference `skills/_shared/session-tracking.md` provides the template — standardized format
 
 ## Context Reports
-- ALWAYS include context report @import at end of each phase skill — visibility
-- Reports token usage, loaded artifacts, phase position, and handoff options — orientation for next session
+Shared template `skills/_shared/context-report.md` imported at the end of each phase skill. Reports token usage, loaded artifacts, phase position, and context-percentage handoff guidance (from visual-language.md). Context reports describe context state only — they NEVER include next-step commands or transition guidance.
+
+1. ALWAYS include context report @import at end of each phase skill
+2. NEVER include next-step commands or transition guidance in context reports — the transition gate handles this exclusively
 
 ## Parallel Execution
 - ALWAYS batch independent tasks for parallel execution in /implement — throughput
@@ -39,7 +41,9 @@
 - Context-aware greetings factor in time of day and project state — situational awareness
 
 ## Autonomous Chaining
-- ALWAYS check context threshold before auto-chaining — prevents degraded behavior
-- ALWAYS respect gate mode from config.yaml — never skip gates
-- Config.yaml transitions section controls phase-to-phase chaining — centralized control
-- All retro gates must be configurable for fully autonomous cycles — end-to-end automation
+Config.yaml transitions section controls phase-to-phase chaining. Transition gates use standardized output format: human mode prints `Next:` with inline-code command; auto mode chains via Skill() calls if context >= threshold, otherwise prints `Start a new session and run:` with inline-code command. All gates end with STOP. All retro gates must be configurable for fully autonomous cycles.
+
+1. ALWAYS check context threshold before auto-chaining
+2. ALWAYS respect gate mode from config.yaml — never skip gates
+3. ALWAYS use inline code (single backticks) for next-step commands — never code blocks
+4. ALWAYS end transition gate output with STOP — no additional output after the command

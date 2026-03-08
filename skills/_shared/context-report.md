@@ -11,4 +11,6 @@ Render a single code block containing:
 2. **Context bar** — 30-char bar with percentage and estimated total (from visual-language.md)
 
 After the code block, print as plain text:
-3. **Handoff guidance** — based on context percentage, recommend continue or new session with the appropriate next command
+3. **Handoff guidance** — one of the three exact handoff strings from visual-language.md, based on context percentage
+
+> **DO NOT** include next-step commands, transition guidance, or session-restart instructions in the context report. The transition gate handles what to do next. The context report only describes context state.

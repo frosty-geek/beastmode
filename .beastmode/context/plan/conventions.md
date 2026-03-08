@@ -14,10 +14,14 @@
 - ALWAYS reference task-runner as first line inside HARD-GATE block — never as trailing @import
 
 ## Gate Syntax
-- ALWAYS use exact gate syntax: `## N. [GATE|namespace.gate-id]` — parser depends on format
-- ALWAYS provide both `[GATE-OPTION|human]` and `[GATE-OPTION|auto]` subsections — both modes required
-- ALWAYS read mode from `.beastmode/config.yaml` under `gates.` or `transitions.` key — runtime resolution
-- ALWAYS compose shared functionality via @imports from `skills/_shared/` — NEVER @import between knowledge hierarchy levels (L0/L1/L2/L3)
+Two-tier gate system. HARD-GATE for unconditional constraints. Configurable gates use `## N. [GATE|namespace.gate-id]` with GATE-OPTION subsections. Gate detection in task-runner.md matches the pattern and reads mode from config.yaml.
+
+1. ALWAYS use exact gate syntax: `## N. [GATE|namespace.gate-id]`
+2. ALWAYS provide both `[GATE-OPTION|human]` and `[GATE-OPTION|auto]` subsections
+3. ALWAYS read mode from `.beastmode/config.yaml` under `gates.` or `transitions.` key
+4. ALWAYS compose shared functionality via @imports from `skills/_shared/` — NEVER @import between knowledge hierarchy levels (L0/L1/L2/L3)
+5. ALWAYS use standardized transition output: human mode = `Next:` + inline-code command; auto/low-context = `Start a new session and run:` + inline-code command
+6. ALWAYS end transition gates with STOP — no prose, explanation, or alternatives after the command
 
 ## Branch Naming
 - ALWAYS use `feature/<feature>` branch naming — convention

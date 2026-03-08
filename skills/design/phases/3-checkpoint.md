@@ -45,10 +45,11 @@ Default: `human`.
 
 ### [GATE-OPTION|human] Suggest Next Step
 
-Print and STOP:
-Next step: `/beastmode:plan .beastmode/state/design/YYYY-MM-DD-<feature>.md`
+Print:
 
-Do NOT invoke any implementation skill directly.
+Next: `/beastmode:plan .beastmode/state/design/YYYY-MM-DD-<topic>.md`
+
+STOP. No additional output.
 
 ### [GATE-OPTION|auto] Chain to Next Phase
 
@@ -56,6 +57,9 @@ Estimate context remaining. If >= threshold (default 60%):
 Call `Skill(skill="beastmode:plan", args=".beastmode/state/design/YYYY-MM-DD-<feature>.md")`
 
 If below threshold, print:
-Context is low. Start a new session and run:
-`/beastmode:plan .beastmode/state/design/YYYY-MM-DD-<feature>.md`
-STOP.
+
+Start a new session and run:
+
+`/beastmode:plan .beastmode/state/design/YYYY-MM-DD-<topic>.md`
+
+STOP. No additional output.

@@ -71,3 +71,15 @@ The task-runner is the actual execution engine, not L0
 state/design/2026-03-06-banner-skill-preemption.md
 ### Confidence
 [MEDIUM] — root cause confirmed
+
+## Observation 7
+### Context
+During phase-end-guidance design, 2026-03-08
+### Observation
+When transition output is confusing, diagnose whether the signal is too weak or the noise is too loud before choosing a fix. The retro output was not the problem — the transition gate signal was too quiet (no standardized format, no visual distinction). Fix was making the signal louder (inline code format with resolved path), not suppressing the noise.
+### Rationale
+Signal-vs-noise diagnosis prevents misattributing output problems to the wrong component
+### Source
+state/design/2026-03-08-phase-end-guidance.md
+### Confidence
+[LOW] — first observation of this diagnostic pattern

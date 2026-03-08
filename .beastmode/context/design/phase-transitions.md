@@ -11,5 +11,19 @@
 - Configurable percentage in config.yaml (`context_threshold`) — tunable per project
 
 ## Phase-to-Skill Mapping
-- ALWAYS follow the five-phase order: design -> plan -> implement -> validate -> release — no skipping
-- Each transition gate is namespaced: `transitions.design-to-plan`, `transitions.plan-to-implement`, etc. — granular control
+design -> plan -> implement -> validate -> release. Each transition gate is namespaced: `transitions.design-to-plan`, `transitions.plan-to-implement`, etc.
+
+1. ALWAYS follow the five-phase order — no skipping phases
+
+## Transition Gate Output
+Standardized output format for all checkpoint transition gates. Both human and auto modes print the same inline code command with the resolved artifact path. Auto mode additionally attempts the Skill call. Command format: `/beastmode:<next-phase> .beastmode/state/<phase>/YYYY-MM-DD-<feature>.md`. STOP after printing — no additional output.
+
+1. ALWAYS produce a single inline code command with the fully resolved artifact path
+2. ALWAYS STOP after transition output — no additional output follows the gate
+3. Command format uses `<next-phase>` naming that matches skill names
+
+## Guidance Authority
+Only the transition gate in the checkpoint phase may produce next-step commands. Retro agents, sub-agents, and context reports are banned from printing transition guidance, session-restart instructions, or next-step commands. Context report is an isolated concern (phase position + token usage) that never includes context-dependent transition messages.
+
+1. NEVER print next-step commands from retro agents — transition gate is the sole authority
+2. NEVER include transition guidance in context reports — context report and transition gate are fully separated concerns

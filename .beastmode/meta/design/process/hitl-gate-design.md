@@ -59,3 +59,15 @@ Organize approval flows by what users decide, not by data taxonomy
 state/design/2026-03-07-meta-retro-rework.md
 ### Confidence
 [LOW] — first application of this principle
+
+## Observation 6
+### Context
+During phase-end-guidance design, 2026-03-08
+### Observation
+Competing mechanisms on the same decision applies to output authority, not just gate mechanisms. Multiple agents (retro, sub-agents, transition gate) all producing next-step commands created 3x repetition. Fix was banning all but the transition gate from printing next-step commands — single authoritative source for a given output class.
+### Rationale
+"Competing mechanisms" generalizes beyond gates to any output where multiple producers exist
+### Source
+state/design/2026-03-08-phase-end-guidance.md
+### Confidence
+[MEDIUM] — second instance of competing-mechanisms pattern (Obs 4 covered gate mechanisms; this covers output authority)

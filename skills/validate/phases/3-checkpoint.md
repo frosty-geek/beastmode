@@ -21,7 +21,7 @@ Save to `.beastmode/state/validate/YYYY-MM-DD-<feature>.md` where `<feature>` is
 If FAIL:
 ```
 Validation failed. Fix issues and re-run:
-/validate
+`/beastmode:validate`
 ```
 STOP — do not proceed to transition check.
 
@@ -32,12 +32,21 @@ Default: `human`.
 
 ### [GATE-OPTION|human] Suggest Next Step
 
-Print and STOP:
-Next step: `/beastmode:release YYYY-MM-DD-<feature>.md`
+Print:
+
+Next: `/beastmode:release .beastmode/state/plan/YYYY-MM-DD-<feature>.md`
+
+STOP. No additional output.
 
 ### [GATE-OPTION|auto] Chain to Next Phase
 
 Estimate context remaining. If >= threshold (default 60%):
-Call `Skill(skill="beastmode:release", args="YYYY-MM-DD-<feature>.md")`
+Call `Skill(skill="beastmode:release", args=".beastmode/state/plan/YYYY-MM-DD-<feature>.md")`
 
-If below threshold, print session-restart instructions and STOP.
+If below threshold, print:
+
+Start a new session and run:
+
+`/beastmode:release .beastmode/state/plan/YYYY-MM-DD-<feature>.md`
+
+STOP. No additional output.

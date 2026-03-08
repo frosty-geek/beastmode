@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.27 — The One True Next Step (Mar 2026)
+
+- **Next Step spec** — Added "Next Step" visual language element with strict rendering rules (inline code only, single authority)
+- **Transition gate standardization** — All 4 checkpoint files (design, plan, implement, validate) use identical format for next-step output
+- **Retro guidance ban** — `retro.md` explicitly banned from printing transition guidance
+- **Context report separation** — `context-report.md` no longer bleeds transition instructions; only describes context state
+- **Auto mode prefix** — Low-context auto transitions use `Start a new session and run:` prefix
+
 ### v0.14.26 — The Readable Retro (Mar 2026)
 
 - **Context changes template** — Retro context section uses `~`/`+` prefixes with actual content bullets instead of opaque one-liners
