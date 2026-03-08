@@ -3,7 +3,7 @@
 
 gates:
   design:
-    existing-design-choice: auto    # INTERACTIVE — prior design found, ask what to do
+    existing-design-choice: human     # INTERACTIVE — prior design found, ask what to do
     intent-discussion: human         # INTERACTIVE — conversational intent + gray area loop
     approach-selection: human        # INTERACTIVE — pick from proposed approaches
     section-review: human            # INTERACTIVE — section-by-section review
