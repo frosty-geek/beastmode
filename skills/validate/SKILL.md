@@ -8,7 +8,11 @@ description: Quality gate — testing, linting, validating. Use after implement.
 Verify code changes meet quality standards before release.
 
 <HARD-GATE>
-Read @_shared/task-runner.md. Parse and execute the phases below.
+Execute @_shared/task-runner.md now.
+
+Your FIRST tool call MUST be TodoWrite with parsed phases from below.
+Do not output anything else first.
+Do not skip this for "simple" tasks.
 
 No release without passing validation. [→ Why](references/quality-gates.md)
 </HARD-GATE>

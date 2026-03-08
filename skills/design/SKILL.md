@@ -8,7 +8,11 @@ description: Brainstorm and create designs — designing, speccing, ideating. Us
 Help turn ideas into fully formed designs through collaborative dialogue.
 
 <HARD-GATE>
-Read @_shared/task-runner.md. Parse and execute the phases below.
+Execute @_shared/task-runner.md now.
+
+Your FIRST tool call MUST be TodoWrite with parsed phases from below.
+Do not output anything else first.
+Do not skip this for "simple" tasks.
 
 No implementation until design is approved. [→ Why](references/constraints.md)
 </HARD-GATE>

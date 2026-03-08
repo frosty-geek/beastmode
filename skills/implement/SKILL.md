@@ -8,7 +8,11 @@ description: Execute implementation plans — implementing, coding, building. Us
 Load plan, dispatch subagents per task in wave order, verify completion.
 
 <HARD-GATE>
-Read @_shared/task-runner.md. Parse and execute the phases below.
+Execute @_shared/task-runner.md now.
+
+Your FIRST tool call MUST be TodoWrite with parsed phases from below.
+Do not output anything else first.
+Do not skip this for "simple" tasks.
 
 No EnterPlanMode or ExitPlanMode — worktree isolation only. [→ Why](references/constraints.md)
 </HARD-GATE>

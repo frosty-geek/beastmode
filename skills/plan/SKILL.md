@@ -8,7 +8,11 @@ description: Create implementation plans — planning, architecting, task breakd
 Write comprehensive implementation plans with bite-sized tasks. Assumes the engineer has zero codebase context.
 
 <HARD-GATE>
-Read @_shared/task-runner.md. Parse and execute the phases below.
+Execute @_shared/task-runner.md now.
+
+Your FIRST tool call MUST be TodoWrite with parsed phases from below.
+Do not output anything else first.
+Do not skip this for "simple" tasks.
 
 No EnterPlanMode or ExitPlanMode — this skill manages its own flow. [→ Why](references/constraints.md)
 </HARD-GATE>
