@@ -3,7 +3,7 @@
 ## Product
 - ALWAYS design before code — structured phases prevent wasted implementation
 - NEVER skip the retro sub-phase — it's how the system learns and improves
-- Capabilities include: collaborative design, bite-sized planning, parallel wave execution, git worktree isolation, brownfield discovery, progressive knowledge hierarchy, self-improving retro, squash-per-release commits, session-start hook, /beastmode command, deadpan persona
+- Capabilities include: collaborative design, bite-sized planning, parallel wave execution, git worktree isolation, brownfield discovery, progressive knowledge hierarchy, self-improving retro, squash-per-release commits, session-start hook, unified /beastmode command (init, status, ideas subcommands), deferred ideas capture and reconciliation, deadpan persona
 
 ## Architecture
 - ALWAYS follow the progressive loading pattern — L0 autoloads, L1 loads at prime, L2 on-demand

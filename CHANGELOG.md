@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.29 — The Deferred Ideas (Mar 2026)
+
+- **Unified /beastmode command** — Single entry point with `init`, `status`, `ideas` subcommands; flat depth, no flags
+- **Phase-grouped status** — `/beastmode status` shows active features grouped by workflow phase with worktree detection
+- **Deferred ideas capture** — `/beastmode ideas` walks design docs, reconciles against skill files via semantic matching, marks implemented items with strikethrough
+- **Auto-detect init mode** — `init` auto-selects greenfield/brownfield based on project state
+- **Auto-install on init** — `init` installs `.beastmode/` skeleton automatically if missing
+- Removed standalone `/status` skill and `install` subcommand
+
 ### v0.14.28 — The Conversational Design (Mar 2026)
 
 - **Conversational intent flow** — Design execute phase collapsed from 8 steps to 5, replacing batch-question mechanics with one-question-at-a-time conversational flow

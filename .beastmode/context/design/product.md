@@ -18,7 +18,8 @@
 - Self-improving retro loop — knowledge compounds
 - Squash-per-release commits — clean main history
 - Session-start hook with version banner — orientation
-- Unified /beastmode command (install, init --greenfield, init --brownfield) — single entry point
+- Unified /beastmode command (init, status, ideas) — single entry point with flat subcommands, no flags
+- Deferred ideas capture — walks design docs at read time, LLM reconciliation against skill files, strikethrough marking for resolved ideas
 
 ## Differentiators
 - Progressive hierarchy uses curated summaries — NEVER use embedding/vector retrieval

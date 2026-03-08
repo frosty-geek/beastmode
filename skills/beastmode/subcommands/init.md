@@ -1,14 +1,21 @@
 # init
 
-Populate `.beastmode/` context files interactively (greenfield) or autonomously (brownfield).
+Populate `.beastmode/` context files interactively or autonomously.
 
 ## Preconditions
 
-- `.beastmode/` directory exists (run `/beastmode install` first)
+If `.beastmode/` directory doesn't exist, run the install step automatically:
+1. Find the plugin directory (this skill's parent path)
+2. Copy `assets/.beastmode` skeleton to project root
+3. Report: ".beastmode/ skeleton installed."
+4. Continue to mode detection
 
 ## Mode Detection
 
-Parse arguments for `--greenfield` or `--brownfield` flag.
+Examine the project:
+- If the project has existing source files (beyond `.beastmode/`) → default to brownfield mode
+- If the project is empty or only has `.beastmode/` → default to greenfield mode
+- User can override with `--greenfield` or `--brownfield` flags
 
 ## --greenfield Mode
 

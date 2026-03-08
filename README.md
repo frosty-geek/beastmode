@@ -23,8 +23,7 @@ claude plugin add beastmode@beastmode-marketplace
 Then initialize your project:
 
 ```bash
-/beastmode install                # scaffold .beastmode/ structure
-/beastmode init --brownfield      # auto-discover existing codebase
+/beastmode init                   # auto-detect and populate context
 ```
 
 ## Skills
@@ -36,8 +35,7 @@ Then initialize your project:
 | `/implement` | Execute plans in isolated git worktrees |
 | `/validate` | Quality gate — tests, lint, type checks |
 | `/release` | Changelog, version bump, squash-merge to main |
-| `/status` | Show project state and milestones |
-| `/beastmode` | Project initialization and discovery |
+| `/beastmode` | Project init, feature status, deferred ideas |
 
 ## How It Works
 

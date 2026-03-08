@@ -1,26 +1,26 @@
 ---
 name: beastmode
-description: Project initialization — scaffolding, discovery, setup. Use when starting a new project or adopting beastmode. Supports install, init --greenfield, init --brownfield.
+description: Project initialization, status, and idea tracking. Use when starting a new project, checking project state, or reviewing deferred ideas.
 ---
 
 # /beastmode
 
-Initialize projects with `.beastmode/` context structure.
+Unified command for project management.
 
 ## Subcommands
 
-- `install` — Copy skeleton `.beastmode/` to project
-- `init --greenfield` — Interactive wizard for new projects
-- `init --brownfield` — Autonomous discovery for existing codebases
+- `init` — Populate context files (interactive or autonomous)
+- `status` — Show features grouped by workflow phase
+- `ideas` — Surface and reconcile deferred ideas from design docs
 
 ## Routing
 
 ### 1. Parse Arguments
 
 Extract subcommand from arguments:
-- If args start with "install" → route to `@subcommands/install.md`
-- If args start with "init --greenfield" → route to `@subcommands/init.md` greenfield mode
-- If args start with "init --brownfield" → route to `@subcommands/init.md` brownfield mode
+- If args start with "init" → route to `@subcommands/init.md`
+- If args start with "status" → route to `@subcommands/status.md`
+- If args start with "ideas" → route to `@subcommands/ideas.md`
 - If no args or unrecognized → show help
 
 ### 2. Show Help (default)
@@ -31,18 +31,14 @@ If no recognized subcommand:
 Usage: /beastmode <subcommand>
 
 Subcommands:
-  install               Copy .beastmode/ skeleton to project
-  init --greenfield     Interactive setup for new projects
-  init --brownfield     Autonomous discovery for existing codebases
+  init          Populate context files (interactive or autonomous)
+  status        Show features grouped by workflow phase
+  ideas         Surface and reconcile deferred ideas
 
 Examples:
-  /beastmode install
-  /beastmode init --greenfield
-  /beastmode init --brownfield
-
-First time? Run:
-  1. /beastmode install
-  2. /beastmode init --greenfield  (or --brownfield)
+  /beastmode init
+  /beastmode status
+  /beastmode ideas
 ```
 
 ### 3. Execute Subcommand
