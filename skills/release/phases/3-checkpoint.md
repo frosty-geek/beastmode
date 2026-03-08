@@ -1,8 +1,16 @@
 # 3. Checkpoint
 
+## 0. Assert Worktree
+
+Before any writes, call [worktree-manager.md](../_shared/worktree-manager.md) → "Assert Worktree". If it fails, STOP.
+
 ## 1. Phase Retro
 
 @../_shared/retro.md
+
+---
+
+> **TRANSITION BOUNDARY — Steps below operate from main repo, NOT the worktree.**
 
 ## 2. Squash Merge to Main
 

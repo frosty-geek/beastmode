@@ -1,12 +1,12 @@
 # 1. Execute
 
-## 1. Enter Worktree
+## 0. Assert Worktree (Pre-Merge Phase)
 
-```bash
-if [ -n "$worktree_path" ] && [ -d "$worktree_path" ]; then
-  cd "$worktree_path"
-fi
-```
+All steps from here through step 8 (L0 Update Proposal) MUST execute inside the worktree.
+
+Call [worktree-manager.md](../_shared/worktree-manager.md) → "Assert Worktree". If it fails, STOP.
+
+> **Transition boundary:** The checkpoint phase handles squash merge, commit, tag, and marketplace update from main repo. This execute phase works entirely within the worktree.
 
 ## 2. Stage Uncommitted Changes
 
