@@ -1,22 +1,8 @@
 # 1. Execute
 
-## 1. Enter Feature Worktree
+## 1. Assert Worktree
 
-**MANDATORY — do not skip this step.**
-
-Read the worktree path from the status file and `cd` into it:
-
-```bash
-status_file=".agents/status/YYYY-MM-DD-<feature>.md"
-# Extract path from "## Worktree" section
-worktree_path=$(grep -A1 "^## Worktree" "$status_file" | grep "Path:" | sed 's/.*Path:\s*//' | tr -d '`')
-cd "$worktree_path"
-pwd  # confirm you are in the worktree
-```
-
-If the worktree path is missing from the status file or the directory doesn't exist, STOP and tell the user — do not continue on main.
-
-See [worktree-manager.md](../_shared/worktree-manager.md) for full reference.
+Call [worktree-manager.md](../_shared/worktree-manager.md) → "Assert Worktree". If it fails, STOP.
 
 ## 2. Run Tests
 

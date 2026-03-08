@@ -1,8 +1,13 @@
 # 3. Checkpoint
 
-## 0. Assert Worktree
+<HARD-GATE>
+## 0. Create Feature Worktree
 
-Before any writes, call [worktree-manager.md](../_shared/worktree-manager.md) → "Assert Worktree". If it fails, STOP.
+1. **Derive Feature** — from the resolved topic using [worktree-manager.md](../_shared/worktree-manager.md) → "Derive Feature Name".
+2. **Create Worktree** — using [worktree-manager.md](../_shared/worktree-manager.md) → "Create Worktree".
+
+All subsequent work MUST happen inside the worktree.
+</HARD-GATE>
 
 ## 1. Write Design Doc
 
