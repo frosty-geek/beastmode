@@ -42,8 +42,8 @@ Gates sit at specific positions in the five-phase workflow:
  * intent      * plan       * deviation    |             * version
    discussion    approval     handling     |               confirm
  |             |            |              |             |
- * approach                 * blocked      |             * L0 update
-   selection                  task         |               approval
+ * approach                 * blocked      |
+   selection                  task         |
  |                          |              |
  * section                  * validation   |
    review                     failure      |
@@ -53,6 +53,13 @@ Gates sit at specific positions in the five-phase workflow:
  |             |            |              |             |
  └─── auto ────┘─── auto ──┘──── auto ────┘──── auto ──┘
       transition   transition    transition    transition
+
+ RETRO (runs at end of every phase)
+ ─────
+ * records       — L3 observation writes
+ * context       — L2 doc edits
+ * phase         — L1 summary rewrites + promotions
+ * beastmode     — L0 BEASTMODE.md updates
 ```
 
 Each `*` is a gate. Each gate has a mode: `human` or `auto`.
@@ -79,9 +86,9 @@ gate fires when implementation hits something the plan didn't anticipate. On
 `human`, you decide how to proceed. On `auto`, Claude applies deviation rules
 and continues.
 
-The diagram above shows phase gates. The retro sub-phase and release phase have
-additional gates: `retro.context-write`, `retro.records`, `retro.promotions`,
-`release.version-confirmation`, and `release.beastmode-md-approval`. See
+The diagram above shows phase gates and retro gates. Retro gates run at the end of
+every phase and are ordered bottom-up through the knowledge hierarchy (L3 → L0).
+The release phase has one additional gate: `release.version-confirmation`. See
 `.beastmode/config.yaml` for the full gate inventory.
 
 ## Tuning the Dial
@@ -103,6 +110,11 @@ gates:
     architectural-deviation: human
     blocked-task-decision: human
     validation-failure: human
+  retro:
+    records: human
+    context: human
+    phase: human
+    beastmode: human
 ```
 
 After a few sessions, you've seen Claude make solid design decisions. You've
@@ -122,6 +134,11 @@ gates:
     architectural-deviation: auto  # claude handles deviations well
     blocked-task-decision: auto    # unblock without asking
     validation-failure: auto       # fix loops are reliable
+  retro:
+    records: auto             # L3 observations are routine
+    context: human            # still reviewing L2 doc changes
+    phase: human              # still reviewing L1 summaries
+    beastmode: auto           # L0 updates are rare, trust the logic
 ```
 
 Each gate flip is a statement about where your trust has been earned. Design

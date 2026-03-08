@@ -4,7 +4,7 @@
 The original retro context walker ran an exhaustive audit on every checkpoint, scanning the entire phase tree regardless of what changed. Confidence-scored gap detection added complexity without proportional value.
 
 ## Decision
-Artifact-scoped reconciliation: context walker takes the new state artifact as input, quick-checks L1 as a fast exit, deep-checks only flagged L2 files. No confidence scoring. No gap detection. Single `retro.context-write` gate replaces per-category gates. Meta walker runs independently for learnings/SOPs/overrides.
+Artifact-scoped reconciliation: context walker takes the new state artifact as input, quick-checks L1 as a fast exit, deep-checks only flagged L2 files. No confidence scoring. No gap detection. Four hierarchy-aligned gates (retro.records, retro.context, retro.phase, retro.beastmode) replace the previous three-gate layout. Meta walker runs independently for learnings/SOPs/overrides.
 
 ## Rationale
 - Artifact scoping eliminates wasted checks on unaffected docs

@@ -23,11 +23,11 @@ If skipping, proceed to next checkpoint step.
 
 ---
 
-## Context Reconciliation
+## Spawn Walkers
 
-### 3. Spawn Context Walker
+### 3. Spawn Both Walkers in Parallel
 
-Launch 1 agent:
+Launch 2 agents simultaneously:
 
 **Context Walker** — read prompt from `agents/retro-context.md`
 
@@ -42,67 +42,6 @@ Include in agent prompt:
 - **Worktree root**: {current working directory}
 ```
 
-### 4. [GATE|retro.context-write]
-
-Read `.beastmode/config.yaml` → resolve mode for `retro.context-write`.
-Default: `human`.
-
-If the context walker returned "No changes needed", skip this gate.
-
-#### [GATE-OPTION|human] Review Context Changes
-
-Present all proposed changes with actual content bullets:
-
-```
-### Context Changes ({N} edits, {N} new)
-
-~ {target file}
-  - "{old text}" → "{new text}"
-  + Section: "{new section title}"
-  + "{new content being added}"
-
-+ {target file} — new file
-  + Section: "{section title}"
-
-Apply context changes? [Y/n]
-```
-
-**Prefix key:**
-- `~` = edit existing file
-- `+` = create new file / add content
-- `-` with `→` = content being replaced
-- Indented lines = actual content being written
-
-#### [GATE-OPTION|auto] Auto-Apply
-
-Apply all proposed changes silently.
-Log: "Gate `retro.context-write` → auto: applied {N} context changes"
-
-### 5. Apply Changes and Recompute L1
-
-After gate approval:
-
-1. **Apply L2 edits** — Write proposed changes to target L2 files
-2. **Create new L2 files** — For any "create" actions:
-   - Write the L2 file at `context/{phase}/{domain}.md`
-   - Add a section to `context/{PHASE}.md` with summary + plain text path reference
-3. **Recompute L1 summaries** — For `context/{PHASE}.md`:
-   - List all L2 files in `context/{phase}/`
-   - Rewrite each section summary (2-3 sentences) to reflect current L2 content
-   - Rewrite the top-level summary paragraph to reflect all sections
-   - Ensure each L2 file is referenced as a plain text path (not @import)
-4. **Prune stale links** — In L2 "Related Decisions" sections:
-   - Verify each linked state file still exists
-   - Remove entries where the link target is missing
-
----
-
-## Meta Review
-
-### 6. Spawn Meta Walker
-
-Launch 1 agent:
-
 **Meta Walker** — read prompt from `agents/retro-meta.md`
 
 Include in agent prompt:
@@ -116,32 +55,29 @@ Include in agent prompt:
 - **Worktree root**: {current working directory}
 ```
 
-### 7. Present Meta Findings
+Wait for both to return before proceeding.
 
-Show meta L2 edits inline, then flow into records and promotions sections.
+### 4. Merge Walker Outputs by Hierarchy Level
 
-If L2 edits exist:
+Collect all proposed changes from both walkers. Classify each change by hierarchy level:
 
-```
-### Retro: Meta Review
+- **L3 — Records**: New L3 record files, observation appends to existing records (from meta walker)
+- **L2 — Context/Meta docs**: L2 file edits, new L2 file creation (from both walkers)
+- **L1 — Phase summaries**: L1 summary recomputation, L3→L1 promotions (from both walkers)
+- **L0 — BEASTMODE.md**: Updates to `.beastmode/BEASTMODE.md` capabilities or workflow sections
 
-~ {target file}
-  - "{old text}" → "{new text}"
-  + Procedure: "{new rule text}"
-```
+If both walkers returned "No changes needed", print "Retro: no changes needed." and skip all gates.
 
-If no L2 edits:
+---
 
-```
-### Retro: Meta Review
-```
+## Gate Sequence (Bottom-Up)
 
-If no findings at all (no L2 edits, no records, no promotions): print "Meta review: no changes needed." and skip gates 8-9.
-
-### 8. [GATE|retro.records]
+### 5. [GATE|retro.records]
 
 Read `.beastmode/config.yaml` → resolve mode for `retro.records`.
 Default: `human`.
+
+If no L3 changes proposed, skip this gate.
 
 #### [GATE-OPTION|human] Review Records
 
@@ -169,78 +105,124 @@ Apply records? [Y/n]
 #### [GATE-OPTION|auto] Auto-Apply Records
 
 Apply all proposed L3 records silently.
-Log: "Gate `retro.records` → auto: applied {N} meta records"
+Log: "Gate `retro.records` → auto: applied {N} records"
 
-### 9. [GATE|retro.promotions]
+### 6. [GATE|retro.context]
 
-Read `.beastmode/config.yaml` → resolve mode for `retro.promotions`.
+Read `.beastmode/config.yaml` → resolve mode for `retro.context`.
 Default: `human`.
 
-If no promotion candidates, skip this gate.
+If no L2 changes proposed, skip this gate.
 
-#### [GATE-OPTION|human] Review Promotions
+#### [GATE-OPTION|human] Review Context and Meta Changes
 
-Present each proposed promotion with the actual rule:
+Present all proposed L2 changes from both walkers with actual content:
 
 ```
-#### Promotions ({N} candidates)
+#### Context/Meta Changes ({N} edits, {N} new)
+
+~ {target file}
+  - "{old text}" → "{new text}"
+  + Section: "{new section title}"
+  + "{new content being added}"
+
++ {target file} — new file
+  + Section: "{section title}"
+
+Apply context changes? [Y/n]
+```
+
+**Prefix key:**
+- `~` = edit existing file
+- `+` = create new file / add content
+- `-` with `→` = content being replaced
+- Indented lines = actual content being written
+
+#### [GATE-OPTION|auto] Auto-Apply
+
+Apply all proposed L2 changes silently.
+Log: "Gate `retro.context` → auto: applied {N} context changes"
+
+### 7. [GATE|retro.phase]
+
+Read `.beastmode/config.yaml` → resolve mode for `retro.phase`.
+Default: `human`.
+
+If no L1 changes proposed, skip this gate.
+
+#### [GATE-OPTION|human] Review Phase Summary Updates
+
+Present L1 summary rewrites and any L3→L1 promotions:
+
+```
+#### Phase Updates ({N} rewrites, {N} promotions)
+
+~ {L1 file}
+  Sections rewritten: {list of section names}
 
 ^ {entry title} — L3 → L1
   + Procedure: "{ALWAYS/NEVER rule text}"
   ({basis})
 
-Apply promotions? [Y/n]
+Apply phase updates? [Y/n]
 ```
 
 **Prefix key:**
+- `~` = L1 file rewrite
 - `^` = promote up hierarchy
 - `+` = the rule being added to L1
 - Indented `({basis})` = why this qualifies for promotion
 
-#### [GATE-OPTION|auto] Auto-Apply Promotions
+#### [GATE-OPTION|auto] Auto-Apply
 
-Apply all proposed promotions silently.
-Log: "Gate `retro.promotions` → auto: applied {N} promotions"
+Apply all proposed L1 changes silently.
+Log: "Gate `retro.phase` → auto: applied {N} phase updates"
 
-### 10. Apply Changes and Recompute L1
+### 8. [GATE|retro.beastmode]
 
-After gate approvals:
+Read `.beastmode/config.yaml` → resolve mode for `retro.beastmode`.
+Default: `auto`.
 
-1. **Write approved L3 records** — Create new files or append observation sections to existing records
-2. **Apply approved L2 edits** — Update `process.md` and `workarounds.md` summaries
-3. **Apply approved promotions** — Add entries to L1 Procedures section, update L3 confidence tags
-4. **Recompute L1 summaries** — For `meta/{PHASE}.md`:
-   - Read all L2 files in `meta/{phase}/`
-   - Rewrite Procedures section from promoted entries
-   - Rewrite Domains summary from L2 content
-   - Rewrite top-level summary paragraph
+If no L0 changes proposed, skip this gate.
+
+L0 changes are proposed when:
+- The meta walker detects capabilities or workflow changes significant enough to update BEASTMODE.md
+- A release-phase retro has an L0 update proposal at `.beastmode/state/release/YYYY-MM-DD-<feature>-l0-proposal.md`
+
+#### [GATE-OPTION|human] Review BEASTMODE.md Updates
+
+Present the before/after diff for each changed section:
+
+```
+#### BEASTMODE.md Updates
+
+~ .beastmode/BEASTMODE.md
+  Section: {section name}
+  - "{old text}"
+  + "{new text}"
+
+Apply BEASTMODE.md updates? [Y/n]
+```
+
+#### [GATE-OPTION|auto] Auto-Apply
+
+Apply all proposed L0 changes silently.
+Log: "Gate `retro.beastmode` → auto: updated BEASTMODE.md"
 
 ---
 
-## L0 Promotion (Release Phase Only)
+## Apply All Approved Changes
 
-### 11. Check L0 Update Proposal
+### 9. Apply Changes and Recompute Summaries
 
-If running in the release phase, check for an L0 update proposal:
+After all gates complete, apply approved changes in hierarchy order (bottom-up):
 
-1. Look for `.beastmode/state/release/YYYY-MM-DD-<feature>-l0-proposal.md`
-2. If no proposal file exists → skip (no L0 changes needed)
-3. If proposal exists → apply the proposed sections to `.beastmode/BEASTMODE.md`:
-   - Replace **Capabilities** section with proposed version
-   - Replace **How It Works** section with proposed version (if present in proposal)
-
-#### 11.1 [GATE|release.beastmode-md-approval]
-
-Read `.beastmode/config.yaml` → resolve mode for `release.beastmode-md-approval`.
-Default: `auto`.
-
-##### [GATE-OPTION|human] Ask User
-
-**Significance check:**
-- If Capabilities or How It Works changed → present the before/after diff for user approval
-- If neither changed → auto-apply silently
-
-##### [GATE-OPTION|auto] Auto-Apply
-
-Auto-apply all changes.
-Log: "Gate `release.beastmode-md-approval` → auto: updated BEASTMODE.md with N new capabilities"
+1. **L3 — Write approved records** — Create new files or append observation sections to existing records
+2. **L2 — Apply approved context/meta edits** — Write changes to L2 files, create new L2 files
+   - For new L2 files: add section to parent L1 with summary + plain text path reference
+3. **L1 — Apply approved phase updates** — Recompute L1 summaries for affected phase files:
+   - For `context/{PHASE}.md`: list L2 files, rewrite section summaries, rewrite top-level paragraph, ensure L2 paths referenced as plain text
+   - For `meta/{PHASE}.md`: rewrite Procedures section from promoted entries, rewrite Domains summary, rewrite top-level paragraph
+   - Apply approved promotions: add entries to L1 Procedures section, update L3 confidence tags
+4. **L0 — Apply approved BEASTMODE.md updates** — Replace sections with proposed versions
+5. **Prune stale links** — In L2 "Related Decisions" sections, verify linked state files exist, remove missing entries

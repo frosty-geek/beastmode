@@ -52,5 +52,4 @@
 - L0 promotion happens only during release phase via L0 proposal files in state/release/ — controlled rollup
 - NEVER write to context/ or meta/ directly from phases — retro is the sole gatekeeper
 - Meta promotion is confidence-gated: [HIGH] immediate, [MEDIUM]+3 to L1, [LOW]+3 to [MEDIUM] — graduated trust
-- Two meta retro gates: retro.records (L3 writes) and retro.promotions (L1/L2 upgrades) — granular control
-- Single `retro.context-write` gate covers context doc writes — unified approval
+- Four retro gates aligned to hierarchy: retro.records (L3), retro.context (L2), retro.phase (L1), retro.beastmode (L0) — bottom-up approval

@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.33 — The Hierarchy Gates (Mar 2026)
+
+- **Hierarchy-aligned retro gates** — Four gates match the knowledge hierarchy: `retro.records` (L3), `retro.context` (L2), `retro.phase` (L1), `retro.beastmode` (L0)
+- **Bottom-up gate ordering** — Gates fire L3 → L0, approving lower levels before higher ones
+- **Parallel walker spawning** — Context and meta walkers launch simultaneously, outputs merged by hierarchy level before gating
+- **Unified L0 gating** — `release.beastmode-md-approval` absorbed into `retro.beastmode`, available to any phase
+- **Explicit L1 gating** — L1 summary recomputation and promotions gated through `retro.phase` instead of being a silent side-effect
+
 ### v0.14.32 — The Worktree Enforcer (Mar 2026)
 
 - **HARD-GATE worktree enforcement** — `<HARD-GATE>` blocks before worktree steps in all 5 phase files prevent Claude from rationalizing "lightweight" exceptions

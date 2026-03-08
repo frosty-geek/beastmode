@@ -2,7 +2,7 @@
 
 ## 0. Assert Worktree (Pre-Merge Phase)
 
-All steps from here through step 8 (L0 Update Proposal) MUST execute inside the worktree.
+All steps from here through step 7 (Bump Version Files) MUST execute inside the worktree.
 
 Call [worktree-manager.md](../_shared/worktree-manager.md) → "Assert Worktree". If it fails, STOP.
 
@@ -107,33 +107,3 @@ Update version in all three files:
 - `.claude-plugin/marketplace.json` → version in plugins array
 - `hooks/session-start.sh` → banner line `BEASTMODE vX.Y.Z`
 
-## 8. Prepare L0 Update Proposal
-
-Roll up L1 summaries and release features into an L0 update proposal.
-
-1. Read current `.beastmode/BEASTMODE.md`
-2. Read all L1 domain summaries (`context/DESIGN.md`, `context/PLAN.md`, `context/IMPLEMENT.md`, `context/VALIDATE.md`, `context/RELEASE.md`, `meta/DESIGN.md`, `meta/PLAN.md`, `meta/IMPLEMENT.md`, `meta/VALIDATE.md`, `meta/RELEASE.md`)
-3. Read the release notes generated in step 5
-4. Prepare proposed **Capabilities** section:
-   - Add new capabilities from this release's `feat:` commits
-   - Remove capabilities for features that were dropped
-   - Keep existing entries that are still accurate
-   - Format: `- **Bold label**: One-sentence description`
-5. Prepare proposed **How It Works** section if the release changes workflow mechanics
-
-Save the proposal to `.beastmode/state/release/YYYY-MM-DD-<feature>-l0-proposal.md`:
-
-```markdown
-# L0 Update Proposal — <feature> (vX.Y.Z)
-
-## Proposed Capabilities
-
-- **Bold label**: One-sentence description
-- ...
-
-## Proposed How It Works
-
-[Only if changed, otherwise omit this section]
-```
-
-If no changes to Capabilities or How It Works are needed, skip writing the proposal file.
