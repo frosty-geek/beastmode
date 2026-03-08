@@ -1,12 +1,8 @@
 # 1. Execute
 
-## 0. Assert Worktree (Pre-Merge Phase)
-
-All steps from here through step 7 (Bump Version Files) MUST execute inside the worktree.
+## 0. Assert Worktree
 
 Call [worktree-manager.md](../_shared/worktree-manager.md) → "Assert Worktree". If it fails, STOP.
-
-> **Transition boundary:** The checkpoint phase handles squash merge, commit, tag, and marketplace update from main repo. This execute phase works entirely within the worktree.
 
 ## 2. Stage Uncommitted Changes
 

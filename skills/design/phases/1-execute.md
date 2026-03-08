@@ -1,22 +1,6 @@
 # 1. Execute
 
-<HARD-GATE>
-All work happens in a worktree. No exceptions.
-Documentation, single-file edits, and "lightweight" tasks all require worktrees.
-If you judge the task as too small for a worktree, you are wrong.
-</HARD-GATE>
-
-## 1. Create Feature Worktree
-
-**MANDATORY — do not skip this step.**
-
-Derive `<feature>` from the user's topic using [worktree-manager.md](../_shared/worktree-manager.md) → "Derive Feature Name" (from user topic).
-
-Then create the worktree using [worktree-manager.md](../_shared/worktree-manager.md) → "Create Worktree".
-
-All subsequent work in this session MUST happen inside the worktree. If `cd` or `pwd` shows you are still in the main repo, STOP and fix it.
-
-## 2. [GATE|design.intent-discussion]
+## 1. [GATE|design.intent-discussion]
 
 Read `.beastmode/config.yaml` → resolve mode for `design.intent-discussion`.
 Default: `human`.
@@ -56,7 +40,7 @@ Default: `human`.
 - Log decisions inline
 - No questions asked
 
-## 3. [GATE|design.approach-selection]
+## 2. [GATE|design.approach-selection]
 
 Read `.beastmode/config.yaml` → resolve mode for `design.approach-selection`.
 Default: `human`.
@@ -75,7 +59,7 @@ Default: `human`.
 - Log rationale
 - Proceed without asking
 
-## 4. [GATE|design.section-review]
+## 3. [GATE|design.section-review]
 
 Read `.beastmode/config.yaml` → resolve mode for `design.section-review`.
 Default: `human`.
@@ -93,7 +77,7 @@ Present the full design without per-section approval pauses.
 Proceed directly to validation.
 Log: "Gate `design.section-review` → auto: full design presented"
 
-## 5. Iterate Until Ready for Validation
+## 4. Iterate Until Ready for Validation
 
 - Go back and clarify as needed
 - Keep YAGNI in mind — remove unnecessary features
