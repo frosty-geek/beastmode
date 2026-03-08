@@ -43,7 +43,7 @@ floats to the top of a similarity search. It navigates a known structure.
 Beastmode organizes project knowledge into four levels:
 
 **L0 — System Manual** (`BEASTMODE.md`)
-The sole autoloaded file (~80 lines). Contains hierarchy spec, persona definition,
+The sole autoloaded file (~40 lines). Contains hierarchy spec, persona definition,
 writing rules, and conventions. Enough for any agent to orient after compression.
 Always loaded via CLAUDE.md.
 
@@ -134,7 +134,7 @@ Gates are defined in `.beastmode/config.yaml`.
 
 ## Why This Matters
 
-**Token efficiency.** Agents load L0 by default (~80 lines). L1 loaded during
+**Token efficiency.** Agents load L0 by default (~40 lines). L1 loaded during
 prime. L2 and L3 loaded on demand. A flat system would load 10-50x more tokens for
 the same effective context.
 

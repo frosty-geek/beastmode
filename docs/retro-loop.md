@@ -93,7 +93,7 @@ to a procedure: "Wrap service calls in `Result<T, AppError>`, never throw."
 the procedure. It writes the error handling correctly on the first try. No re-discovery.
 No correction cycle.
 
-**Week 8:** A new team member runs `/beastmode init --brownfield` on their clone.
+**Week 8:** A new team member runs `/beastmode init` on their clone.
 The brownfield discovery agent reads the procedures and conventions. The new contributor's
 first AI-assisted session already knows how the team handles errors, names
 variables, and structures tests.

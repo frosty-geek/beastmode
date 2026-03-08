@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.31 — The Docs Refresh (Mar 2026)
+
+- **ROADMAP sync** — Added 8 shipped features to "Now" section; updated Progressive Autonomy Stage 3 to reference native Claude Code team support
+- **Stale reference fixes** — Fixed L0 line count in progressive-hierarchy.md (~80 → ~40), removed `--brownfield` flag from retro-loop.md and ROADMAP.md
+
+
 ### v0.14.29 — The Deferred Ideas (Mar 2026)
 
 - **Unified /beastmode command** — Single entry point with `init`, `status`, `ideas` subcommands; flat depth, no flags
