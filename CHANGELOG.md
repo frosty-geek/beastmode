@@ -4,6 +4,23 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.24 — The Hierarchy Format v2 (Mar 2026)
+
+- **L0 bullet conversion** — BEASTMODE.md converted to pure bullet format under `##` section headers
+- **L1 bullet conversion** — All 10 L1 files (5 Context + 5 Meta) stripped of prose paragraphs, rules converted to dash bullets
+- **L2 bullet conversion** — All 27 L2 files converted to bullets with em dash rationale
+- **Format parity** — Meta and Context domains now use identical structure at L1 and L2
+- **L3 unchanged** — Record format preserved; 2 new observations appended during design retro
+
+
+### v0.14.22 — The Visual Language Lockdown (Mar 2026)
+
+- **Strict rendering spec** — Rewrites `visual-language.md` from descriptive guide to prescriptive specification with parameterized rules tables
+- **Enforcement warnings** — "DO NOT" directives on every visual element (phase indicator, context bar, handoff text)
+- **Bad/good examples** — Common violations catalogued alongside correct output for pattern-matching anchors
+- **Literal handoff text** — Three exact strings, no paraphrasing allowed
+
+
 ### v0.14.21 — The Meta Hierarchy Tightening (Mar 2026)
 
 - **Domain rename** — `insights.md` → `process.md`, `upstream.md` → `workarounds.md` across all 5 phases

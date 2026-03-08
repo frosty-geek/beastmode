@@ -47,3 +47,15 @@ Start from existing algorithms when building structurally analogous subsystems
 state/design/2026-03-07-meta-retro-rework.md
 ### Confidence
 [HIGH] — promoted to SOP: "Mirror existing patterns before designing from scratch"
+
+## Observation 5
+### Context
+During hierarchy-format-v2 design, 2026-03-08
+### Observation
+Fractal format convergence (identical L1/L2 format for Meta and Context domains) was an explicit structural decision. User requested unified format across domains to enable uniform tooling.
+### Rationale
+Fractal consistency enables single retro walker to process both domains; supports future cross-domain analysis
+### Source
+state/design/2026-03-08-hierarchy-format-v2.md
+### Confidence
+[MEDIUM] — explicit user requirement, aligns with existing fractal consistency SOP

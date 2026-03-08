@@ -1,6 +1,8 @@
 # Visual Language
 
-Consistent visual vocabulary for progress and status displays. All visual elements use the Unicode block family, cohesive with the session banner.
+Strict rendering specification for progress and status displays. All visual elements use the Unicode block family, cohesive with the session banner.
+
+**RENDER EXACTLY as specified. DO NOT improvise, paraphrase, or reformat any visual element.**
 
 ## Character Vocabulary
 
@@ -13,38 +15,99 @@ Consistent visual vocabulary for progress and status displays. All visual elemen
 
 ## Phase Indicator
 
-Show workflow position using gradient density. Fixed-width segments in a code block.
+Show workflow position using gradient density.
 
-Determine current phase from the skill being executed:
-- Phases before current → `█` (completed)
-- Current phase → `▓` (in-progress)
-- Phases after current → `░` (pending)
+### Rules
+
+| Rule | Value |
+|------|-------|
+| Segment width | Exactly 10 characters |
+| Separator | Exactly 1 space between segments |
+| Segment count | Exactly 5 (one per phase) |
+| Label row | Left-aligned, padded to 10 characters each |
+| Phases before current | `██████████` |
+| Current phase | `▓▓▓▓▓▓▓▓▓▓` |
+| Phases after current | `░░░░░░░░░░` |
+| Rendering | Inside a code block (triple backticks) |
 
 Phase order: design, plan, implement, validate, release.
 
-**Render inside a code block.** Each segment is exactly 10 characters wide. Segments separated by single space.
+**DO NOT** alter segment widths. Every segment is exactly 10 characters — no more, no less.
+**DO NOT** omit the label row. Both rows (blocks + labels) are required.
+**DO NOT** render outside a code block.
+**DO NOT** use characters other than `█`, `▓`, and `░` in segments.
 
-Example at implement phase:
+### Correct Examples
 
-```
-██████████ ██████████ ▓▓▓▓▓▓▓▓▓▓ ░░░░░░░░░░ ░░░░░░░░░░
-design     plan       implement  validate   release
-```
-
-Example at design phase start:
+At design phase:
 
 ```
 ▓▓▓▓▓▓▓▓▓▓ ░░░░░░░░░░ ░░░░░░░░░░ ░░░░░░░░░░ ░░░░░░░░░░
 design     plan       implement  validate   release
 ```
 
+At implement phase:
+
+```
+██████████ ██████████ ▓▓▓▓▓▓▓▓▓▓ ░░░░░░░░░░ ░░░░░░░░░░
+design     plan       implement  validate   release
+```
+
+At release phase:
+
+```
+██████████ ██████████ ██████████ ██████████ ▓▓▓▓▓▓▓▓▓▓
+design     plan       implement  validate   release
+```
+
+### Common Violations (DO NOT produce these)
+
+BAD — variable width segments:
+```
+▓▓▓▓▓▓ ░░░░ ░░░░░░░░░ ░░░░░░░░ ░░░░░░░
+```
+
+BAD — labels not aligned to 10-char segments:
+```
+▓▓▓▓▓▓▓▓▓▓ ░░░░░░░░░░ ░░░░░░░░░░ ░░░░░░░░░░ ░░░░░░░░░░
+ design    plan      implement validate  release
+```
+
+BAD — missing label row:
+```
+▓▓▓▓▓▓▓▓▓▓ ░░░░░░░░░░ ░░░░░░░░░░ ░░░░░░░░░░ ░░░░░░░░░░
+```
+
+BAD — rendered as plain text (no code block):
+▓▓▓▓▓▓▓▓▓▓ ░░░░░░░░░░ ░░░░░░░░░░ ░░░░░░░░░░ ░░░░░░░░░░
+
 ## Context Bar
 
-Show token usage at checkpoint (end of phase). Render inside the same code block as the phase indicator.
+Show token usage at checkpoint (end of phase). Render inside the same code block as the phase indicator, separated by one blank line.
 
-**Bar:** 30 characters wide. Filled chars = `█`, empty chars = `░`. Calculate: filled = round(percentage / 100 * 30).
+### Rules
 
-**Format (inside a code block, after the phase indicator):**
+| Rule | Value |
+|------|-------|
+| Bar width | Exactly 30 characters |
+| Filled character | `█` |
+| Empty character | `░` |
+| Calculation | filled = round(percentage / 100 * 30) |
+| Estimate prefix | Always `~` before percentage and token counts |
+| Total | 200k context window |
+
+### Exact Format
+
+```
+Context: {30 chars of █ and ░} ~{pct}% (~{used}k/200k)
+```
+
+**DO NOT** change the bar width from 30 characters.
+**DO NOT** omit the `~` prefix on estimates.
+**DO NOT** add token breakdown lines, categories, or extra detail.
+**DO NOT** change the word `Context:` or the spacing around it.
+
+### Correct Example (at checkpoint)
 
 ```
 ██████████ ██████████ ██████████ ▓▓▓▓▓▓▓▓▓▓ ░░░░░░░░░░
@@ -53,9 +116,37 @@ design     plan       implement  validate   release
 Context: ██████████████████░░░░░░░░░░░░ ~58% (~116k/200k)
 ```
 
-Estimates are rough — prefix with `~`. Total is 200k context window.
+### Common Violations (DO NOT produce these)
 
-**Handoff guidance** (print as plain text AFTER the code block):
-- Below 60% used: "Context is fresh. Safe to continue."
-- 60-80% used: "Context is moderate. One more phase is reasonable."
-- Above 80% used: "Context is heavy. Start a new session for the next phase."
+BAD — wrong bar width (not 30 characters):
+```
+Context: ████████████████████░░░░░░░░░░ ~58% (~116k/200k)
+```
+
+BAD — missing ~ prefix on estimates:
+```
+Context: ██████████████████░░░░░░░░░░░░ 58% (116k/200k)
+```
+
+BAD — added token breakdown lines:
+```
+Context: ██████████████████░░░░░░░░░░░░ ~58% (~116k/200k)
+  System:        ~8k
+  Conversation: ~92k
+  Artifacts:    ~16k
+```
+
+BAD — creative reformatting:
+```
+[Context] ██████████████████░░░░░░░░░░░░ approximately 58%
+```
+
+## Handoff Guidance
+
+Print as plain text AFTER the code block. Use one of these three strings EXACTLY. **DO NOT** paraphrase, expand, or rephrase.
+
+| Condition | Exact string |
+|-----------|-------------|
+| Below 60% used | `Context is fresh. Safe to continue.` |
+| 60-80% used | `Context is moderate. One more phase is reasonable.` |
+| Above 80% used | `Context is heavy. Start a new session for the next phase.` |
