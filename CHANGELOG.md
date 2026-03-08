@@ -4,6 +4,10 @@ All notable changes to beastmode.
 
 ---
 
+### v0.14.34 — The Handoff Fix (Mar 2026)
+
+- **Removed contradictory handoff spec** — Deleted "Next Step" section from `visual-language.md` that specified file-path format for handoff links, conflicting with checkpoint templates and worktree-manager's path rejection logic
+
 ### v0.14.33 — The Hierarchy Gates (Mar 2026)
 
 - **Hierarchy-aligned retro gates** — Four gates match the knowledge hierarchy: `retro.records` (L3), `retro.context` (L2), `retro.phase` (L1), `retro.beastmode` (L0)

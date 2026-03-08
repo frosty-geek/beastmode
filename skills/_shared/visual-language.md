@@ -150,33 +150,3 @@ Print as plain text AFTER the code block. Use one of these three strings EXACTLY
 | Below 60% used | `Context is fresh. Safe to continue.` |
 | 60-80% used | `Context is moderate. One more phase is reasonable.` |
 | Above 80% used | `Context is heavy. Start a new session for the next phase.` |
-
-## Next Step
-
-Transition gate output element. Printed as plain text AFTER the context report and handoff guidance.
-
-### Rules
-
-| Rule | Value |
-|------|-------|
-| Format | Inline code (single backticks) |
-| Content | `/beastmode:<next-phase> <resolved-artifact-path>` |
-| Placement | After context report code block and handoff guidance line |
-| Authority | ONLY the transition gate in checkpoint phases may produce this element |
-| Auto/low-context prefix | `Start a new session and run:` on the line before the inline code |
-
-**DO NOT** print next-step commands from retro, context report, sub-agents, or any other source.
-**DO NOT** wrap in a code block — use single backticks (inline code) only.
-**DO NOT** add surrounding prose, explanation, or alternatives alongside the command.
-
-### Correct Examples
-
-Human mode:
-
-Next: `/beastmode:plan .beastmode/state/design/2026-03-08-feature-name.md`
-
-Auto mode, low context:
-
-Start a new session and run:
-
-`/beastmode:plan .beastmode/state/design/2026-03-08-feature-name.md`
