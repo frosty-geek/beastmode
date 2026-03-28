@@ -39,6 +39,8 @@
 - NEVER modify main branch during feature work — worktree provides isolation
 - Cross-session discovery: phases resolve feature worktree from explicit argument or fallback scan — multi-session continuity
 - Created at /design, inherited through plan/implement/validate, squash-merged by /release — full lifecycle
+- Skills MUST detect when already running inside an agent worktree and skip their own worktree creation — prevents double-worktree nesting
+- After parallel implement agents complete, orchestrator merges worktrees sequentially then verifies manifest completeness — convergence before validation
 
 ## HITL Gate System
 - NEVER skip gate steps — `## N. [GATE|...]` steps are structural task-runner items that cannot be bypassed

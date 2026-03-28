@@ -3,7 +3,7 @@
 ## Product
 - ALWAYS design before code — structured phases prevent wasted implementation
 - NEVER skip the retro sub-phase — it's how the system learns and improves
-- Capabilities include: collaborative design, bite-sized planning, parallel wave execution, git worktree isolation, brownfield discovery with 17-domain init system, progressive knowledge hierarchy, self-improving retro, squash-per-release commits, session-start hook, unified /beastmode command (init, status, ideas subcommands), deferred ideas capture and reconciliation, deadpan persona, GitHub state externalization with issue-based lifecycle tracking
+- Capabilities include: collaborative design, bite-sized planning, parallel wave execution, git worktree isolation, brownfield discovery with 17-domain init system, progressive knowledge hierarchy, self-improving retro, squash-per-release commits, session-start hook, unified /beastmode command (init, status, ideas, orchestrate subcommands), deferred ideas capture and reconciliation, deadpan persona, GitHub state externalization with issue-based lifecycle tracking, pipeline orchestration with CronCreate polling, multi-epic parallelism, and per-feature agent fan-out
 
 ## Architecture
 - ALWAYS follow the progressive loading pattern — L0 autoloads, L1 loads at prime, L2 on-demand
@@ -13,6 +13,7 @@
 - State has no L1 index files — only empty phase subdirs with .gitkeep as workflow containers
 - research/ lives at .beastmode/ root, not under state/ — reference material is not workflow state
 - Sub-phase anatomy is invariant: prime -> execute -> validate -> checkpoint
+- Skills MUST detect when already running inside an agent worktree and skip their own worktree creation — prevents double-worktree nesting
 - NEVER write to context/ or meta/ directly from phases — retro is the sole gatekeeper
 - Retro reconciliation is artifact-scoped — quick-check L1 first, deep-check L2 only when stale
 - Meta walker mirrors context walker algorithm — L1 quick-check, L2 deep-check, L3 record management with confidence-gated promotion
@@ -29,7 +30,7 @@
 - ALWAYS archive branch tip before squash merge
 
 ## Phase Transitions
-Self-chaining mechanism between phases. Auto-transitions use fully-qualified Skill tool calls. Standardized transition gate output: single inline code with resolved artifact path. Only the transition gate may produce next-step commands; retro agents are banned from transition guidance.
+Self-chaining mechanism between phases. Auto-transitions use fully-qualified Skill tool calls. Standardized transition gate output: single inline code with resolved artifact path. Only the transition gate may produce next-step commands; retro agents are banned from transition guidance. The orchestrator provides a second advancement path: CronCreate poll loop scans state files and spawns worktree-isolated agents to drive epics through plan -> release automatically.
 
 1. ALWAYS produce a single copy-pasteable inline code command with the resolved artifact path at transition
 2. NEVER print transition guidance from retro agents — transition gate is the sole authority
@@ -60,3 +61,14 @@ GitHub Issues externalize beastmode's workflow state so features are visible on 
 5. ALWAYS define transition modes in config.yaml — human (gated), auto (self-advance), automatic (roll-up)
 
 context/design/github-state-model.md
+
+## Pipeline Orchestration
+CronCreate-based poll loop that scans local state files and spawns worktree-isolated agents to drive epics through plan -> release in parallel. One team per epic, one agent per phase, fan-out per feature at implement. Design phase is excluded (interactive). Respects config.yaml gates and relays blocked agents to the user.
+
+1. ALWAYS use local state files as the authority for orchestration decisions — not GitHub labels
+2. NEVER orchestrate design phase — interactive by nature, requires human collaboration
+3. ALWAYS merge implement worktrees sequentially and verify manifest completeness before advancing to validate
+4. ALWAYS respect config.yaml gate settings — human gates pause the agent and relay to user
+5. ALWAYS spawn agents with worktree isolation — skills inside agents detect existing worktree and skip their own creation
+
+context/design/orchestration.md

@@ -5,6 +5,8 @@
 - ALWAYS pass the state artifact path as the argument to the next phase — maintains continuity
 - When set to `auto`, Claude calls `Skill(skill="beastmode:<next>", args="<artifact-path>")` — explicit chaining
 - GitHub state model extends transitions with label-based state machines: config.yaml `transitions:` block maps phase pairs to human/auto/automatic modes — GitHub labels are updated alongside skill chaining
+- Orchestrator provides automated advancement: CronCreate poll loop (1-minute interval) scans state files, spawns worktree-isolated agents per phase per epic — parallel pipeline execution without manual invocation
+- Orchestrator skips design phase (interactive) and picks up epics with design artifact but no release artifact — design remains human-driven
 
 ## Phase-to-Skill Mapping
 design -> plan -> implement -> validate -> release. Each transition gate is namespaced: `transitions.design-to-plan`, `transitions.plan-to-implement`, etc.
