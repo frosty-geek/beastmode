@@ -110,6 +110,8 @@ Use warn-and-continue for all GitHub calls (see Error Handling Convention in git
 
 If any GitHub call fails (warn-and-continue), the manifest is written **without** the `github` block. The next checkpoint will retry.
 
+3. **Add Epic to Project** — call the "Add to Project + Set Status" operation from github.md with the epic URL and status `"Design"`.
+
 ## 4. Phase Retro
 
 @../_shared/retro.md

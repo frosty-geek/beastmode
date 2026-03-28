@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.23.0 — The Project Board (Mar 2026)
+
+- **Pipeline status field** — Setup-github creates a 7-option Pipeline field (Backlog, Design, Plan, Implement, Validate, Release, Done) with color-coded statuses via GraphQL
+- **Project metadata cache** — Setup-github writes `.beastmode/state/github-project.cache.json` with project ID, field ID, and option ID map for downstream checkpoint use
+- **Issue backfill** — Setup-github adds all existing `type/epic` and `type/feature` issues to the project with Status derived from their current labels
+- **Shared project sync** — New "Add to Project + Set Status" operation in `_shared/github.md` handles idempotent project item addition and status updates
+- **Checkpoint project sync** — All 5 phase checkpoints sync Epic and Feature issues to the project board at every transition
+- **Cache field name fix** — Fixed `pipelineField` vs `statusField` naming inconsistency between cache writer and reader
+
 ### v0.22.0 — The External Orchestrator (Mar 2026)
 
 - **Justfile orchestrator** — Thin CLI shell with recipes for each phase (`just design`, `just plan`, `just implement`, `just validate`, `just release`). Invokes `claude --worktree` interactively.

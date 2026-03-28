@@ -48,13 +48,17 @@ Use warn-and-continue for all GitHub calls (see Error Handling Convention in git
 gh issue edit <epic-number> --remove-label "phase/design" --add-label "phase/plan"
 ```
 
-2. **Create Feature Sub-Issues** — for each feature in the manifest:
+2. **Add Epic to Project** — call the "Add to Project + Set Status" operation from github.md with the epic URL and status `"Plan"`.
+
+3. **Create Feature Sub-Issues** — for each feature in the manifest:
    - Create a Feature issue using the "Create Feature" operation from github.md
    - Labels: `type/feature`, `status/ready`
    - Link as sub-issue of the Epic
    - Write the issue number into the manifest feature entry as `github.issue`
 
-3. **Update Manifest** — write the enriched manifest with feature issue numbers:
+4. **Add Features to Project** — for each created feature, call the "Add to Project + Set Status" operation from github.md with the feature URL and status `"Plan"`.
+
+5. **Update Manifest** — write the enriched manifest with feature issue numbers:
 
 ```json
 {

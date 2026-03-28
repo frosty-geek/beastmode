@@ -1,5 +1,5 @@
 # Beastmode orchestrator — run workflow phases via claude CLI
-# Each recipe launches an interactive claude session in a named worktree.
+# Each recipe launches a claude session in a named worktree that exits when finished.
 # No recipe auto-chains to the next phase.
 
 # Design phase: interview and produce a PRD
@@ -7,21 +7,21 @@
 design topic:
     #!/usr/bin/env bash
     slug=$(echo "{{topic}}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g')
-    claude --dangerously-skip-permissions -w "$slug" "/beastmode:design {{topic}}"
+    claude --dangerously-skip-permissions --exit-when-finished -w "$slug" "/beastmode:design {{topic}}"
 
 # Plan phase: decompose a PRD into features
 plan slug:
-    claude --dangerously-skip-permissions -w {{slug}} "/beastmode:plan {{slug}}"
+    claude --dangerously-skip-permissions --exit-when-finished -w {{slug}} "/beastmode:plan {{slug}}"
 
 # Implement phase: execute a single feature from a design
 # Takes two args to avoid ambiguous compound-slug splitting
 implement design feature:
-    claude --dangerously-skip-permissions -w {{design}} "/beastmode:implement {{design}}-{{feature}}"
+    claude --dangerously-skip-permissions --exit-when-finished -w {{design}} "/beastmode:implement {{design}}-{{feature}}"
 
 # Validate phase: run quality gates
 validate slug:
-    claude --dangerously-skip-permissions -w {{slug}} "/beastmode:validate {{slug}}"
+    claude --dangerously-skip-permissions --exit-when-finished -w {{slug}} "/beastmode:validate {{slug}}"
 
 # Release phase: changelog, version, merge
 release slug:
-    claude --dangerously-skip-permissions -w {{slug}} "/beastmode:release {{slug}}"
+    claude --dangerously-skip-permissions --exit-when-finished -w {{slug}} "/beastmode:release {{slug}}"

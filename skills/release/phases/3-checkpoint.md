@@ -26,6 +26,8 @@ gh issue edit <epic-number> --remove-label "phase/validate" --add-label "phase/d
 gh issue close <epic-number>
 ```
 
+3. **Add Epic to Project** — call the "Add to Project + Set Status" operation from github.md with the epic URL and status `"Done"`.
+
 If GitHub sync fails, continue — the release proceeds regardless.
 
 ---
