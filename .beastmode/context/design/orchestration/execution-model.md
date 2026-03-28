@@ -9,3 +9,4 @@ External process eliminates session-scoped lifetime limits. Event-driven re-scan
 
 ## Source
 `.beastmode/state/design/2026-03-28-typescript-pipeline-orchestrator.md`
+`.beastmode/state/design/2026-03-29-bulletproof-state-scanner.md`

@@ -72,7 +72,7 @@ context/design/github-state-model.md
 ## Pipeline Orchestration
 TypeScript CLI watch mode (`beastmode watch`) scans local state files and dispatches agent sessions in CLI-owned worktrees to drive epics through plan -> release in parallel. Dispatch uses a strategy pattern: `DispatchedSession` interface with `SdkSession` (SDK `query()`) and `CmuxSession` (cmux terminal surface) implementations. A `SessionFactory` selects the strategy based on cmux availability and config. No concurrency cap — API rate limits are the natural governor. Fan-out per feature at implement. Design phase is excluded (interactive). Respects config.yaml gates, pauses epic and logs to stdout on human gates. Event-driven re-scan on session completion with 60-second poll as safety net.
 
-1. ALWAYS use local state files as the authority for orchestration decisions — not GitHub labels
+1. ALWAYS use manifest files as the authority for orchestration decisions — scanner reads manifest.phase for epic state, not GitHub labels or marker files
 2. NEVER orchestrate design phase — interactive by nature, requires human collaboration
 3. ALWAYS merge implement worktrees sequentially with pre-merge conflict simulation via `git merge-tree` — optimized merge order
 4. ALWAYS respect config.yaml gate settings — human gates pause the epic and log to stdout, user runs `beastmode <phase> <slug>` manually to proceed
@@ -93,6 +93,18 @@ TypeScript CLI (`beastmode`) built with Bun and Claude Agent SDK that provides m
 6. ALWAYS use lockfile to prevent duplicate watch instances — single orchestrator guarantee
 
 context/design/cli.md
+
+## State Scanner
+Single canonical state scanner (state-scanner.ts) that reads manifest files from the pipeline directory and reports epic state to the orchestrator. Read-only — never writes to the filesystem. Phase is read from a top-level manifest.phase field, replacing marker files and the manifest.phases map. Auto-resolves git merge conflict markers in manifests to preserve epic visibility during parallel merges. Uses reactive gate blocking (checks manifest feature statuses for blocked entries, no preemptive config gate checking). Handles missing directories, slug collisions, and malformed manifests gracefully with skip-and-retry semantics.
+
+1. ALWAYS use state-scanner.ts as the single canonical scanner — no inline scanner, no fallback implementations
+2. ALWAYS read phase from top-level manifest.phase field — no inference from markers, features, or phases map
+3. ALWAYS auto-resolve git merge conflict markers before parsing manifests — take ours-side, strip markers, attempt parse
+4. ALWAYS use reactive gate blocking — check manifest feature statuses only, no preemptive config gate checking
+5. NEVER let the scanner write to the filesystem — read-only, reconciler is the sole writer
+6. NEVER aggregate costs in the scanner — separate concern for beastmode status
+
+context/design/state-scanner.md
 
 ## cmux Integration
 Optional terminal multiplexer integration that provides live visibility into the pipeline. When cmux is available and enabled, the watch loop creates cmux workspaces per epic and terminal surfaces per dispatched agent. Communication uses JSON-RPC over Unix socket. Agents run as real terminal processes with interactive capability. Desktop notifications fire on errors and blocked gates only. Surfaces clean up on release, mirroring the worktree lifecycle. cmux is never a hard dependency — the SDK dispatch path is fully preserved as the fallback.

@@ -371,5 +371,15 @@
     "exit_status": "success",
     "timestamp": "2026-03-28T23:25:02.208Z",
     "session_id": "3913f2b9-2997-4ebf-abb0-1d56584e39d6"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 972,
+    "exit_status": "success",
+    "timestamp": "2026-03-28T23:46:23.035Z",
+    "session_id": "7239415f-d2e0-486a-8b3c-dd654f2b543b"
   }
 ]

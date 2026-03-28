@@ -10,4 +10,16 @@ When downstream components degrade gracefully on empty input, upstream gatekeepi
 ### Source
 state/design/2026-03-08-retro-quick-exit.md
 ### Confidence
-[LOW] — first observation, though the removal was an explicit user decision
+[MEDIUM] — confirmed across 2 observations (see Obs 2)
+
+## Observation 2
+### Context
+During bulletproof-state-scanner design, 2026-03-29
+### Observation
+Design chose reactive gate blocking over preemptive config gate checking. The scanner only checks manifest feature statuses for `blocked` entries rather than preemptively consulting gate configuration. Agents run until they hit a human gate and report back. This is the same principle as Obs 1 (let downstream handle gracefully) applied to runtime execution: don't prevent agents from starting based on gate config; let them run and block when they actually encounter the gate.
+### Rationale
+Preemptive gate checking requires the scanner to understand gate semantics, coupling it to config structure. Reactive blocking keeps the scanner read-only and simple — it reports what the manifest says, nothing more.
+### Source
+.beastmode/state/design/2026-03-29-bulletproof-state-scanner.md
+### Confidence
+[MEDIUM] — second observation of reactive-over-preemptive principle (Obs 1 covered retro skip-checks; this covers runtime gate evaluation)

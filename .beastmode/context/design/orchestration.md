@@ -2,7 +2,7 @@
 
 ## Execution Model
 - ALWAYS use `beastmode watch` as the pipeline entry point — foreground process, Ctrl+C to stop
-- ALWAYS scan local state files to determine next action per epic — local files are the authority, not GitHub labels
+- ALWAYS scan manifest files to determine next action per epic — state-scanner.ts reads manifest.phase for epic phase, manifests are the authority
 - NEVER orchestrate the design phase — design is interactive and requires human collaboration
 - Orchestrator picks up epics with a design artifact but no release artifact — scope is plan through release only
 - Event-driven re-scan on session completion — 60-second poll interval (configurable via `cli.interval`) is the safety net
