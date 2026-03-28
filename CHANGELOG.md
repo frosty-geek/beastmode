@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.25.1 — The Orchestrator Blueprint (Mar 2026)
+
+- **Orchestrator PRD** — Design doc specifying CronCreate-based poll loop, worktree-isolated agents, per-epic team organization, and manifest convergence for autonomous multi-epic pipeline execution
+- **Orchestration L2 context** — New `context/design/orchestration.md` summarizing orchestration domain rules (local-first state, worktree isolation, config.yaml gates)
+- **6 L3 orchestration records** — Architectural decision records for agent-spawning, execution-model, gate-handling, lifecycle, manifest-convergence, and team-organization
+- **Design context updates** — Architecture, phase-transitions, and product context docs updated with orchestration references
+- **Stale worktree cleanup** — Removed accidentally staged `.claude/worktrees/` directory
+
 ### v0.24.0 — The Epics-Only Board (Mar 2026)
 
 - **Epics-only board model** — Removed `gh project item-add` calls for Feature issues from plan checkpoint, implement prime, and implement checkpoint; only Epics are added to the Projects V2 board
