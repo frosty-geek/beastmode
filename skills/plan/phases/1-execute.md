@@ -3,37 +3,82 @@
 ## 1. Explore Codebase
 
 Understand:
-- Existing patterns and conventions
-- Files that will be touched
+- Existing patterns, conventions, and architecture
+- Module boundaries and interfaces
 - Test structure and commands
 - Dependencies and build tools
 
-## 2. Create Plan Header
+## 2. Identify Durable Architectural Decisions
 
-```markdown
-# [Feature Name] Implementation Plan
+Before slicing into features, identify high-level decisions that span the entire design and are unlikely to change during implementation:
 
-> **For Claude:** Use /implement to execute this plan task-by-task.
+- Route structures and API contracts
+- Schema shapes and data models
+- Authentication and authorization approach
+- Service boundaries and module interfaces
+- Shared infrastructure choices
 
-**Goal:** [One sentence describing what this builds]
+These become cross-cutting constraints that every feature must honor.
 
-**Architecture:** [2-3 sentences about approach]
+## 3. Decompose PRD into Features
 
-**Tech Stack:** [Key technologies/libraries]
+Break the PRD into thin vertical slices. Each feature cuts through all relevant layers end-to-end.
 
-**Design Doc:** [Link to .beastmode/state/design/ doc]
+Rules:
+1. Each feature should be independently implementable
+2. Features should map to user stories from the PRD
+3. Avoid deep dependencies between features where possible
+4. If a decision can be answered by exploring the codebase, explore instead of asking
+5. If a question requires research (unfamiliar technology, external APIs), research inline using Explore agent with `@../../agents/common-researcher.md` — save findings to `.beastmode/state/research/YYYY-MM-DD-<topic>.md`
+6. Scope guardrail: new capabilities get deferred
+   "That sounds like its own design — I'll note it as a deferred idea."
+7. Track deferred ideas internally
 
----
-```
+For each feature, capture:
+- **Name:** short slug (lowercase, hyphenated)
+- **User Stories:** which PRD user stories this feature covers
+- **What to Build:** architectural description of what needs to happen (no file paths or code)
+- **Acceptance Criteria:** how to verify this feature is done
 
-## 3. Write Tasks
+## 4. [GATE|plan.feature-set-approval]
 
-For each component in the design, create a task using the format in @../references/task-format.md.
+Read `.beastmode/config.yaml` → resolve mode for `plan.feature-set-approval`.
+Default: `human`.
 
-## 4. Task Guidelines
+### [GATE-OPTION|human] Quiz the User
 
-- Exact file paths always
-- Complete code in plan (not "add validation")
-- Exact commands with expected output
-- Reference relevant docs/designs with links
-- DRY, YAGNI principles
+Present all features as a summary table:
+
+| # | Feature | User Stories | Description |
+|---|---------|-------------|-------------|
+| 1 | feature-slug | US 1, 3 | One-line summary |
+| 2 | feature-slug | US 2, 4 | One-line summary |
+
+Then ask:
+- "Does the granularity feel right? Should any features merge or split?"
+- Iterate until user approves the feature set
+
+### [GATE-OPTION|auto] Self-Approve
+
+Log: "Gate `plan.feature-set-approval` → auto: approved N features"
+
+## 5. [GATE|plan.feature-approval]
+
+Read `.beastmode/config.yaml` → resolve mode for `plan.feature-approval`.
+Default: `auto`.
+
+### [GATE-OPTION|human] Approve Each Feature
+
+For each feature, present its full description (user stories, what to build, acceptance criteria) and ask:
+- "Approve this feature plan?"
+- Options: Approve / Revise [specify what]
+
+### [GATE-OPTION|auto] Self-Approve
+
+Log: "Gate `plan.feature-approval` → auto: approved all features"
+
+## 6. Iterate Until Ready
+
+- Refine features based on feedback
+- Keep YAGNI in mind — remove unnecessary scope
+- Features are ready when all have user stories, descriptions, and acceptance criteria

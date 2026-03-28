@@ -4,22 +4,30 @@
 
 Before any writes, call [worktree-manager.md](../_shared/worktree-manager.md) → "Assert Worktree". If it fails, STOP.
 
-## 1. Save Plan
+## 1. Write Feature Plan Files
 
-Save to `.beastmode/state/plan/YYYY-MM-DD-<feature>.md` where `<feature>` is the worktree directory name.
+For each feature, save to `.beastmode/state/plan/YYYY-MM-DD-<design>-<feature-slug>.md` using the template from [feature-format.md](../references/feature-format.md).
 
-## 2. Create Task Persistence File
+Where `<design>` is the worktree directory name (from "Derive Feature Name") and `<feature-slug>` is the feature's name slug.
 
-Save to `.beastmode/state/plan/YYYY-MM-DD-<feature-name>.tasks.json`:
+## 2. Write Manifest
+
+Save to `.beastmode/state/plan/YYYY-MM-DD-<design>.manifest.json`:
 
 ```json
 {
-  "planPath": ".beastmode/state/plan/YYYY-MM-DD-feature.md",
-  "tasks": [
-    {"id": 0, "subject": "Task 0: ...", "status": "pending"},
-    {"id": 1, "subject": "Task 1: ...", "status": "pending"}
+  "design": ".beastmode/state/design/YYYY-MM-DD-<design>.md",
+  "architecturalDecisions": [
+    {"decision": "<description>", "choice": "<choice>"}
   ],
-  "lastUpdated": "<timestamp>"
+  "features": [
+    {
+      "slug": "<feature-slug>",
+      "plan": "YYYY-MM-DD-<design>-<feature-slug>.md",
+      "status": "pending"
+    }
+  ],
+  "lastUpdated": "<ISO-8601-timestamp>"
 }
 ```
 
@@ -38,12 +46,17 @@ DO NOT call EnterPlanMode or ExitPlanMode.
 
 ### [GATE-OPTION|human] Suggest Next Step
 
-Print:
+Print features and their implement commands:
 
-Next: `/beastmode:implement <feature>`
+```
+Features ready for implementation:
+
+1. <feature-1> → `/beastmode:implement <design>-<feature-1>`
+2. <feature-2> → `/beastmode:implement <design>-<feature-2>`
+```
 
 STOP. No additional output.
 
 ### [GATE-OPTION|auto] Chain to Next Phase
 
-Call `Skill(skill="beastmode:implement", args="<feature>")`
+Call `Skill(skill="beastmode:implement", args="<design>-<first-feature>")` for the first feature only. User runs subsequent features manually.

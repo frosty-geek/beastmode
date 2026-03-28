@@ -10,7 +10,8 @@ gates:
     prd-approval: human               # APPROVAL — approve before documenting
 
   plan:
-    plan-approval: auto              # APPROVAL — approve before saving
+    feature-set-approval: human          # APPROVAL — approve the full set of features
+    feature-approval: auto               # APPROVAL — approve each feature individually
 
   implement:
     architectural-deviation: auto    # CONDITIONAL — tier 3 deviation decision

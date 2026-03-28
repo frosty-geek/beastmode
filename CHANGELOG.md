@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.20.0 — The Feature Decomposition (Mar 2026)
+
+- **PRD-to-features** — /plan now decomposes PRDs into independent architectural feature plans (vertical slices) instead of monolithic implementation plans
+- **Feature manifest** — New manifest JSON tracks feature status, architectural decisions, and PRD link across all features in a design
+- **Task decomposition moves to /implement** — Detailed wave/task breakdown now happens at implement time, not plan time, giving /implement full autonomy over execution strategy
+- **Baseline-aware spec checks** — Implement tracks a baseline snapshot at prime to prevent false positives when features share a worktree
+- **Manifest-gated validation** — /validate checks all features are completed via manifest before proceeding
+- **Two-tier plan approval** — New `feature-set-approval` (human) and `feature-approval` (auto) gates replace the old single `plan-approval`
+- **Feature format template** — New reference template for architectural feature plans: user stories, what to build, acceptance criteria (no file paths, no code)
+
 ### v0.19.0 — The PRD Pivot (Mar 2026)
 
 - **Decision tree interviews** — /design now walks every branch of the design tree one question at a time with Claude's recommendation, replacing the old gray-area-first batch loop

@@ -96,6 +96,30 @@ artifact=$(echo "$matches" | tail -1)
 
 Report: "Resolved `$type` artifact: `$artifact`"
 
+## Resolve Manifest
+
+Used by: `/implement` 0-prime (to find feature in manifest), `/validate` 0-prime (to check all features complete)
+
+Finds the plan manifest for a design inside the worktree. MUST be called AFTER entering the worktree.
+
+```bash
+design="<design-name>"  # worktree directory name
+
+# Convention: manifests are YYYY-MM-DD-<design>.manifest.json
+matches=$(ls .beastmode/state/plan/*-$design.manifest.json 2>/dev/null)
+
+if [ -z "$matches" ]; then
+  echo "ERROR: No manifest found for design '$design'"
+  echo "Expected: .beastmode/state/plan/*-$design.manifest.json"
+  exit 1
+fi
+
+# If multiple, take latest
+manifest=$(echo "$matches" | tail -1)
+```
+
+Report: "Resolved manifest: `$manifest`"
+
 ## Create Worktree
 
 Used by: `/design` 1-execute

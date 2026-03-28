@@ -7,6 +7,10 @@
 2. **Enter Worktree** — cd into the worktree and verify with pwd.
 
 The resolved `feature` name is used for all artifact paths in this phase.
+
+Note: the argument may be `<design>-<feature-slug>`. The worktree name is the design portion. Parse accordingly:
+- If worktree exists for full argument → use it (backward compat)
+- Otherwise, split on first `-` that separates design from feature slug
 </HARD-GATE>
 
 ## 2. Announce Skill
@@ -24,35 +28,27 @@ Read (if they exist):
 Follow L2 convention paths (`context/implement/{domain}.md`) when relevant to the current topic.
 Prior decisions, conventions, and learnings inform this phase — don't re-decide what's already been decided.
 
-## 4. Read Plan
+## 4. Resolve Feature Plan
 
-Resolve the plan artifact using [worktree-manager.md](../_shared/worktree-manager.md) → "Resolve Artifact" with type=`plan` and the feature name from step 1.
+1. Resolve the manifest using [worktree-manager.md](../_shared/worktree-manager.md) → "Resolve Manifest" with the design name (worktree directory name)
+2. Read the manifest JSON
+3. Find the feature entry matching the feature slug from the argument
+4. Read the feature plan file referenced in the manifest
+5. Read the `architecturalDecisions` from the manifest — these are constraints for implementation
 
-Read the resolved file path.
+If the feature's status in the manifest is already `completed`, print a warning and STOP.
 
-## 5. Prepare Environment
+## 5. Capture Baseline Snapshot
+
+Before any implementation begins, capture the current state of changed files:
+
+```bash
+git diff --name-only HEAD > /tmp/beastmode-baseline-$(date +%s).txt
+```
+
+Store the baseline file list. Spec checks in execute will diff against this baseline to avoid flagging files from prior feature implementations.
+
+## 6. Prepare Environment
 
     # Install dependencies if needed
     npm install  # or appropriate command from .beastmode/context/
-
-## 6. Parse Waves
-
-Extract wave numbers and dependencies from all tasks in the plan:
-
-1. Scan for `### Task N:` headings
-2. For each task, extract `**Wave:**` and `**Depends on:**` fields
-3. Group tasks by wave number (default wave = 1 if omitted)
-4. Within each wave, build dependency order from `Depends on` field
-5. Store as internal wave map:
-
-    Wave 1: [Task 0 (no deps), Task 1 (no deps), Task 2 (depends: Task 1)]
-    Wave 2: [Task 3 (depends: Task 0, Task 2)]
-
-## 7. Load Task Persistence
-
-Read `.beastmode/state/plan/YYYY-MM-DD-<feature>.tasks.json` if it exists.
-
-- If found: skip already-completed tasks, resume from first pending task
-- If not found: all tasks start as pending (first run)
-
-Initialize deviation log as empty list.
