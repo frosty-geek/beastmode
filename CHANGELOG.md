@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.25.0 — The Pipeline Orchestrator (Mar 2026)
+
+- **Pipeline orchestrator PRD** — `/beastmode orchestrate` subcommand designed: CronCreate-based poll loop scans local state for actionable epics and spawns worktree-isolated agents to drive plan -> implement -> validate -> release in parallel
+- **Multi-epic concurrency** — One team per epic, one agent per phase (implement fans out per-feature), full parallel across epics with no cap
+- **Manifest convergence** — Sequential worktree merges after parallel implement agents finish, with manifest completeness verification and auto-conflict resolution agent
+- **Gate-aware execution** — Orchestrator respects config.yaml gate settings; human-gated steps relay to user via team messaging
+- **L2 orchestration context** — Six new L2 docs under `context/design/orchestration/`: agent-spawning, execution-model, gate-handling, lifecycle, manifest-convergence, team-organization
+- **Worktree cleanup** — Removed accidentally staged worktree artifacts
+
 ### v0.24.0 — The Epics-Only Board (Mar 2026)
 
 - **Epics-only board model** — Removed `gh project item-add` calls for Feature issues from plan checkpoint, implement prime, and implement checkpoint; only Epics are added to the Projects V2 board
