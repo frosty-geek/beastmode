@@ -214,7 +214,102 @@ gh api graphql -f query='
 ' -f projectId="$project_id" -f repoId="$repo_id"
 ```
 
-### 8. Print Summary
+### 8. Backfill Existing Issues
+
+Discover any existing `type/epic` and `type/feature` issues and add them to the project with the correct Pipeline status.
+
+Uses the cache written in step 6 — requires `$project_number`, `$project_id`, `$pipeline_field_id`, and `$options_map` from earlier steps.
+
+```bash
+echo "Backfilling existing issues into project..."
+
+# Discover existing epics and features (JSON output for parsing)
+epic_issues=$(gh issue list --label "type/epic" --state all --json number,title,labels,state,url --limit 100 2>/dev/null || echo "[]")
+feature_issues=$(gh issue list --label "type/feature" --state all --json number,title,labels,state,url --limit 100 2>/dev/null || echo "[]")
+
+# Combine into one list
+all_issues=$(echo "$epic_issues $feature_issues" | jq -s 'add // []')
+total=$(echo "$all_issues" | jq 'length')
+
+if [ "$total" -eq 0 ]; then
+  echo "No existing issues to backfill."
+else
+  echo "Found $total issues to backfill."
+  backfilled=0
+  failed=0
+
+  echo "$all_issues" | jq -c '.[]' | while read -r issue; do
+    number=$(echo "$issue" | jq -r '.number')
+    title=$(echo "$issue" | jq -r '.title')
+    state=$(echo "$issue" | jq -r '.state')
+    url=$(echo "$issue" | jq -r '.url')
+    labels=$(echo "$issue" | jq -r '[.labels[].name] | join(",")')
+    is_epic=$(echo "$labels" | grep -c "type/epic" || true)
+
+    # Derive target status
+    if [ "$state" = "CLOSED" ] || [ "$state" = "closed" ]; then
+      target_status="Done"
+    elif [ "$is_epic" -gt 0 ]; then
+      # Epic: derive from phase/* label
+      if echo "$labels" | grep -q "phase/done"; then target_status="Done"
+      elif echo "$labels" | grep -q "phase/release"; then target_status="Release"
+      elif echo "$labels" | grep -q "phase/validate"; then target_status="Validate"
+      elif echo "$labels" | grep -q "phase/implement"; then target_status="Implement"
+      elif echo "$labels" | grep -q "phase/plan"; then target_status="Plan"
+      elif echo "$labels" | grep -q "phase/design"; then target_status="Design"
+      else target_status="Backlog"
+      fi
+    else
+      # Feature: derive from status/* label
+      if echo "$labels" | grep -q "status/in-progress"; then target_status="Implement"
+      elif echo "$labels" | grep -q "status/ready"; then target_status="Plan"
+      elif echo "$labels" | grep -q "status/blocked"; then target_status="Plan"
+      else target_status="Backlog"
+      fi
+    fi
+
+    # Add to project (idempotent)
+    if ! item_id=$(gh project item-add "$project_number" --owner "$owner" --url "$url" --format json 2>&1 | jq -r '.id' 2>/dev/null); then
+      echo "  WARNING: Failed to add #$number ($title) to project: $item_id"
+      failed=$((failed + 1))
+      continue
+    fi
+
+    # Get option ID for target status
+    option_id=$(echo "$options_map" | jq -r --arg s "$target_status" '.[$s] // empty')
+    if [ -z "$option_id" ]; then
+      echo "  WARNING: No option ID for status '$target_status' — skipping #$number"
+      failed=$((failed + 1))
+      continue
+    fi
+
+    # Set Pipeline field
+    if ! gh api graphql -f query='
+      mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+        updateProjectV2ItemFieldValue(input: {
+          projectId: $projectId
+          itemId: $itemId
+          fieldId: $fieldId
+          value: { singleSelectOptionId: $optionId }
+        }) {
+          projectV2Item { id }
+        }
+      }
+    ' -f projectId="$project_id" -f itemId="$item_id" -f fieldId="$pipeline_field_id" -f optionId="$option_id" > /dev/null 2>&1; then
+      echo "  WARNING: Failed to set Pipeline for #$number ($title) — continuing"
+      failed=$((failed + 1))
+      continue
+    fi
+
+    echo "  #$number ($title) → $target_status"
+    backfilled=$((backfilled + 1))
+  done
+
+  echo "Backfill complete: $backfilled succeeded, $failed failed."
+fi
+```
+
+### 9. Print Summary
 
 ```
 GitHub State Model Setup Complete
@@ -228,6 +323,7 @@ Labels created:
 Project: Beastmode Pipeline (#<number>)
 Pipeline field: Backlog | Design | Plan | Implement | Validate | Release | Done
 Cache: .beastmode/state/github-project.cache.json
+Backfilled: <N> issues synced to project
 
 Manual Setup Required (GitHub UI only):
   1. Open project settings → Workflows
