@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.26.0 — The Design-Driven Orchestrator (Mar 2026)
+
+- **External orchestrator PRD** — Full design document formalizing Justfile as canonical orchestrator with phase-per-session model, commit-per-phase strategy, and WorktreeCreate hook for smart branch detection
+- **Orchestration context refresh** — Updated context docs for agent-spawning, manifest-convergence, team-organization, execution-model, and lifecycle to reflect Justfile-only model
+- **Remove TypeScript CLI pipeline** — Deleted entire `cli/` directory (5,300+ lines: pipeline orchestrator, watch loop, merge coordinator, state scanner, worktree manager, and all tests)
+- **Remove CLI context docs** — Deleted `context/design/cli/` hierarchy and `typescript-pipeline-orchestrator` state artifacts
+
 ### v0.24.0 — The Epics-Only Board (Mar 2026)
 
 - **Epics-only board model** — Removed `gh project item-add` calls for Feature issues from plan checkpoint, implement prime, and implement checkpoint; only Epics are added to the Projects V2 board
