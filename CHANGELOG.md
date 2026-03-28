@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.28.0 — The Worktree Takeover (Mar 2026)
+
+- **Phase command** — `beastmode <phase> <slug>` replaces `beastmode run` and `just <phase>` as the sole entry point for phase execution
+- **Worktree lifecycle** — CLI owns full lifecycle: create-once at first phase, persist through all phases, squash-merge to main and remove at release
+- **Manifest module** — New `cli/src/manifest.ts` reads and manages pipeline manifests from worktrees
+- **Implement fan-out** — Per-feature worktrees with `<epic>-<feature>` slug; merge-coordinator handles conflict simulation and optimal merge ordering
+- **Release teardown** — CLI squash-merges epic branch to main, archives branch tip, removes worktree
+- **Watch command alignment** — Watch loop uses same worktree lifecycle as manual execution, ensuring identical behavior
+
 ### v0.27.0 — The Design Trifecta (Mar 2026)
 
 - **cmux integration PRD** — Unix socket JSON-RPC client, workspace-per-epic surface model, strategy pattern dispatch abstraction, optional dependency with zero regression risk
