@@ -59,3 +59,15 @@ Concrete visual example beats abstract description for format/layout decisions; 
 state/design/2026-03-08-hierarchy-format-v2.md
 ### Confidence
 [MEDIUM] — single session, but aligns with existing pattern that external reference outperforms brainstorming
+
+## Observation 6
+### Context
+During cmux-integration design, 2026-03-28
+### Observation
+Dispatching 4 parallel research agents — each covering a different angle of the cmux ecosystem (API surface, socket protocol, workspace model, authentication) — produced comprehensive pre-design intelligence faster than sequential research. The parallelization meant ecosystem coverage was thorough without extending the design timeline.
+### Rationale
+Research breadth scales with parallel agents, not session duration. When the target ecosystem has multiple independent facets, dispatching one agent per facet is more efficient than one agent covering all sequentially.
+### Source
+.beastmode/state/design/2026-03-28-cmux-integration.md
+### Confidence
+[LOW] — first-time observation; extends existing research-before-design pattern (Obs 1-4) with a specific parallelization strategy

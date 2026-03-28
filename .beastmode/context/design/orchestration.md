@@ -9,9 +9,12 @@
 - No concurrency cap — parallel epics, parallel features within epics, API rate limits are the natural governor
 
 ## Agent Dispatching
-- ALWAYS dispatch one SDK session per phase per epic, except implement which fans out one session per feature — parallelism at every level
-- ALWAYS use CLI-owned worktrees for agent isolation — CLI creates worktree, points SDK session at it via `cwd`, merges after completion, removes when done
-- Phase invocation via SDK `query()` with prompt invoking the skill, `permissionMode: 'bypassPermissions'` — typed session management with streaming
+- ALWAYS dispatch one session per phase per epic via `DispatchedSession` interface, except implement which fans out one session per feature — parallelism at every level
+- ALWAYS use CLI-owned worktrees for agent isolation — CLI creates worktree, points session at it via `cwd`, merges after completion, removes when done
+- `SdkSession` invokes via SDK `query()` with prompt invoking the skill, `permissionMode: 'bypassPermissions'` — typed session management with streaming
+- `CmuxSession` creates a cmux terminal surface and sends `beastmode run <phase> <slug>` via `surface.send-text` — cmux owns the shell process
+- `SessionFactory` returns `CmuxSession` when cmux is available and config enables it, `SdkSession` otherwise — strategy pattern with automatic fallback
+- Completion detection is implementation-agnostic — both session types check `.beastmode-runs.json` for run entries
 
 ## Merge Strategy
 - ALWAYS merge implement worktrees sequentially after all agents for an epic finish — ordering prevents conflicts
@@ -27,6 +30,7 @@
 - State files are the recovery point, not sessions — on startup, scan for existing worktrees with uncommitted changes
 - ALWAYS re-dispatch from last committed state on recovery — no session persistence required
 - Lockfile (`cli/.beastmode-watch.lock`) prevents duplicate watch instances — single orchestrator guarantee
+- ALWAYS reconcile cmux state on startup — query cmux for existing workspaces matching known epic slugs, adopt live surfaces, close dead ones, remove empty workspaces
 
 ## Lifecycle
 - Start via `beastmode watch`, stop via Ctrl+C — foreground process with explicit control

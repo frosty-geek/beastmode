@@ -1,0 +1,10 @@
+{
+  "design": ".beastmode/state/design/2026-03-28-cmux-integration.md",
+  "architecturalDecisions": [],
+  "features": [],
+  "github": {
+    "epic": 20,
+    "repo": "BugRoger/beastmode"
+  },
+  "lastUpdated": "2026-03-28T10:47:00.000Z"
+}

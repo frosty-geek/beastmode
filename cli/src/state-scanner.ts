@@ -139,7 +139,7 @@ function derivePhase(
   manifest: Manifest | undefined,
   stateDir: string,
   designFilename: string,
-): Phase {
+): { phase: Phase; done: boolean } {
   if (!manifest) {
     // No manifest — check if a release artifact exists for this slug
     const releaseDir = resolve(stateDir, "release");
@@ -147,16 +147,17 @@ function derivePhase(
       existsSync(releaseDir) &&
       readdirSync(releaseDir).some((f) => f.includes(slug))
     ) {
-      return "release";
+      return { phase: "release", done: true };
     }
     // Pre-manifest epics are completed — they shipped through the old workflow
     const date = dateFromDesign(designFilename);
     if (date && date < MANIFEST_EPOCH) {
-      return "release";
+      return { phase: "release", done: true };
     }
-    return "design";
+    return { phase: "design", done: false };
   }
-  if (!manifest.features || manifest.features.length === 0) return "plan";
+  if (!manifest.features || manifest.features.length === 0)
+    return { phase: "plan", done: false };
 
   const allCompleted = manifest.features.every(
     (f) => f.status === "completed",
@@ -174,12 +175,12 @@ function derivePhase(
       existsSync(releaseDir) &&
       readdirSync(releaseDir).some((f) => f.includes(slug));
 
-    if (hasRelease) return "release";
-    if (hasValidate) return "release";
-    return "validate";
+    if (hasRelease) return { phase: "release", done: true };
+    if (hasValidate) return { phase: "release", done: false };
+    return { phase: "validate", done: false };
   }
 
-  return "implement";
+  return { phase: "implement", done: false };
 }
 
 /**
@@ -217,8 +218,6 @@ function deriveNextAction(
       return { phase: "validate", args: [slug], type: "single" };
 
     case "release":
-      // No manifest means this was a pre-manifest epic that already shipped
-      if (!manifest) return null;
       return { phase: "release", args: [slug], type: "single" };
 
     default:
@@ -292,8 +291,8 @@ export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
       : undefined;
     const manifest = manifestPath ? readManifest(manifestPath) : undefined;
 
-    const phase = derivePhase(slug, manifest, stateDir, designFile);
-    const nextAction = deriveNextAction(slug, phase, manifest);
+    const { phase, done } = derivePhase(slug, manifest, stateDir, designFile);
+    const nextAction = done ? null : deriveNextAction(slug, phase, manifest);
     const { blocked, gateName } = checkGateBlocked(phase, manifest, projectRoot);
     const features = extractFeatures(manifest);
     const costUsd = aggregateCost(runLog, slug);
