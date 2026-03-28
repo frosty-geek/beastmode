@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.26.0 — The Great Pivot (Mar 2026)
+
+- **CLI removed** — Entire TypeScript pipeline orchestrator CLI deleted (~5,100 lines): `run`, `watch`, `status` commands, state scanner, merge coordinator, worktree manager, dispatch tracker, and all tests
+- **Orchestration context rewrite** — L2 docs under `context/design/orchestration/` rewritten for skill-native approach: agent-spawning, manifest-convergence, team-organization replace CLI-centric docs
+- **Tech stack cleanup** — L2 tech-stack docs updated to remove Bun/TypeScript CLI references
+- **Phase transitions update** — Transition mechanism and gate output docs updated for Justfile-based orchestration
+- **Stale artifact cleanup** — Removed 7 feature plans, 7 task files, manifest JSON, validate report, and scope-management meta doc
+
 ### v0.25.0 — The Pipeline Orchestrator (Mar 2026)
 
 - **Pipeline orchestrator PRD** — `/beastmode orchestrate` subcommand designed: CronCreate-based poll loop scans local state for actionable epics and spawns worktree-isolated agents to drive plan -> implement -> validate -> release in parallel
