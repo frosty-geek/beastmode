@@ -7,6 +7,8 @@
 - WorktreeCreate hook detects feature branches: if `feature/<slug>` exists, worktree branches from it; otherwise falls through to origin/HEAD
 - Worktree directory is `.claude/worktrees/` (Claude Code default) — not `.beastmode/worktrees/`
 - Design uses auto-generated worktree name (new feature); plan+ uses feature slug
+- Orchestrator provides automated advancement: CronCreate poll loop (1-minute interval) scans state files, spawns worktree-isolated agents per phase per epic — parallel pipeline execution without manual invocation
+- Orchestrator skips design phase (interactive) and picks up epics with design artifact but no release artifact — design remains human-driven
 
 ## Phase-to-Skill Mapping
 design -> plan -> implement -> validate -> release. Each transition gate is namespaced: `transitions.design-to-plan`, `transitions.plan-to-implement`, etc.

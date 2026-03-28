@@ -41,6 +41,8 @@
 - WorktreeCreate hook branches from `feature/<slug>` if it exists, otherwise from origin/HEAD — smart branch detection
 - Worktree directory is `.claude/worktrees/` (Claude Code default) — skills do not manage worktree lifecycle
 - Human controls worktree cleanup via Claude's interactive prompt at session end — commits are on the branch, worktree is disposable
+- Skills MUST detect when already running inside an agent worktree and skip their own worktree creation — prevents double-worktree nesting
+- After parallel implement agents complete, orchestrator merges worktrees sequentially then verifies manifest completeness — convergence before validation
 
 ## HITL Gate System
 - NEVER skip gate steps — `## N. [GATE|...]` steps are structural task-runner items that cannot be bypassed
