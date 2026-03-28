@@ -57,7 +57,6 @@ gh label create "phase/done" --description "Shipped" --color "0E8A16" --force
 gh label create "status/ready" --description "Ready for implementation — dependencies met" --color "0E8A16" --force
 gh label create "status/in-progress" --description "Currently being implemented" --color "1D76DB" --force
 gh label create "status/blocked" --description "Waiting on another feature" --color "E4E669" --force
-gh label create "status/review" --description "Implementation done, PR needs review" --color "D93F0B" --force
 ```
 
 **Gate label:**
@@ -223,11 +222,22 @@ GitHub State Model Setup Complete
 Labels created:
   Type:    type/epic, type/feature
   Phase:   phase/backlog, phase/design, phase/plan, phase/implement, phase/validate, phase/release, phase/done
-  Status:  status/ready, status/in-progress, status/blocked, status/review
+  Status:  status/ready, status/in-progress, status/blocked
   Gate:    gate/awaiting-approval
 
 Project: Beastmode Pipeline (#<number>)
-Columns: Backlog | Design | Plan | Implement | Validate | Release | Done
+Pipeline field: Backlog | Design | Plan | Implement | Validate | Release | Done
+Cache: .beastmode/state/github-project.cache.json
+
+Manual Setup Required (GitHub UI only):
+  1. Open project settings → Workflows
+     - Enable "Item added to project" → set Status to "Backlog"
+     - Enable "Item closed" → set Status to "Done"
+  2. Open project settings → General
+     - Verify "Auto-add sub-issues" is enabled
+  3. Create a Board view
+     - Group by: Pipeline field
+     - Save as default view
 
 Next: Use /beastmode:design to create your first Epic.
 ```
