@@ -68,6 +68,8 @@ export interface SessionResult {
   costUsd: number;
   /** Duration in milliseconds */
   durationMs: number;
+  /** Feature progress after reconciliation */
+  progress?: { completed: number; total: number };
 }
 
 /** Watch loop configuration derived from BeastmodeConfig. */

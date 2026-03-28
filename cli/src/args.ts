@@ -1,9 +1,17 @@
+import { VALID_PHASES, type Phase } from "./types";
+
+/** Utility commands (not phases) */
+const UTILITY_COMMANDS = new Set(["watch", "status", "help"]);
+
+/** All recognized top-level commands: phases + utilities */
+const ALL_COMMANDS = new Set([...VALID_PHASES, ...UTILITY_COMMANDS]);
+
+export type Command = Phase | "watch" | "status" | "help";
+
 export interface ParsedCommand {
-  command: "run" | "watch" | "status" | "help";
+  command: Command;
   args: string[];
 }
-
-const COMMANDS = new Set(["run", "watch", "status", "help"]);
 
 export function parseArgs(argv: string[]): ParsedCommand {
   // Bun: argv[0] = bun, argv[1] = script path, rest = user args
@@ -14,14 +22,18 @@ export function parseArgs(argv: string[]): ParsedCommand {
   }
 
   const command = userArgs[0];
-  if (!COMMANDS.has(command)) {
+
+  if (!ALL_COMMANDS.has(command)) {
     console.error(`Unknown command: ${command}`);
-    console.error(`Available commands: run, watch, status`);
+    console.error(
+      `Phases: ${VALID_PHASES.join(", ")}`,
+    );
+    console.error(`Other: watch, status, help`);
     process.exit(1);
   }
 
   return {
-    command: command as ParsedCommand["command"],
+    command: command as Command,
     args: userArgs.slice(1),
   };
 }

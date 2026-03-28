@@ -2,9 +2,10 @@
 
 import { parseArgs } from "./args";
 import { loadConfig } from "./config";
-import { runCommand } from "./commands/run";
+import { phaseCommand } from "./commands/phase";
 import { watchCommand } from "./commands/watch";
 import { statusCommand } from "./commands/status";
+import { isValidPhase } from "./types";
 
 const VERSION = "0.1.0";
 
@@ -12,13 +13,14 @@ function printHelp(): void {
   console.log(`beastmode v${VERSION}
 
 Usage:
-  beastmode run <phase> <slug>    Execute a phase in a worktree
-  beastmode watch                 Autonomous pipeline orchestration
-  beastmode status                Show epic state and cost summary
-  beastmode help                  Show this help message
-
-Phases:
-  design, plan, implement, validate, release`);
+  beastmode design <topic>             Start a new design
+  beastmode plan <slug>                Plan features for a design
+  beastmode implement <slug> [feature] Implement a feature
+  beastmode validate <slug>            Run validation checks
+  beastmode release <slug>             Create a release
+  beastmode watch                      Autonomous pipeline orchestration
+  beastmode status                     Show epic state and cost summary
+  beastmode help                       Show this help message`);
 }
 
 async function main(): Promise<void> {
@@ -26,10 +28,12 @@ async function main(): Promise<void> {
   const projectRoot = process.cwd();
   const config = loadConfig(projectRoot);
 
+  if (isValidPhase(command)) {
+    await phaseCommand(command, args, config);
+    return;
+  }
+
   switch (command) {
-    case "run":
-      await runCommand(args, config);
-      break;
     case "watch":
       await watchCommand(config);
       break;

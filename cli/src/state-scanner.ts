@@ -78,15 +78,19 @@ const MANIFEST_EPOCH = "2026-03-28";
 
 /**
  * Find the manifest for a given design slug.
- * Convention: .beastmode/state/plan/*-<slug>.manifest.json
+ * Checks .beastmode/pipeline/ first (orchestrator runtime state),
+ * falls back to .beastmode/state/plan/ (git-tracked seed data).
  */
-function findManifest(planDir: string, slug: string): string | undefined {
-  if (!existsSync(planDir)) return undefined;
-  const files = readdirSync(planDir);
-  const matches = files
-    .filter((f) => f.endsWith(`-${slug}.manifest.json`))
-    .sort();
-  return matches.length > 0 ? matches[matches.length - 1] : undefined;
+function findManifest(pipeDir: string, planDir: string, slug: string): string | undefined {
+  for (const dir of [pipeDir, planDir]) {
+    if (!existsSync(dir)) continue;
+    const files = readdirSync(dir);
+    const matches = files
+      .filter((f) => f.endsWith(`-${slug}.manifest.json`))
+      .sort();
+    if (matches.length > 0) return resolve(dir, matches[matches.length - 1]);
+  }
+  return undefined;
 }
 
 /**
@@ -138,14 +142,14 @@ function derivePhase(
   slug: string,
   manifest: Manifest | undefined,
   stateDir: string,
+  pipeDir: string,
   designFilename: string,
 ): { phase: Phase; done: boolean } {
   if (!manifest) {
-    // No manifest — check if a release artifact exists for this slug
-    const releaseDir = resolve(stateDir, "release");
+    // No manifest — check pipeline dir then legacy state/release for markers
     if (
-      existsSync(releaseDir) &&
-      readdirSync(releaseDir).some((f) => f.includes(slug))
+      hasPhaseMarker(pipeDir, slug, "release") ||
+      hasLegacyArtifact(stateDir, "release", slug)
     ) {
       return { phase: "release", done: true };
     }
@@ -164,16 +168,13 @@ function derivePhase(
   );
 
   if (allCompleted) {
-    // Check for validate/release artifacts
-    const validateDir = resolve(stateDir, "validate");
-    const releaseDir = resolve(stateDir, "release");
-
-    const hasValidate =
-      existsSync(validateDir) &&
-      readdirSync(validateDir).some((f) => f.includes(slug));
+    // Check pipeline dir markers (authoritative), then legacy state dirs
     const hasRelease =
-      existsSync(releaseDir) &&
-      readdirSync(releaseDir).some((f) => f.includes(slug));
+      hasPhaseMarker(pipeDir, slug, "release") ||
+      hasLegacyArtifact(stateDir, "release", slug);
+    const hasValidate =
+      hasPhaseMarker(pipeDir, slug, "validate") ||
+      hasLegacyArtifact(stateDir, "validate", slug);
 
     if (hasRelease) return { phase: "release", done: true };
     if (hasValidate) return { phase: "release", done: false };
@@ -181,6 +182,18 @@ function derivePhase(
   }
 
   return { phase: "implement", done: false };
+}
+
+/** Check for a phase marker in the pipeline directory. */
+function hasPhaseMarker(pipeDir: string, slug: string, phase: string): boolean {
+  if (!existsSync(pipeDir)) return false;
+  return readdirSync(pipeDir).some((f) => f === `${phase}-${slug}`);
+}
+
+/** Check for a legacy artifact in state/<phase>/. */
+function hasLegacyArtifact(stateDir: string, phase: string, slug: string): boolean {
+  const dir = resolve(stateDir, phase);
+  return existsSync(dir) && readdirSync(dir).some((f) => f.includes(slug));
 }
 
 /**
@@ -274,6 +287,7 @@ export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
   const stateDir = resolve(projectRoot, ".beastmode", "state");
   const designDir = resolve(stateDir, "design");
   const planDir = resolve(stateDir, "plan");
+  const pipeDir = resolve(projectRoot, ".beastmode", "pipeline");
 
   if (!existsSync(designDir)) return [];
 
@@ -285,13 +299,10 @@ export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
     const slug = slugFromDesign(designFile);
     const designPath = resolve(designDir, designFile);
 
-    const manifestFile = findManifest(planDir, slug);
-    const manifestPath = manifestFile
-      ? resolve(planDir, manifestFile)
-      : undefined;
+    const manifestPath = findManifest(pipeDir, planDir, slug);
     const manifest = manifestPath ? readManifest(manifestPath) : undefined;
 
-    const { phase, done } = derivePhase(slug, manifest, stateDir, designFile);
+    const { phase, done } = derivePhase(slug, manifest, stateDir, pipeDir, designFile);
     const nextAction = done ? null : deriveNextAction(slug, phase, manifest);
     const { blocked, gateName } = checkGateBlocked(phase, manifest, projectRoot);
     const features = extractFeatures(manifest);

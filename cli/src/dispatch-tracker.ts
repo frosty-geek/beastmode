@@ -52,6 +52,18 @@ export class DispatchTracker {
     return false;
   }
 
+  /**
+   * Check if any non-feature session is using the shared epic worktree.
+   * Plan, validate, and release all share one worktree per epic, so only
+   * one can run at a time.
+   */
+  hasEpicWorktreeSession(epicSlug: string): boolean {
+    for (const s of this.sessions.values()) {
+      if (s.epicSlug === epicSlug && !s.featureSlug) return true;
+    }
+    return false;
+  }
+
   /** Number of active sessions. */
   get size(): number {
     return this.sessions.size;

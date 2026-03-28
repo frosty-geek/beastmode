@@ -106,5 +106,270 @@
     "duration_ms": 89257,
     "exit_status": 0,
     "timestamp": "2026-03-28T21:24:52.522Z"
+  },
+  {
+    "epic": "github-cli-migration",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 27780,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T22:55:50.549Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 269471,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T22:55:50.570Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 27719,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T22:55:50.577Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "release",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 268153,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T22:55:50.580Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 102172,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T22:57:34.446Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 102213,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T22:57:34.463Z"
+  },
+  {
+    "epic": "github-cli-migration",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 102211,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T22:57:34.465Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "implement",
+    "feature": "notifications",
+    "cost_usd": 0,
+    "duration_ms": 11015,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.466Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "implement",
+    "feature": "cmux-client",
+    "cost_usd": 0,
+    "duration_ms": 10930,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.479Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "implement",
+    "feature": "justfile-hook-removal",
+    "cost_usd": 0,
+    "duration_ms": 11137,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.501Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "implement",
+    "feature": "cmux-config",
+    "cost_usd": 0,
+    "duration_ms": 10247,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.503Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "implement",
+    "feature": "implement-fan-out-lifecycle",
+    "cost_usd": 0,
+    "duration_ms": 11140,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.506Z"
+  },
+  {
+    "epic": "github-cli-migration",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 11079,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.508Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "implement",
+    "feature": "dispatch-abstraction",
+    "cost_usd": 0,
+    "duration_ms": 10044,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.510Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "implement",
+    "feature": "release-cleanup",
+    "cost_usd": 0,
+    "duration_ms": 11009,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.513Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "implement",
+    "feature": "startup-reconciliation",
+    "cost_usd": 0,
+    "duration_ms": 10933,
+    "exit_status": 143,
+    "timestamp": "2026-03-28T23:00:27.516Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "implement",
+    "feature": "cmux-session",
+    "cost_usd": 0,
+    "duration_ms": 11041,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:27.518Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "implement",
+    "feature": "release-teardown",
+    "cost_usd": 0,
+    "duration_ms": 11114,
+    "exit_status": 143,
+    "timestamp": "2026-03-28T23:00:27.522Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "implement",
+    "feature": "cli-entry-point-rewrite",
+    "cost_usd": 0,
+    "duration_ms": 11139,
+    "exit_status": 143,
+    "timestamp": "2026-03-28T23:00:27.523Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "implement",
+    "feature": "release-teardown",
+    "cost_usd": 0,
+    "duration_ms": 16030,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:46.114Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "implement",
+    "feature": "cli-entry-point-rewrite",
+    "cost_usd": 0,
+    "duration_ms": 16050,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:46.121Z"
+  },
+  {
+    "epic": "github-cli-migration",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 16019,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:46.130Z"
+  },
+  {
+    "epic": "cmux-integration",
+    "phase": "implement",
+    "feature": "startup-reconciliation",
+    "cost_usd": 0,
+    "duration_ms": 16006,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:00:46.132Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "validate",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 97804,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:02:35.043Z"
+  },
+  {
+    "epic": "github-cli-migration",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": 0,
+    "duration_ms": 264288,
+    "exit_status": 0,
+    "timestamp": "2026-03-28T23:05:21.543Z"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "release",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 1038,
+    "exit_status": "success",
+    "timestamp": "2026-03-28T23:11:55.003Z",
+    "session_id": "704fee45-463c-447a-8ba2-64c049809b26"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "release",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 598,
+    "exit_status": "success",
+    "timestamp": "2026-03-28T23:14:24.567Z",
+    "session_id": "6a0a3f7d-d636-4975-a720-0601541fcb41"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "release",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 629,
+    "exit_status": "success",
+    "timestamp": "2026-03-28T23:17:56.795Z",
+    "session_id": "17063c0e-f1f7-47dc-8fbc-8a79222a67c5"
+  },
+  {
+    "epic": "cli-worktree-management",
+    "phase": "release",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 631,
+    "exit_status": "success",
+    "timestamp": "2026-03-28T23:25:02.208Z",
+    "session_id": "3913f2b9-2997-4ebf-abb0-1d56584e39d6"
   }
 ]

@@ -5,15 +5,8 @@
 /** Valid beastmode workflow phases */
 export type Phase = "design" | "plan" | "implement" | "validate" | "release";
 
-/** Valid top-level CLI commands */
-export type Command = "run" | "watch" | "status";
-
-/** Parsed CLI arguments for the run command */
-export interface RunArgs {
-  phase: Phase;
-  /** Remaining positional args after the phase (e.g., slug, topic) */
-  args: string[];
-}
+/** Valid top-level CLI commands: phases + utilities */
+export type Command = Phase | "watch" | "status" | "help";
 
 /** A single entry in .beastmode-runs.json */
 export interface RunLogEntry {

@@ -512,4 +512,116 @@ describe("WatchLoop", () => {
     expect(dispatched).toHaveLength(0);
     await loop.stop();
   });
+
+  it("processes release phase completion and re-scans", async () => {
+    const loggedRuns: Array<{ phase: string; epicSlug: string }> = [];
+    let scanCount = 0;
+
+    const releaseEpic: EpicState = {
+      slug: "release-epic",
+      phase: "validate",
+      nextAction: { phase: "release", args: ["release-epic"], type: "single" },
+      features: [{ slug: "f1", status: "completed" }],
+      gateBlocked: false,
+      costUsd: 3.0,
+    };
+
+    const deps = mockDeps({
+      scanEpics: async () => {
+        scanCount++;
+        if (scanCount === 1) return [releaseEpic];
+        // After release completes, epic has no next action
+        return [{ ...releaseEpic, nextAction: null }];
+      },
+      dispatchPhase: async (opts) => {
+        return {
+          id: `release-${Date.now()}`,
+          worktreeSlug: `release-epic-release`,
+          promise: Promise.resolve({
+            success: true,
+            exitCode: 0,
+            costUsd: 1.5,
+            durationMs: 30000,
+          }),
+        };
+      },
+      logRun: async (opts) => {
+        loggedRuns.push({ phase: opts.phase, epicSlug: opts.epicSlug });
+      },
+    });
+
+    const loop = new WatchLoop(
+      { intervalSeconds: 999, projectRoot: TEST_ROOT },
+      deps,
+    );
+    loop.setRunning(true);
+
+    await loop.tick();
+
+    // Wait for session to complete and log
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(loggedRuns).toHaveLength(1);
+    expect(loggedRuns[0].phase).toBe("release");
+    expect(loggedRuns[0].epicSlug).toBe("release-epic");
+
+    // Verify the session was cleaned up from tracker
+    expect(loop.getTracker().size).toBe(0);
+
+    await loop.stop();
+  });
+
+  it("does not teardown on failed release", async () => {
+    const loggedRuns: Array<{ phase: string; result: { success: boolean } }> = [];
+    let scanCount = 0;
+
+    const releaseEpic: EpicState = {
+      slug: "fail-epic",
+      phase: "validate",
+      nextAction: { phase: "release", args: ["fail-epic"], type: "single" },
+      features: [{ slug: "f1", status: "completed" }],
+      gateBlocked: false,
+      costUsd: 2.0,
+    };
+
+    const deps = mockDeps({
+      scanEpics: async () => {
+        scanCount++;
+        if (scanCount === 1) return [releaseEpic];
+        // After failed release, epic still exists but gate blocks re-dispatch
+        return [{ ...releaseEpic, nextAction: null }];
+      },
+      dispatchPhase: async () => ({
+        id: `fail-release-${Date.now()}`,
+        worktreeSlug: `fail-epic-release`,
+        promise: Promise.resolve({
+          success: false,
+          exitCode: 1,
+          costUsd: 0.5,
+          durationMs: 5000,
+        }),
+      }),
+      logRun: async (opts) => {
+        loggedRuns.push({ phase: opts.phase, result: opts.result });
+      },
+    });
+
+    const loop = new WatchLoop(
+      { intervalSeconds: 999, projectRoot: TEST_ROOT },
+      deps,
+    );
+    loop.setRunning(true);
+
+    await loop.tick();
+    await new Promise((r) => setTimeout(r, 100));
+
+    // The failed release should still be logged
+    expect(loggedRuns).toHaveLength(1);
+    expect(loggedRuns[0].result.success).toBe(false);
+
+    // Session should be cleaned up
+    expect(loop.getTracker().size).toBe(0);
+
+    await loop.stop();
+  });
 });

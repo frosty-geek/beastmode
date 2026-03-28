@@ -48,10 +48,31 @@ export async function runPhaseWithSdk(
   process.on("SIGINT", onSigint);
 
   try {
+    let messageCount = 0;
     for await (const message of q) {
+      messageCount++;
+
       // Capture session ID from any message that carries it
       if ("session_id" in message && message.session_id) {
         sessionId = message.session_id as string;
+      }
+
+      // Debug: log message types to stderr
+      if (process.env.BEASTMODE_DEBUG) {
+        const summary: Record<string, unknown> = { type: message.type };
+        if ((message as any).subtype) summary.subtype = (message as any).subtype;
+        if (message.type === "stream_event") {
+          summary.eventType = (message as any).event?.type;
+        }
+        if (message.type === "result") {
+          summary.result = {
+            subtype: (message as any).subtype,
+            cost: (message as any).cost_usd,
+            duration: (message as any).duration_ms,
+            numTurns: (message as any).num_turns,
+          };
+        }
+        console.error(`[debug] msg #${messageCount}: ${JSON.stringify(summary)}`);
       }
 
       // Stream text deltas to terminal in real time
@@ -84,6 +105,10 @@ export async function runPhaseWithSdk(
           exitStatus = "error";
         }
       }
+    }
+
+    if (process.env.BEASTMODE_DEBUG) {
+      console.error(`[debug] total messages: ${messageCount}, session: ${sessionId}`);
     }
   } catch (err: any) {
     // AbortError from controller during SIGINT is expected

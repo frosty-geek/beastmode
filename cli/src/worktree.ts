@@ -1,14 +1,16 @@
 /**
  * Worktree lifecycle manager — TypeScript rewrite of hooks/worktree-create.sh.
  *
- * Provides four operations:
+ * Provides five operations:
  *   create  — git worktree at .claude/worktrees/<slug> with feature/<slug> branch
  *   enter   — returns absolute path for use as cwd
  *   merge   — squash-merges feature branch back to main
+ *   archive — tags the branch tip before deletion to preserve history
  *   remove  — cleans up worktree directory and optionally deletes branch
  */
 
 import { resolve } from "node:path";
+import { copyFile, mkdir } from "node:fs/promises";
 import { git, gitCheck } from "./git.js";
 
 const WORKTREE_DIR = ".claude/worktrees";
@@ -43,7 +45,8 @@ export async function create(
     cwd,
   });
   if (existingWorktrees.stdout.includes(absPath)) {
-    // Worktree already exists — return it
+    // Worktree already exists — ensure settings are present
+    await copySettingsLocal(cwd ?? process.cwd(), absPath);
     return { slug, path: absPath, branch };
   }
 
@@ -76,7 +79,35 @@ export async function create(
     await git(["worktree", "add", wtPath, "-b", branch, base], { cwd });
   }
 
-  return { slug, path: resolve(cwd ?? process.cwd(), wtPath), branch };
+  const absWtPath = resolve(cwd ?? process.cwd(), wtPath);
+
+  // Copy .claude/settings.local.json so plugins are enabled in the worktree
+  await copySettingsLocal(cwd ?? process.cwd(), absWtPath);
+
+  return { slug, path: absWtPath, branch };
+}
+
+/**
+ * Copy `.claude/settings.local.json` into a worktree so the SDK session
+ * inherits plugin configuration (beastmode skills, etc.).
+ *
+ * Only copies if the worktree's `.claude/` dir already exists (git worktree
+ * add creates it). Never creates the directory — that would break git
+ * worktree add which expects a non-existent or empty target.
+ */
+async function copySettingsLocal(
+  projectRoot: string,
+  worktreePath: string,
+): Promise<void> {
+  const src = resolve(projectRoot, ".claude/settings.local.json");
+  const destDir = resolve(worktreePath, ".claude");
+  const dest = resolve(destDir, "settings.local.json");
+  try {
+    await mkdir(destDir, { recursive: true });
+    await copyFile(src, dest);
+  } catch {
+    // Source doesn't exist or worktree not ready — nothing to copy
+  }
 }
 
 /**
@@ -116,6 +147,32 @@ export async function merge(
     ["commit", "-m", `feat(${slug}): squash merge feature/${slug}`],
     { cwd },
   );
+}
+
+/**
+ * Archive the current tip of a feature branch as a lightweight tag.
+ * Tag format: archive/<slug>/<ISO-date>
+ *
+ * Call this BEFORE removing the worktree/branch to preserve history.
+ */
+export async function archive(
+  slug: string,
+  opts: { cwd?: string } = {},
+): Promise<string> {
+  const cwd = opts.cwd;
+  const branch = `feature/${slug}`;
+  const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const tagName = `archive/${slug}/${date}`;
+
+  // Get the branch tip SHA
+  const tipResult = await git(["rev-parse", branch], { cwd });
+  const tipSha = tipResult.stdout;
+
+  // Create lightweight tag at the branch tip
+  // Use --force in case we're re-running on the same day
+  await git(["tag", "--force", tagName, tipSha], { cwd });
+
+  return tagName;
 }
 
 /**

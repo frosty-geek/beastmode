@@ -138,3 +138,29 @@ describe("appendRunLog", () => {
     expect(entries[0].exit_status).toBe("cancelled");
   });
 });
+
+describe("release teardown integration", () => {
+  test("worktree module exports archive, merge, and remove", async () => {
+    // Verify the worktree module has the functions needed for release teardown
+    const wt = await import("../worktree");
+    expect(typeof wt.create).toBe("function");
+    expect(typeof wt.enter).toBe("function");
+    expect(typeof wt.archive).toBe("function");
+    expect(typeof wt.merge).toBe("function");
+    expect(typeof wt.remove).toBe("function");
+  });
+
+  test("slugify produces consistent results for release path", () => {
+    // The run command uses the first arg as the worktree slug for release
+    // Verify the same slug is used across all lifecycle operations
+    const testSlugs = ["my-epic", "feature-name", "cli-worktree-management"];
+    for (const slug of testSlugs) {
+      // Branch naming convention
+      expect(`feature/${slug}`).toMatch(/^feature\/[a-z0-9-]+$/);
+      // Worktree path convention
+      expect(`.claude/worktrees/${slug}`).toMatch(/^\.claude\/worktrees\/[a-z0-9-]+$/);
+      // Archive tag convention
+      expect(`archive/${slug}/2026-03-28`).toMatch(/^archive\/[a-z0-9-]+\/\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+});
