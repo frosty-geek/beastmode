@@ -190,7 +190,7 @@ cat > .beastmode/state/github-project.cache.json <<CACHE
 {
   "projectId": "$project_id",
   "projectNumber": $project_number,
-  "pipelineField": {
+  "statusField": {
     "id": "$pipeline_field_id",
     "options": $options_map
   },
