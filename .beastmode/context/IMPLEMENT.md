@@ -19,3 +19,10 @@
 - Label taxonomy: 12 labels across type (2), phase (7), status (3), gate (1) — status/review is dropped
 - Epic lifecycle: created at design checkpoint, phase-advanced at each subsequent checkpoint, closed at release
 - Feature lifecycle: created as sub-issues at plan checkpoint, set in-progress at implement prime, closed at implement checkpoint
+
+## State Scanning
+- ALWAYS discover epics from manifest files — never from design files or date heuristics
+- Scan state/plan/ then pipeline/ — pipeline wins dedup
+- ALWAYS derive phase from the manifest.phases map — no filesystem marker sniffing
+- Status table: Epic, Phase, Progress, Blocked, Last Activity — no cost column
+- Next action: fan-out at implement, single dispatch for all other phases, null for done epics

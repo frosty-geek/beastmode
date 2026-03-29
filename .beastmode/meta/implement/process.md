@@ -30,3 +30,6 @@
 
 ## Step Renumbering Friction
 - Plans that insert steps between existing numbered steps should explicitly include renumbering instructions for downstream steps
+
+## Worktree Subagent Change Isolation
+- Sequential tasks with API-level dependencies fail under worktree isolation — later subagents get a stale codebase snapshot and write against the old interface

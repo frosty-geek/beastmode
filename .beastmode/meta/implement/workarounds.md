@@ -5,6 +5,7 @@
 
 ## Subagent State Coordination
 - ALWAYS design parallel dispatch for post-hoc reconciliation, not real-time status updates — subagents cannot reliably write back to shared coordination files
+- Worktree isolation also prevents code artifact flow between sequential tasks — orchestrator must merge intermediate results before dispatching dependent tasks
 
 ## Plugin Cache Worktree Staleness
 - ALWAYS read skill files from worktree path when the feature modifies skill files — plugin cache serves main-branch files, not worktree-local modifications
