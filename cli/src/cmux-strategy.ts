@@ -1,20 +1,24 @@
 /**
  * cmux strategy — dispatches phase sessions to cmux terminal surfaces.
  *
- * Creates one workspace per epic, one surface per dispatched session.
- * Cleanup closes the workspace and all its surfaces.
+ * Delegates to CmuxSessionFactory for surface creation and marker-file
+ * based completion detection. Maintains a workspace-per-epic map for cleanup.
  */
 
 import type { SessionStrategy, DispatchOptions, DispatchHandle } from "./session-strategy.js";
 import type { ICmuxClient } from "./cmux-client.js";
+import { CmuxSessionFactory } from "./cmux-session.js";
 
 export class CmuxStrategy implements SessionStrategy {
   private client: ICmuxClient;
+  private factory: CmuxSessionFactory;
+  private completedIds = new Set<string>();
   /** Maps epic slugs to cmux workspace names. */
   private workspaceMap = new Map<string, string>();
 
-  constructor(client: ICmuxClient) {
+  constructor(client: ICmuxClient, opts?: { watchTimeoutMs?: number }) {
     this.client = client;
+    this.factory = new CmuxSessionFactory(client, opts);
   }
 
   /**
@@ -34,41 +38,62 @@ export class CmuxStrategy implements SessionStrategy {
 
   /**
    * Dispatch a phase session to a cmux surface.
-   * TODO: Implement in cmux-strategy feature.
+   * Delegates to CmuxSessionFactory which handles workspace/surface lifecycle
+   * and marker-file based completion detection.
    */
-  async dispatch(_opts: DispatchOptions): Promise<DispatchHandle> {
-    throw new Error("CmuxStrategy.dispatch() not yet implemented — see cmux-strategy feature");
+  async dispatch(opts: DispatchOptions): Promise<DispatchHandle> {
+    const handle = await this.factory.create(opts);
+
+    // Track workspace for this epic
+    const workspaceName = `bm-${opts.epicSlug}`;
+    this.workspaceMap.set(opts.epicSlug, workspaceName);
+
+    // Wrap promise to track completion
+    const trackedPromise = handle.promise.then((result) => {
+      this.completedIds.add(handle.id);
+      return result;
+    });
+
+    return {
+      id: handle.id,
+      worktreeSlug: handle.worktreeSlug,
+      promise: trackedPromise,
+    };
   }
 
   /**
    * Check if a session has completed.
-   * TODO: Implement in cmux-strategy feature.
    */
-  isComplete(_id: string): boolean {
-    throw new Error("CmuxStrategy.isComplete() not yet implemented — see cmux-strategy feature");
+  isComplete(id: string): boolean {
+    return this.completedIds.has(id);
   }
 
   /**
    * Clean up cmux resources for an epic.
-   * Closes the epic's workspace (which closes all its surfaces).
+   * Delegates to factory cleanup (closes workspace and surfaces),
+   * then falls back to direct workspace close for registered workspaces.
    * Best-effort: catches all errors, logs warnings, never throws.
    */
   async cleanup(epicSlug: string): Promise<void> {
-    const workspaceName = this.workspaceMap.get(epicSlug);
-    if (!workspaceName) {
-      console.log(`[cmux] cleanup: no workspace registered for ${epicSlug} — skipping`);
-      return;
-    }
-
+    // Try factory cleanup first (handles internal workspace tracking)
     try {
-      await this.client.closeWorkspace(workspaceName);
-      console.log(`[cmux] cleanup: closed workspace ${workspaceName} for ${epicSlug}`);
+      await this.factory.cleanup(epicSlug);
     } catch (err) {
-      // Best-effort — log and continue. Stale workspaces get cleaned on next startup reconciliation.
-      console.warn(`[cmux] cleanup: failed to close workspace ${workspaceName} for ${epicSlug}:`, err);
+      console.warn(`[cmux] cleanup: factory cleanup failed for ${epicSlug}:`, err);
     }
 
-    // Always remove from map — even on error. The workspace either doesn't exist or is unreachable.
-    this.workspaceMap.delete(epicSlug);
+    // Also try direct workspace close for manually registered workspaces
+    const workspaceName = this.workspaceMap.get(epicSlug);
+    if (workspaceName) {
+      try {
+        await this.client.closeWorkspace(workspaceName);
+        console.log(`[cmux] cleanup: closed workspace ${workspaceName} for ${epicSlug}`);
+      } catch (err) {
+        // Best-effort — log and continue.
+        console.warn(`[cmux] cleanup: failed to close workspace ${workspaceName} for ${epicSlug}:`, err);
+      }
+
+      this.workspaceMap.delete(epicSlug);
+    }
   }
 }

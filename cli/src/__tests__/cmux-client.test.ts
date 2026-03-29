@@ -1,10 +1,11 @@
-import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, test, expect, spyOn } from "bun:test";
 import {
   CmuxClient,
   CmuxError,
   CmuxConnectionError,
   CmuxProtocolError,
   cmuxAvailable,
+  type SpawnFn,
 } from "../cmux-client";
 
 // ---------------------------------------------------------------------------
@@ -12,14 +13,14 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * Build a fake Bun subprocess with piped stdout/stderr as ReadableStreams.
- * `new Response(stream).text()` works on these, matching how exec() reads them.
+ * Build a fake spawn result matching the SpawnFn return type.
+ * `new Response(stream).text()` works on ReadableStreams, matching exec().
  */
 function mockProc(
   stdout: string,
   stderr: string,
   exitCode: number,
-): Record<string, unknown> {
+): ReturnType<SpawnFn> {
   return {
     stdout: new ReadableStream({
       start(c) {
@@ -34,60 +35,71 @@ function mockProc(
       },
     }),
     exited: Promise.resolve(exitCode),
-    pid: 99999,
-    kill: () => {},
   };
+}
+
+/** Create a mock SpawnFn that records calls and returns a fixed result. */
+function createMockSpawn(proc: ReturnType<SpawnFn>) {
+  const calls: Array<{ cmd: string[]; opts: Record<string, string> }> = [];
+  const fn: SpawnFn = (cmd, opts) => {
+    calls.push({ cmd, opts });
+    return proc;
+  };
+  return { fn, calls };
+}
+
+/** Create a mock SpawnFn that throws (simulating binary not found). */
+function createThrowingSpawn() {
+  const fn: SpawnFn = () => {
+    throw new Error("spawn failed");
+  };
+  return { fn };
+}
+
+/** Shorthand: create a client with a mock spawn that succeeds. */
+function clientOk(stdout = "", stderr = "") {
+  const { fn, calls } = createMockSpawn(mockProc(stdout, stderr, 0));
+  return { client: new CmuxClient({ timeoutMs: 1000, spawn: fn }), calls };
+}
+
+/** Shorthand: create a client with a mock spawn that fails. */
+function clientFail(stderr: string, exitCode = 1) {
+  const { fn, calls } = createMockSpawn(mockProc("", stderr, exitCode));
+  return { client: new CmuxClient({ timeoutMs: 1000, spawn: fn }), calls };
+}
+
+/** Shorthand: create a client whose spawn throws. */
+function clientThrows() {
+  const { fn } = createThrowingSpawn();
+  return { client: new CmuxClient({ timeoutMs: 1000, spawn: fn }) };
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-let spawnSpy: ReturnType<typeof spyOn<typeof Bun, "spawn">> | undefined;
-
-afterEach(() => {
-  spawnSpy?.mockRestore();
-  spawnSpy = undefined;
-});
-
 describe("CmuxClient", () => {
-  let client: CmuxClient;
-
-  beforeEach(() => {
-    client = new CmuxClient({ timeoutMs: 1000 });
-  });
-
   // -----------------------------------------------------------------------
   // ping
   // -----------------------------------------------------------------------
 
   describe("ping", () => {
     test("returns true when cmux responds with exit 0", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "", 0) as any,
-      );
+      const { client, calls } = clientOk();
 
       expect(await client.ping()).toBe(true);
-      expect(spawnSpy).toHaveBeenCalledWith(["cmux", "ping"], {
-        stdout: "pipe",
-        stderr: "pipe",
-      });
+      expect(calls).toHaveLength(1);
+      expect(calls[0].cmd).toEqual(["cmux", "ping"]);
     });
 
     test("returns false when cmux binary is not found", async () => {
-      const err = new Error("spawn ENOENT") as NodeJS.ErrnoException;
-      err.code = "ENOENT";
-      spawnSpy = spyOn(Bun, "spawn").mockImplementation(() => {
-        throw err;
-      });
+      const { client } = clientThrows();
 
       expect(await client.ping()).toBe(false);
     });
 
     test("returns false when cmux exits non-zero", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "not running", 1) as any,
-      );
+      const { client } = clientFail("not running");
 
       expect(await client.ping()).toBe(false);
     });
@@ -100,24 +112,25 @@ describe("CmuxClient", () => {
   describe("createWorkspace", () => {
     test("passes name and parses workspace from JSON", async () => {
       const ws = { name: "my-epic", surfaces: [] };
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc(JSON.stringify(ws), "", 0) as any,
-      );
+      const { client, calls } = clientOk(JSON.stringify(ws));
 
       const result = await client.createWorkspace("my-epic");
       expect(result).toEqual(ws);
-      expect(spawnSpy).toHaveBeenCalledWith(
-        ["cmux", "workspace", "new", "my-epic", "--json"],
-        { stdout: "pipe", stderr: "pipe" },
-      );
+      expect(calls[0].cmd).toEqual([
+        "cmux",
+        "workspace",
+        "new",
+        "my-epic",
+        "--json",
+      ]);
     });
 
     test("throws CmuxProtocolError on invalid JSON", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("not json", "", 0) as any,
-      );
+      const { client } = clientOk("not json");
 
-      await expect(client.createWorkspace("x")).rejects.toThrow(CmuxProtocolError);
+      await expect(client.createWorkspace("x")).rejects.toThrow(
+        CmuxProtocolError,
+      );
     });
   });
 
@@ -128,25 +141,20 @@ describe("CmuxClient", () => {
   describe("createSurface", () => {
     test("creates surface in workspace with name", async () => {
       const surf = { name: "implement", workspace: "ws-1", pid: 123 };
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc(JSON.stringify(surf), "", 0) as any,
-      );
+      const { client, calls } = clientOk(JSON.stringify(surf));
 
       const result = await client.createSurface("ws-1", "implement");
       expect(result).toEqual(surf);
-      expect(spawnSpy).toHaveBeenCalledWith(
-        [
-          "cmux",
-          "surface",
-          "new",
-          "--workspace",
-          "ws-1",
-          "--name",
-          "implement",
-          "--json",
-        ],
-        { stdout: "pipe", stderr: "pipe" },
-      );
+      expect(calls[0].cmd).toEqual([
+        "cmux",
+        "surface",
+        "new",
+        "--workspace",
+        "ws-1",
+        "--name",
+        "implement",
+        "--json",
+      ]);
     });
   });
 
@@ -156,25 +164,20 @@ describe("CmuxClient", () => {
 
   describe("sendText", () => {
     test("sends text to surface without JSON flag", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "", 0) as any,
-      );
+      const { client, calls } = clientOk();
 
       await client.sendText("ws-1", "surf-1", "beastmode implement epic feat");
-      expect(spawnSpy).toHaveBeenCalledWith(
-        [
-          "cmux",
-          "surface",
-          "send-text",
-          "--workspace",
-          "ws-1",
-          "--surface",
-          "surf-1",
-          "--text",
-          "beastmode implement epic feat",
-        ],
-        { stdout: "pipe", stderr: "pipe" },
-      );
+      expect(calls[0].cmd).toEqual([
+        "cmux",
+        "surface",
+        "send-text",
+        "--workspace",
+        "ws-1",
+        "--surface",
+        "surf-1",
+        "--text",
+        "beastmode implement epic feat",
+      ]);
     });
   });
 
@@ -184,41 +187,51 @@ describe("CmuxClient", () => {
 
   describe("closeSurface", () => {
     test("closes surface successfully", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "", 0) as any,
-      );
+      const { client } = clientOk();
 
       await expect(
         client.closeSurface("ws-1", "surf-1"),
       ).resolves.toBeUndefined();
     });
 
-    test("silently succeeds when surface not found (idempotent close)", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "surface not found", 1) as any,
-      );
+    test("swallows 'not found' error (idempotent close)", async () => {
+      const { client } = clientFail("surface not found");
 
-      await expect(client.closeSurface("ws-1", "surf-1")).resolves.toBeUndefined();
-    });
-
-    test("throws CmuxError on non-not-found failure", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "internal error", 1) as any,
-      );
-
-      await expect(client.closeSurface("ws-1", "surf-1")).rejects.toThrow(CmuxError);
+      // Should NOT throw — "not found" is swallowed as already-closed
+      await expect(
+        client.closeSurface("ws-1", "surf-1"),
+      ).resolves.toBeUndefined();
     });
 
     test("throws CmuxConnectionError when binary missing", async () => {
-      const err = new Error("spawn ENOENT") as NodeJS.ErrnoException;
-      err.code = "ENOENT";
-      spawnSpy = spyOn(Bun, "spawn").mockImplementation(() => {
-        throw err;
-      });
+      const { client } = clientThrows();
 
       await expect(client.closeSurface("ws-1", "surf-1")).rejects.toThrow(
         CmuxConnectionError,
       );
+    });
+
+    test("rethrows non-not-found CmuxError", async () => {
+      const { client } = clientFail("internal error");
+
+      await expect(client.closeSurface("ws-1", "surf-1")).rejects.toThrow(
+        CmuxError,
+      );
+    });
+
+    test("passes correct args", async () => {
+      const { client, calls } = clientOk();
+
+      await client.closeSurface("ws-1", "surf-1");
+      expect(calls[0].cmd).toEqual([
+        "cmux",
+        "surface",
+        "close",
+        "--workspace",
+        "ws-1",
+        "--surface",
+        "surf-1",
+      ]);
     });
   });
 
@@ -228,19 +241,29 @@ describe("CmuxClient", () => {
 
   describe("closeWorkspace", () => {
     test("closes workspace successfully", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "", 0) as any,
-      );
+      const { client } = clientOk();
 
       await expect(client.closeWorkspace("ws-1")).resolves.toBeUndefined();
     });
 
-    test("throws on failure", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "workspace gone", 1) as any,
-      );
+    test("swallows 'not found' error (idempotent close)", async () => {
+      const { client } = clientFail("workspace not found");
+
+      await expect(client.closeWorkspace("ws-1")).resolves.toBeUndefined();
+    });
+
+    test("rethrows non-not-found CmuxError", async () => {
+      const { client } = clientFail("internal failure");
 
       await expect(client.closeWorkspace("ws-1")).rejects.toThrow(CmuxError);
+    });
+
+    test("throws CmuxConnectionError when not running", async () => {
+      const { client } = clientFail("cmux is not running");
+
+      await expect(client.closeWorkspace("ws-1")).rejects.toThrow(
+        CmuxConnectionError,
+      );
     });
   });
 
@@ -250,28 +273,21 @@ describe("CmuxClient", () => {
 
   describe("listWorkspaces", () => {
     test("parses workspace list from JSON", async () => {
-      const data = [
-        {
-          name: "epic-a",
-          surfaces: ["s-1", "s-2"],
-        },
-      ];
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc(JSON.stringify(data), "", 0) as any,
-      );
+      const data = [{ name: "epic-a", surfaces: ["s-1", "s-2"] }];
+      const { client, calls } = clientOk(JSON.stringify(data));
 
       const result = await client.listWorkspaces();
       expect(result).toEqual(data);
-      expect(spawnSpy).toHaveBeenCalledWith(
-        ["cmux", "workspace", "list", "--json"],
-        { stdout: "pipe", stderr: "pipe" },
-      );
+      expect(calls[0].cmd).toEqual([
+        "cmux",
+        "workspace",
+        "list",
+        "--json",
+      ]);
     });
 
     test("returns empty array for no workspaces", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("[]", "", 0) as any,
-      );
+      const { client } = clientOk("[]");
 
       const result = await client.listWorkspaces();
       expect(result).toEqual([]);
@@ -285,32 +301,41 @@ describe("CmuxClient", () => {
   describe("getSurface", () => {
     test("returns surface when found", async () => {
       const surf = { name: "plan", workspace: "ws-1", pid: 100 };
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc(JSON.stringify(surf), "", 0) as any,
-      );
+      const { client } = clientOk(JSON.stringify(surf));
 
       const result = await client.getSurface("ws-1", "plan");
       expect(result).toEqual(surf);
     });
 
     test("returns null when surface not found", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "not found", 1) as any,
-      );
+      const { client } = clientFail("not found");
 
       const result = await client.getSurface("ws-1", "plan");
       expect(result).toBeNull();
     });
 
     test("returns null when binary not available", async () => {
-      const err = new Error("spawn ENOENT") as NodeJS.ErrnoException;
-      err.code = "ENOENT";
-      spawnSpy = spyOn(Bun, "spawn").mockImplementation(() => {
-        throw err;
-      });
+      const { client } = clientThrows();
 
       const result = await client.getSurface("ws-1", "plan");
       expect(result).toBeNull();
+    });
+
+    test("passes correct args including --json", async () => {
+      const surf = { name: "plan", workspace: "ws-1" };
+      const { client, calls } = clientOk(JSON.stringify(surf));
+
+      await client.getSurface("ws-1", "plan");
+      expect(calls[0].cmd).toEqual([
+        "cmux",
+        "surface",
+        "get",
+        "--workspace",
+        "ws-1",
+        "--surface",
+        "plan",
+        "--json",
+      ]);
     });
   });
 
@@ -320,15 +345,17 @@ describe("CmuxClient", () => {
 
   describe("notify", () => {
     test("passes title and body without JSON flag", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "", 0) as any,
-      );
+      const { client, calls } = clientOk();
 
       await client.notify("Error", "Phase failed");
-      expect(spawnSpy).toHaveBeenCalledWith(
-        ["cmux", "notify", "--title", "Error", "--body", "Phase failed"],
-        { stdout: "pipe", stderr: "pipe" },
-      );
+      expect(calls[0].cmd).toEqual([
+        "cmux",
+        "notify",
+        "--title",
+        "Error",
+        "--body",
+        "Phase failed",
+      ]);
     });
   });
 
@@ -338,35 +365,31 @@ describe("CmuxClient", () => {
 
   describe("error handling", () => {
     test("throws CmuxConnectionError when binary not found", async () => {
-      const err = new Error("spawn ENOENT") as NodeJS.ErrnoException;
-      err.code = "ENOENT";
-      spawnSpy = spyOn(Bun, "spawn").mockImplementation(() => {
-        throw err;
-      });
+      const { client } = clientThrows();
 
-      await expect(client.createWorkspace("x")).rejects.toThrow(CmuxConnectionError);
+      await expect(client.createWorkspace("x")).rejects.toThrow(
+        CmuxConnectionError,
+      );
     });
 
     test("throws CmuxConnectionError on connection refused", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "connection refused", 1) as any,
-      );
+      const { client } = clientFail("connection refused");
 
-      await expect(client.createWorkspace("x")).rejects.toThrow(CmuxConnectionError);
+      await expect(client.createWorkspace("x")).rejects.toThrow(
+        CmuxConnectionError,
+      );
     });
 
     test("throws CmuxConnectionError when not running", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "cmux is not running", 1) as any,
-      );
+      const { client } = clientFail("cmux is not running");
 
-      await expect(client.createWorkspace("x")).rejects.toThrow(CmuxConnectionError);
+      await expect(client.createWorkspace("x")).rejects.toThrow(
+        CmuxConnectionError,
+      );
     });
 
     test("throws CmuxError on non-zero exit with stderr details", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "unknown command", 1) as any,
-      );
+      const { client } = clientFail("unknown command");
 
       try {
         await client.createWorkspace("x");
@@ -378,9 +401,8 @@ describe("CmuxClient", () => {
     });
 
     test("uses stdout as error message when stderr is empty", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("error output here", "", 1) as any,
-      );
+      const { fn } = createMockSpawn(mockProc("error output here", "", 1));
+      const client = new CmuxClient({ timeoutMs: 1000, spawn: fn });
 
       try {
         await client.createWorkspace("x");
@@ -392,9 +414,8 @@ describe("CmuxClient", () => {
     });
 
     test("falls back to exit code message when both streams empty", async () => {
-      spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
-        mockProc("", "", 1) as any,
-      );
+      const { fn } = createMockSpawn(mockProc("", "", 1));
+      const client = new CmuxClient({ timeoutMs: 1000, spawn: fn });
 
       try {
         await client.createWorkspace("x");
@@ -424,25 +445,29 @@ describe("CmuxClient", () => {
 });
 
 // ---------------------------------------------------------------------------
-// cmuxAvailable helper
+// cmuxAvailable helper — uses Bun.spawn directly, needs spyOn
 // ---------------------------------------------------------------------------
 
 describe("cmuxAvailable", () => {
   test("returns true when ping succeeds", async () => {
-    spawnSpy = spyOn(Bun, "spawn").mockReturnValue(
+    const spy = spyOn(Bun, "spawn").mockReturnValue(
       mockProc("", "", 0) as any,
     );
-
-    expect(await cmuxAvailable()).toBe(true);
+    try {
+      expect(await cmuxAvailable()).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test("returns false when ping fails", async () => {
-    const err = new Error("spawn ENOENT") as NodeJS.ErrnoException;
-    err.code = "ENOENT";
-    spawnSpy = spyOn(Bun, "spawn").mockImplementation(() => {
-      throw err;
+    const spy = spyOn(Bun, "spawn").mockImplementation(() => {
+      throw new Error("spawn failed");
     });
-
-    expect(await cmuxAvailable()).toBe(false);
+    try {
+      expect(await cmuxAvailable()).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
