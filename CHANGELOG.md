@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.38.0 — The Skill Cleanup (Mar 2026)
+
+- **Checkpoint sync removal** — Removed orphaned "Sync GitHub" sections and `@../_shared/github.md` imports from all 5 checkpoint files; skills no longer reference the deleted shared GitHub utility
+- **Status subcommand deletion** — Deleted `skills/beastmode/subcommands/status.md` and removed routing/help text from SKILL.md (status moved to CLI in v0.32.0)
+- **Context doc update** — DESIGN.md GitHub State Model section updated to reflect skills are no longer GitHub-aware at checkpoint time
+
 ### v0.34.0 — The Manifest-Only Status (Mar 2026)
 
 - **Manifest-first scanner** — Epic discovery pivots on manifest files instead of design files; status table drops from ~116 noisy rows to ~12 active epics
