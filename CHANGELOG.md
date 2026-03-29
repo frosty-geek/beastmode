@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.28.0 — The Terminal Multiplexer (Mar 2026)
+
+- **Dispatch abstraction** — `DispatchedSession` interface with `SdkSession` and `CmuxSession` implementations, `SessionFactory` for runtime strategy selection
+- **CmuxSession implementation** — Workspace-per-epic surface model, Unix socket JSON-RPC client, lifecycle management (create workspace, create surface, send command, cleanup)
+- **Validation** — 124 tests, 0 failures, clean type check
+
 ### v0.27.0 — The Design Trifecta (Mar 2026)
 
 - **cmux integration PRD** — Unix socket JSON-RPC client, workspace-per-epic surface model, strategy pattern dispatch abstraction, optional dependency with zero regression risk
