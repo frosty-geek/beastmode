@@ -21,52 +21,18 @@ Prior decisions, conventions, and learnings inform this phase — don't re-decid
 
 ## 4. Resolve Feature Plan
 
-1. Locate the manifest by convention glob using the design name (epic slug):
+1. Locate the feature plan by convention glob:
 
 ```bash
-matches=$(ls .beastmode/state/plan/*-$design.manifest.json 2>/dev/null)
+matches=$(ls .beastmode/state/plan/*-$design-$feature.md 2>/dev/null)
 ```
 
-If no matches, error: "No manifest found for design '$design'". If multiple, take the latest (date prefix sorts chronologically).
+If no matches, error: "No feature plan found for '$design/$feature'". If multiple, take the latest (date prefix sorts chronologically).
 
-2. Read the manifest JSON
-3. Find the feature entry matching the feature slug from the argument
-4. Read the feature plan file referenced in the manifest
-5. Read the `architecturalDecisions` from the manifest — these are constraints for implementation
+2. Read the feature plan file
+3. Read the architectural decisions from the plan's design reference
 
-If the feature's status in the manifest is already `completed`, print a warning and STOP.
-
-## 5. Set Feature In-Progress
-
-Update the current feature's status in the manifest to `in-progress`. Write the manifest back.
-
-### Sync GitHub (when enabled)
-
-Read `.beastmode/config.yaml`. If `github.enabled` is `false` or missing, or the manifest has no `github` block, skip GitHub sync.
-
-When `github.enabled` is `true` and the feature has a `github.issue` number:
-
-@../_shared/github.md
-
-Use warn-and-continue for all GitHub calls (see Error Handling Convention in github.md).
-
-1. **Set Feature Status** — update the feature issue label to `status/in-progress`:
-
-```bash
-gh issue edit <feature-issue> --remove-label "status/ready" --add-label "status/in-progress"
-```
-
-2. **Advance Epic Phase** — if not already at `phase/implement`, set the Epic's phase label:
-
-```bash
-gh issue edit <epic-number> --remove-label "phase/plan" --add-label "phase/implement"
-```
-
-3. **Add Epic to Project** — call the "Add to Project + Set Status" operation from github.md with the epic URL and status `"Implement"`.
-
-If GitHub sync fails, the manifest status update (`in-progress`) still applies — GitHub will catch up at the next sync point.
-
-## 6. Capture Baseline Snapshot
+## 5. Capture Baseline Snapshot
 
 Before any implementation begins, capture the current state of changed files:
 
@@ -76,7 +42,7 @@ git diff --name-only HEAD > /tmp/beastmode-baseline-$(date +%s).txt
 
 Store the baseline file list. Spec checks in execute will diff against this baseline to avoid flagging files from prior feature implementations.
 
-## 7. Prepare Environment
+## 6. Prepare Environment
 
     # Install dependencies if needed
     npm install  # or appropriate command from .beastmode/context/

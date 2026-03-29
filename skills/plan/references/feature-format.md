@@ -8,7 +8,6 @@ Each feature plan file follows this structure:
 # [Feature Name]
 
 **Design:** [path to parent PRD]
-**Architectural Decisions:** [path to manifest or "see manifest"]
 
 ## User Stories
 

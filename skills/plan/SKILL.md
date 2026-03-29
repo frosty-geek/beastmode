@@ -22,4 +22,4 @@ No EnterPlanMode or ExitPlanMode — this skill manages its own flow. [→ Why](
 0. [Prime](phases/0-prime.md) — Load context, read design doc
 1. [Execute](phases/1-execute.md) — Identify architectural decisions, decompose into features
 2. [Validate](phases/2-validate.md) — Coverage check, feature set approval
-3. [Checkpoint](phases/3-checkpoint.md) — Save feature plans + manifest, suggest /implement
+3. [Checkpoint](phases/3-checkpoint.md) — Save feature plans, suggest /implement

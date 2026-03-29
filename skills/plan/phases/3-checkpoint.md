@@ -6,78 +6,11 @@ For each feature, save to `.beastmode/state/plan/YYYY-MM-DD-<design>-<feature-sl
 
 Where `<design>` is the epic slug and `<feature-slug>` is the feature's name slug.
 
-## 2. Write Manifest
-
-Read the existing manifest at `.beastmode/state/plan/YYYY-MM-DD-<design>.manifest.json` (created by the design checkpoint). Enrich it with the architectural decisions and features array, then write it back.
-
-If no existing manifest is found, create a new one (backwards compatibility with designs created before manifest support).
-
-```json
-{
-  "design": ".beastmode/state/design/YYYY-MM-DD-<design>.md",
-  "architecturalDecisions": [
-    {"decision": "<description>", "choice": "<choice>"}
-  ],
-  "features": [
-    {
-      "slug": "<feature-slug>",
-      "plan": "YYYY-MM-DD-<design>-<feature-slug>.md",
-      "status": "pending"
-    }
-  ],
-  "lastUpdated": "<ISO-8601-timestamp>"
-}
-```
-
-Preserve any existing fields (e.g., `github` block from design checkpoint) — only add/overwrite `architecturalDecisions`, `features`, and `lastUpdated`.
-
-## 3. Sync GitHub
-
-Read `.beastmode/config.yaml`. If `github.enabled` is `false` or missing, or the manifest has no `github` block, **skip this step entirely**.
-
-When `github.enabled` is `true` and the manifest has `github.epic`:
-
-@../_shared/github.md
-
-Use warn-and-continue for all GitHub calls (see Error Handling Convention in github.md).
-
-1. **Advance Epic Phase** — set the Epic's phase label to `phase/plan` (removing the previous `phase/design`):
-
-```bash
-# Use Set Phase Label from github.md on the epic issue
-gh issue edit <epic-number> --remove-label "phase/design" --add-label "phase/plan"
-```
-
-2. **Add Epic to Project** — call the "Add to Project + Set Status" operation from github.md with the epic URL and status `"Plan"`.
-
-3. **Create Feature Sub-Issues** — for each feature in the manifest:
-   - Create a Feature issue using the "Create Feature" operation from github.md
-   - Labels: `type/feature`, `status/ready`
-   - Link as sub-issue of the Epic
-   - Write the issue number into the manifest feature entry as `github.issue`
-
-4. **Update Manifest** — write the enriched manifest with feature issue numbers:
-
-```json
-{
-  "features": [
-    {
-      "slug": "<feature-slug>",
-      "plan": "YYYY-MM-DD-<design>-<feature-slug>.md",
-      "status": "pending",
-      "github": {"issue": <issue-number>}
-    }
-  ]
-}
-```
-
-If any GitHub call fails (warn-and-continue), the manifest retains the features array but without `github.issue` fields. The next checkpoint will retry.
-
-## 4. Phase Retro
+## 2. Phase Retro
 
 @../_shared/retro.md
 
-## 5. Commit and Handoff
+## 3. Commit and Handoff
 
 Commit all work to the feature branch:
 

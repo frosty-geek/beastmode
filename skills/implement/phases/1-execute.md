@@ -5,7 +5,7 @@
 Before dispatching, create a detailed task breakdown from the architectural feature plan.
 
 1. **Read feature plan** — user stories, what to build, acceptance criteria
-2. **Read architectural decisions** from manifest — these are constraints
+2. **Read architectural decisions** from the design doc — these are constraints
 3. **Explore codebase** — identify exact files, patterns, test structure, dependencies
 4. **Create tasks** using the format in [task-format.md](../references/task-format.md):
    - Map each aspect of "What to Build" to one or more tasks
@@ -17,7 +17,6 @@ Before dispatching, create a detailed task breakdown from the architectural feat
    ```json
    {
      "featurePlan": "<path-to-feature-plan.md>",
-     "manifest": "<path-to-manifest.json>",
      "tasks": [
        {"id": 0, "subject": "Task 0: ...", "status": "pending"},
        {"id": 1, "subject": "Task 1: ...", "status": "pending"}
