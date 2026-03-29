@@ -24,7 +24,7 @@
     {
       "slug": "watch-command-cleanup",
       "plan": "2026-03-29-status-unfuckery-watch-command-cleanup.md",
-      "status": "pending",
+      "status": "completed",
       "github": {"issue": 80}
     }
   ],
@@ -32,5 +32,5 @@
     "epic": 76,
     "repo": "BugRoger/beastmode"
   },
-  "lastUpdated": "2026-03-29T16:30:00Z"
+  "lastUpdated": "2026-03-29T18:06:00Z"
 }

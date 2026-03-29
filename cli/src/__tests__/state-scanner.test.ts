@@ -12,18 +12,16 @@ function setupTestRoot(): void {
   mkdirSync(resolve(TEST_ROOT, ".beastmode", "state", "design"), {
     recursive: true,
   });
-  mkdirSync(resolve(TEST_ROOT, ".beastmode", "state", "plan"), {
+  mkdirSync(resolve(TEST_ROOT, ".beastmode", "pipeline"), {
     recursive: true,
   });
   // Minimal config so gate checks don't crash
-  mkdirSync(resolve(TEST_ROOT, ".beastmode"), { recursive: true });
   writeFileSync(
     resolve(TEST_ROOT, ".beastmode", "config.yaml"),
     `gates:\n  implement:\n    architectural-deviation: auto\n`,
   );
 }
 
-// Post-epoch date so scanner treats these as new epics (not pre-manifest completed)
 const TEST_DATE = "2026-03-29";
 
 function writeDesign(slug: string): void {
@@ -39,7 +37,7 @@ function writeDesign(slug: string): void {
   );
 }
 
-function writeManifest(
+function writePipelineManifest(
   slug: string,
   features: Array<{ slug: string; status: string }>,
   github?: { epic: number; repo: string },
@@ -59,11 +57,19 @@ function writeManifest(
     resolve(
       TEST_ROOT,
       ".beastmode",
-      "state",
-      "plan",
+      "pipeline",
       `${TEST_DATE}-${slug}.manifest.json`,
     ),
     JSON.stringify(manifest, null, 2),
+  );
+}
+
+function writeOutputJson(phase: string, slug: string): void {
+  const dir = resolve(TEST_ROOT, ".beastmode", "state", phase);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    resolve(dir, `${TEST_DATE}-${slug}.output.json`),
+    JSON.stringify({ status: "completed", artifacts: {} }),
   );
 }
 
@@ -134,28 +140,9 @@ describe("scanEpics", () => {
     });
   });
 
-  test("pre-manifest design with no manifest is treated as completed", async () => {
-    // Pre-epoch date — scanner should recognize this as already shipped
-    writeFileSync(
-      resolve(
-        TEST_ROOT,
-        ".beastmode",
-        "state",
-        "design",
-        "2026-03-01-old-epic.md",
-      ),
-      "# old-epic\n",
-    );
-    const epics = await scanEpics(TEST_ROOT);
-
-    const old = epics.find((e) => e.slug === "old-epic")!;
-    expect(old.phase).toBe("release");
-    expect(old.nextAction).toBeNull();
-  });
-
   test("manifest with empty features returns phase plan", async () => {
     writeDesign("my-epic");
-    writeManifest("my-epic", []);
+    writePipelineManifest("my-epic", []);
     const epics = await scanEpics(TEST_ROOT);
 
     expect(epics[0].phase).toBe("plan");
@@ -164,7 +151,7 @@ describe("scanEpics", () => {
 
   test("manifest with pending features returns next-action: implement", async () => {
     writeDesign("my-epic");
-    writeManifest("my-epic", [
+    writePipelineManifest("my-epic", [
       { slug: "feature-a", status: "pending" },
       { slug: "feature-b", status: "pending" },
     ]);
@@ -181,7 +168,7 @@ describe("scanEpics", () => {
 
   test("manifest with mix of completed and pending features returns implement with pending only", async () => {
     writeDesign("my-epic");
-    writeManifest("my-epic", [
+    writePipelineManifest("my-epic", [
       { slug: "feature-a", status: "completed" },
       { slug: "feature-b", status: "pending" },
       { slug: "feature-c", status: "in-progress" },
@@ -197,7 +184,7 @@ describe("scanEpics", () => {
 
   test("all features completed returns next-action: validate", async () => {
     writeDesign("my-epic");
-    writeManifest("my-epic", [
+    writePipelineManifest("my-epic", [
       { slug: "feature-a", status: "completed" },
       { slug: "feature-b", status: "completed" },
     ]);
@@ -213,7 +200,7 @@ describe("scanEpics", () => {
 
   test("identifies blocked features", async () => {
     writeDesign("my-epic");
-    writeManifest("my-epic", [
+    writePipelineManifest("my-epic", [
       { slug: "feature-a", status: "blocked" },
       { slug: "feature-b", status: "pending" },
     ]);
@@ -225,7 +212,7 @@ describe("scanEpics", () => {
 
   test("aggregates cost from run log", async () => {
     writeDesign("my-epic");
-    writeManifest("my-epic", [{ slug: "f1", status: "pending" }]);
+    writePipelineManifest("my-epic", [{ slug: "f1", status: "pending" }]);
     writeRunLog([
       { epic: "my-epic", phase: "plan", cost_usd: 1.5, duration_ms: 1000 },
       {
@@ -254,7 +241,7 @@ describe("scanEpics", () => {
 
   test("extracts feature progress from manifest", async () => {
     writeDesign("my-epic");
-    writeManifest("my-epic", [
+    writePipelineManifest("my-epic", [
       { slug: "feature-a", status: "completed" },
       { slug: "feature-b", status: "in-progress" },
       { slug: "feature-c", status: "pending" },
@@ -271,7 +258,7 @@ describe("scanEpics", () => {
   test("handles multiple epics simultaneously", async () => {
     writeDesign("epic-one");
     writeDesign("epic-two");
-    writeManifest("epic-one", [{ slug: "f1", status: "completed" }]);
+    writePipelineManifest("epic-one", [{ slug: "f1", status: "completed" }]);
     // epic-two has no manifest
 
     const epics = await scanEpics(TEST_ROOT);
@@ -286,7 +273,7 @@ describe("scanEpics", () => {
 
   test("preserves github epic issue from manifest", async () => {
     writeDesign("my-epic");
-    writeManifest(
+    writePipelineManifest(
       "my-epic",
       [{ slug: "f1", status: "pending" }],
       { epic: 42, repo: "user/repo" },
@@ -297,7 +284,7 @@ describe("scanEpics", () => {
 
   test("pure read-only — does not write to filesystem", async () => {
     writeDesign("my-epic");
-    writeManifest("my-epic", [{ slug: "f1", status: "pending" }]);
+    writePipelineManifest("my-epic", [{ slug: "f1", status: "pending" }]);
 
     // Capture state before
     const designBefore = Bun.file(
@@ -313,8 +300,7 @@ describe("scanEpics", () => {
       resolve(
         TEST_ROOT,
         ".beastmode",
-        "state",
-        "plan",
+        "pipeline",
         `${TEST_DATE}-my-epic.manifest.json`,
       ),
     ).lastModified;
@@ -335,8 +321,7 @@ describe("scanEpics", () => {
       resolve(
         TEST_ROOT,
         ".beastmode",
-        "state",
-        "plan",
+        "pipeline",
         `${TEST_DATE}-my-epic.manifest.json`,
       ),
     ).lastModified;

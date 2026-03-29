@@ -52,6 +52,37 @@ interface Manifest {
 }
 
 /**
+ * Validate manifest structural integrity.
+ * Required: design (string), features (array of objects with slug+status strings), lastUpdated (string).
+ */
+function validateManifest(data: unknown): data is Manifest {
+  if (data === null || typeof data !== "object") return false;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.design !== "string") return false;
+  if (typeof obj.lastUpdated !== "string") return false;
+  if (!Array.isArray(obj.features)) return false;
+  for (const f of obj.features) {
+    if (f === null || typeof f !== "object") return false;
+    const feat = f as Record<string, unknown>;
+    if (typeof feat.slug !== "string") return false;
+    if (typeof feat.status !== "string") return false;
+  }
+  return true;
+}
+
+/**
+ * Validate output.json schema.
+ * Required: status (string) and artifacts (object).
+ */
+function validateOutputJson(data: unknown): boolean {
+  if (data === null || typeof data !== "object") return false;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.status !== "string") return false;
+  if (obj.artifacts === null || typeof obj.artifacts !== "object" || Array.isArray(obj.artifacts)) return false;
+  return true;
+}
+
+/**
  * Extract epic slug from a design artifact filename.
  * Input: "2026-03-28-typescript-pipeline-orchestrator.md"
  * Output: "typescript-pipeline-orchestrator"
@@ -61,35 +92,16 @@ export function slugFromDesign(filename: string): string {
 }
 
 /**
- * Extract date prefix from a design artifact filename.
- * Input: "2026-03-28-typescript-pipeline-orchestrator.md"
- * Output: "2026-03-28"
- */
-function dateFromDesign(filename: string): string | undefined {
-  const match = basename(filename).match(/^(\d{4}-\d{2}-\d{2})-/);
-  return match ? match[1] : undefined;
-}
-
-/**
- * The manifest system was introduced on this date. Design artifacts before
- * this date that lack a manifest are pre-manifest completed epics.
- */
-const MANIFEST_EPOCH = "2026-03-28";
-
-/**
  * Find the manifest for a given design slug.
- * Checks .beastmode/pipeline/ first (orchestrator runtime state),
- * falls back to .beastmode/state/plan/ (git-tracked seed data).
+ * Checks .beastmode/pipeline/ only (orchestrator runtime state).
  */
-function findManifest(pipeDir: string, planDir: string, slug: string): string | undefined {
-  for (const dir of [pipeDir, planDir]) {
-    if (!existsSync(dir)) continue;
-    const files = readdirSync(dir);
-    const matches = files
-      .filter((f) => f.endsWith(`-${slug}.manifest.json`))
-      .sort();
-    if (matches.length > 0) return resolve(dir, matches[matches.length - 1]);
-  }
+function findManifest(pipeDir: string, slug: string): string | undefined {
+  if (!existsSync(pipeDir)) return undefined;
+  const files = readdirSync(pipeDir);
+  const matches = files
+    .filter((f) => f.endsWith(`-${slug}.manifest.json`))
+    .sort();
+  if (matches.length > 0) return resolve(pipeDir, matches[matches.length - 1]);
   return undefined;
 }
 
@@ -99,7 +111,12 @@ function findManifest(pipeDir: string, planDir: string, slug: string): string | 
 function readManifest(path: string): Manifest | undefined {
   try {
     const raw = readFileSync(path, "utf-8");
-    return JSON.parse(raw) as Manifest;
+    const parsed = JSON.parse(raw);
+    if (!validateManifest(parsed)) {
+      console.warn(`[beastmode] Skipping malformed manifest: ${path}`);
+      return undefined;
+    }
+    return parsed;
   } catch {
     return undefined;
   }
@@ -130,70 +147,64 @@ function aggregateCost(entries: RunLogEntry[], epicSlug: string): number {
 }
 
 /**
- * Derive the current phase from manifest state and design artifact date.
- * - No manifest + release artifact exists → release (already shipped)
- * - No manifest + pre-MANIFEST_EPOCH date → release (pre-manifest completed epic)
- * - No manifest + post-MANIFEST_EPOCH date → design (new epic needs plan)
- * - Manifest with no features → plan (empty manifest, needs feature decomposition)
- * - All features completed → validate/release based on artifacts
- * - Otherwise → implement (features need work)
+ * Check for an output.json checkpoint file in state/<phase>/.
+ * Looks for files matching *-<slug>.output.json.
+ */
+function hasOutputJson(stateDir: string, phase: string, slug: string): boolean {
+  const dir = resolve(stateDir, phase);
+  if (!existsSync(dir)) return false;
+  const match = readdirSync(dir).find(
+    (f) => f.endsWith(`-${slug}.output.json`),
+  );
+  if (!match) return false;
+  try {
+    const raw = readFileSync(resolve(dir, match), "utf-8");
+    const parsed = JSON.parse(raw);
+    if (!validateOutputJson(parsed)) {
+      console.warn(`[beastmode] Skipping malformed output.json: ${resolve(dir, match)}`);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Derive the current phase from output.json checkpoint files.
+ * Waterfall: release output.json → validate output.json →
+ * all features completed → implement → plan → design
  */
 function derivePhase(
   slug: string,
   manifest: Manifest | undefined,
   stateDir: string,
-  pipeDir: string,
-  designFilename: string,
 ): { phase: Phase; done: boolean } {
+  // Check output.json checkpoints (highest phase wins)
+  if (hasOutputJson(stateDir, "release", slug)) {
+    return { phase: "release", done: true };
+  }
+  if (hasOutputJson(stateDir, "validate", slug)) {
+    return { phase: "release", done: false };
+  }
+
   if (!manifest) {
-    // No manifest — check pipeline dir then legacy state/release for markers
-    if (
-      hasPhaseMarker(pipeDir, slug, "release") ||
-      hasLegacyArtifact(stateDir, "release", slug)
-    ) {
-      return { phase: "release", done: true };
-    }
-    // Pre-manifest epics are completed — they shipped through the old workflow
-    const date = dateFromDesign(designFilename);
-    if (date && date < MANIFEST_EPOCH) {
-      return { phase: "release", done: true };
-    }
     return { phase: "design", done: false };
   }
-  if (!manifest.features || manifest.features.length === 0)
+
+  if (!manifest.features || manifest.features.length === 0) {
     return { phase: "plan", done: false };
+  }
 
   const allCompleted = manifest.features.every(
     (f) => f.status === "completed",
   );
 
   if (allCompleted) {
-    // Check pipeline dir markers (authoritative), then legacy state dirs
-    const hasRelease =
-      hasPhaseMarker(pipeDir, slug, "release") ||
-      hasLegacyArtifact(stateDir, "release", slug);
-    const hasValidate =
-      hasPhaseMarker(pipeDir, slug, "validate") ||
-      hasLegacyArtifact(stateDir, "validate", slug);
-
-    if (hasRelease) return { phase: "release", done: true };
-    if (hasValidate) return { phase: "release", done: false };
     return { phase: "validate", done: false };
   }
 
   return { phase: "implement", done: false };
-}
-
-/** Check for a phase marker in the pipeline directory. */
-function hasPhaseMarker(pipeDir: string, slug: string, phase: string): boolean {
-  if (!existsSync(pipeDir)) return false;
-  return readdirSync(pipeDir).some((f) => f === `${phase}-${slug}`);
-}
-
-/** Check for a legacy artifact in state/<phase>/. */
-function hasLegacyArtifact(stateDir: string, phase: string, slug: string): boolean {
-  const dir = resolve(stateDir, phase);
-  return existsSync(dir) && readdirSync(dir).some((f) => f.includes(slug));
 }
 
 /**
@@ -286,7 +297,6 @@ function extractFeatures(manifest: Manifest | undefined): FeatureProgress[] {
 export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
   const stateDir = resolve(projectRoot, ".beastmode", "state");
   const designDir = resolve(stateDir, "design");
-  const planDir = resolve(stateDir, "plan");
   const pipeDir = resolve(projectRoot, ".beastmode", "pipeline");
 
   if (!existsSync(designDir)) return [];
@@ -299,10 +309,10 @@ export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
     const slug = slugFromDesign(designFile);
     const designPath = resolve(designDir, designFile);
 
-    const manifestPath = findManifest(pipeDir, planDir, slug);
+    const manifestPath = findManifest(pipeDir, slug);
     const manifest = manifestPath ? readManifest(manifestPath) : undefined;
 
-    const { phase, done } = derivePhase(slug, manifest, stateDir, pipeDir, designFile);
+    const { phase, done } = derivePhase(slug, manifest, stateDir);
     const nextAction = done ? null : deriveNextAction(slug, phase, manifest);
     const { blocked, gateName } = checkGateBlocked(phase, manifest, projectRoot);
     const features = extractFeatures(manifest);

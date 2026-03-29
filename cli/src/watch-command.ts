@@ -10,8 +10,9 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, copyFi
 import { loadConfig } from "./config.js";
 import { WatchLoop } from "./watch.js";
 import type { WatchDeps } from "./watch.js";
-import type { EpicState, SessionResult, NextAction, FeatureProgress } from "./watch-types.js";
+import type { SessionResult } from "./watch-types.js";
 import * as worktree from "./worktree.js";
+import { scanEpics } from "./state-scanner.js";
 
 /** Discover the project root (walks up to find .beastmode/). */
 function findProjectRoot(from: string = process.cwd()): string {
@@ -23,18 +24,6 @@ function findProjectRoot(from: string = process.cwd()): string {
   throw new Error("Not inside a beastmode project (no .beastmode/ found)");
 }
 
-/** Scan manifests to determine epic states. Minimal inline scanner. */
-async function scanEpics(projectRoot: string): Promise<EpicState[]> {
-  // Dynamically import state-scanner if available, otherwise use inline logic
-  try {
-    const scanner = await import("./state-scanner.js");
-    return scanner.scanEpics(projectRoot);
-  } catch {
-    // Fallback: inline manifest scanner
-    return scanEpicsInline(projectRoot);
-  }
-}
-
 /**
  * Pipeline state directory — gitignored, orchestrator-owned.
  * Contains manifests and phase markers. Never in a worktree.
@@ -43,64 +32,6 @@ function pipelineDir(projectRoot: string): string {
   const dir = resolve(projectRoot, ".beastmode/pipeline");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
-}
-
-/**
- * Seed pipeline state from existing git-tracked manifests on first run.
- * Copies .beastmode/state/plan/*.manifest.json → .beastmode/pipeline/
- * Migrates validate/release state markers into manifest `phases` objects.
- */
-function seedPipelineState(projectRoot: string): void {
-  const dir = pipelineDir(projectRoot);
-
-  // Seed manifests from git-tracked plan dir
-  const planDir = resolve(projectRoot, ".beastmode/state/plan");
-  if (existsSync(planDir)) {
-    for (const f of readdirSync(planDir)) {
-      if (f.endsWith(".manifest.json")) {
-        const dest = resolve(dir, f);
-        if (!existsSync(dest)) {
-          copyFileSync(resolve(planDir, f), dest);
-        }
-      }
-    }
-  }
-
-  // Migrate existing state dir markers into manifest phases
-  for (const phase of ["validate", "release"] as const) {
-    const phaseDir = resolve(projectRoot, ".beastmode/state", phase);
-    if (!existsSync(phaseDir)) continue;
-    for (const f of readdirSync(phaseDir)) {
-      // Derive epic slug from marker filename: YYYY-MM-DD-<slug>.md
-      const epicSlug = f.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.md$/, "");
-      const manifestFile = readdirSync(dir).find(
-        (m) => m.endsWith(`-${epicSlug}.manifest.json`),
-      );
-      if (!manifestFile) continue;
-
-      const manifestPath = resolve(dir, manifestFile);
-      try {
-        const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
-        if (!manifest.phases) manifest.phases = {};
-        if (!manifest.phases[phase]) {
-          manifest.phases[phase] = "completed";
-          // If release is done, backfill all prior phases
-          if (phase === "release") {
-            manifest.phases.design ??= "completed";
-            manifest.phases.plan ??= "completed";
-            manifest.phases.implement ??= "completed";
-            manifest.phases.validate ??= "completed";
-          }
-          if (phase === "validate") {
-            manifest.phases.design ??= "completed";
-            manifest.phases.plan ??= "completed";
-            manifest.phases.implement ??= "completed";
-          }
-          writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-        }
-      } catch { /* skip unparseable */ }
-    }
-  }
 }
 
 /**
@@ -319,127 +250,6 @@ function readProgress(
   }
 }
 
-/** Inline epic scanner — reads manifests from pipeline dir (fallback to state/plan/). */
-function scanEpicsInline(projectRoot: string): EpicState[] {
-  const pipeDir = pipelineDir(projectRoot);
-  const planDir = resolve(projectRoot, ".beastmode", "state", "plan");
-
-  // Prefer pipeline dir manifests, fall back to plan dir
-  const manifestDir = readdirSync(pipeDir).some(f => f.endsWith(".manifest.json"))
-    ? pipeDir
-    : planDir;
-  if (!existsSync(manifestDir)) return [];
-
-  const files = readdirSync(manifestDir).filter((f: string) =>
-    f.endsWith(".manifest.json"),
-  );
-
-  const epics: EpicState[] = [];
-
-  for (const file of files) {
-    try {
-      const content = readFileSync(resolve(manifestDir, file), "utf-8");
-      const manifest = JSON.parse(content);
-
-      // Derive slug from filename: YYYY-MM-DD-<slug>.manifest.json
-      const slug = file.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(".manifest.json", "");
-
-      const features: FeatureProgress[] = (manifest.features ?? []).map(
-        (f: { slug: string; status: string }) => ({
-          slug: f.slug,
-          status: f.status as FeatureProgress["status"],
-        }),
-      );
-
-      const allCompleted = features.length > 0 && features.every((f) => f.status === "completed");
-      const pendingFeatures = features.filter((f) => f.status === "pending");
-      const hasDesign = existsSync(resolve(projectRoot, manifest.design ?? ""));
-      const phases: Record<string, string> = manifest.phases ?? {};
-
-      let phase: string;
-      let nextAction: NextAction | null = null;
-      let gateBlocked = false;
-
-      if (phases.release === "completed") {
-        // Epic is done
-        phase = "release";
-        nextAction = null;
-      } else if (phases.validate === "completed") {
-        // Validated — ready for release
-        phase = "validate";
-        nextAction = { phase: "release", args: [slug], type: "single" };
-      } else if (allCompleted) {
-        // All features done — needs validate
-        phase = "implement";
-        nextAction = { phase: "validate", args: [slug], type: "single" };
-      } else if (features.length === 0 && hasDesign) {
-        // Design exists but no features planned yet
-        phase = "design";
-        nextAction = { phase: "plan", args: [slug], type: "single" };
-      } else if (pendingFeatures.length > 0) {
-        // Has pending features — implement fan-out
-        phase = "implement";
-        nextAction = {
-          phase: "implement",
-          args: [slug],
-          type: "fan-out",
-          features: pendingFeatures.map((f) => f.slug),
-        };
-      } else {
-        // In progress or blocked
-        phase = "implement";
-        nextAction = null;
-      }
-
-      // Check for human gates in config
-      const config = loadConfig(projectRoot);
-      const gateConfig = config.gates?.implement;
-      if (gateConfig) {
-        for (const [_gate, mode] of Object.entries(gateConfig)) {
-          if (mode === "human") {
-            // Check if any feature has a blocked status indicating gate hit
-            const blocked = features.some((f) => f.status === "blocked" as string);
-            if (blocked) {
-              gateBlocked = true;
-              break;
-            }
-          }
-        }
-      }
-
-      // Aggregate cost from .beastmode-runs.json
-      let costUsd = 0;
-      const runsPath = resolve(projectRoot, ".beastmode-runs.json");
-      if (existsSync(runsPath)) {
-        try {
-          const runs = JSON.parse(readFileSync(runsPath, "utf-8")) as Array<{
-            epic: string;
-            cost_usd: number;
-          }>;
-          costUsd = runs
-            .filter((r) => r.epic === slug)
-            .reduce((sum, r) => sum + (r.cost_usd ?? 0), 0);
-        } catch {
-          // Corrupted runs file — ignore
-        }
-      }
-
-      epics.push({
-        slug,
-        phase,
-        nextAction,
-        features,
-        gateBlocked,
-        costUsd,
-      });
-    } catch {
-      // Skip unparseable manifests
-    }
-  }
-
-  return epics;
-}
-
 /** Dispatch a phase using the Claude Agent SDK. */
 async function dispatchPhase(opts: {
   epicSlug: string;
@@ -609,9 +419,6 @@ async function logRun(opts: {
 export async function watchCommand(_args: string[]): Promise<void> {
   const projectRoot = findProjectRoot();
   const config = loadConfig(projectRoot);
-
-  // Bootstrap pipeline state from git-tracked manifests on first run
-  seedPipelineState(projectRoot);
 
   const deps: WatchDeps = {
     scanEpics,
