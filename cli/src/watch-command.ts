@@ -13,6 +13,7 @@ import type { WatchDeps } from "./watch.js";
 import type { EpicState, SessionResult, NextAction, FeatureProgress } from "./watch-types.js";
 import type { SessionStrategy } from "./session-strategy.js";
 import { createSessionStrategy } from "./session-factory.js";
+import { cmuxAvailable } from "./cmux-client.js";
 
 /** Discover the project root (walks up to find .beastmode/). */
 function findProjectRoot(from: string = process.cwd()): string {
@@ -539,9 +540,10 @@ export async function watchCommand(_args: string[]): Promise<void> {
   // Bootstrap pipeline state from git-tracked manifests on first run
   seedPipelineState(projectRoot);
 
-  // Create session strategy from config
+  // Create session strategy from config (with real cmux availability check)
   const strategy = await createSessionStrategy({
     strategy: config.cli["dispatch-strategy"] ?? "sdk",
+    isCmuxAvailable: cmuxAvailable,
   });
 
   const deps: WatchDeps = {

@@ -11,7 +11,6 @@ import type { DispatchStrategy } from "./config.js";
 import type { SessionStrategy } from "./session-strategy.js";
 import { SdkStrategy } from "./sdk-strategy.js";
 import { CmuxClient, cmuxAvailable } from "./cmux-client.js";
-import { CmuxSessionFactory } from "./cmux-session.js";
 import { CmuxStrategy } from "./cmux-strategy.js";
 
 export interface SessionFactoryOptions {
