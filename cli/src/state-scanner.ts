@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync, existsSync } from "fs";
 import { resolve, basename } from "path";
-import type { Phase } from "./types";
+import type { Phase, RunLogEntry } from "./types";
 import { loadConfig } from "./config";
 
 /** Feature-level progress within an epic */
@@ -21,7 +21,7 @@ export interface NextAction {
 /** Structured state for a single epic */
 export interface EpicState {
   slug: string;
-  designPath?: string;
+  designPath: string;
   manifestPath?: string;
   phase: Phase;
   nextAction: NextAction | null;
@@ -30,17 +30,14 @@ export interface EpicState {
   blockedGate?: string;
   gateBlocked: boolean;
   gateName?: string;
+  costUsd: number;
   githubEpicIssue?: number;
-  lastUpdated?: string;
 }
 
-/** Manifest JSON structure — supports both legacy and new pipeline format */
+/** Manifest JSON structure as written by /plan */
 interface Manifest {
-  slug?: string;
-  design?: string;
-  architecturalDecisions?: Array<{ decision: string; choice: string }>;
-  phase?: string;
-  phases?: Record<string, string>;
+  design: string;
+  architecturalDecisions: Array<{ decision: string; choice: string }>;
   features: Array<{
     slug: string;
     plan: string;
@@ -55,18 +52,58 @@ interface Manifest {
 }
 
 /**
- * Extract slug from a dated filename.
+ * Validate manifest structural integrity.
+ * Required: design (string), features (array of objects with slug+status strings), lastUpdated (string).
+ */
+function validateManifest(data: unknown): data is Manifest {
+  if (data === null || typeof data !== "object") return false;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.design !== "string") return false;
+  if (typeof obj.lastUpdated !== "string") return false;
+  if (!Array.isArray(obj.features)) return false;
+  for (const f of obj.features) {
+    if (f === null || typeof f !== "object") return false;
+    const feat = f as Record<string, unknown>;
+    if (typeof feat.slug !== "string") return false;
+    if (typeof feat.status !== "string") return false;
+  }
+  return true;
+}
+
+/**
+ * Validate output.json schema.
+ * Required: status (string) and artifacts (object).
+ */
+function validateOutputJson(data: unknown): boolean {
+  if (data === null || typeof data !== "object") return false;
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.status !== "string") return false;
+  if (obj.artifacts === null || typeof obj.artifacts !== "object" || Array.isArray(obj.artifacts)) return false;
+  return true;
+}
+
+/**
+ * Extract epic slug from a design artifact filename.
  * Input: "2026-03-28-typescript-pipeline-orchestrator.md"
  * Output: "typescript-pipeline-orchestrator"
  */
-export function slugFromFilename(filename: string): string {
+export function slugFromDesign(filename: string): string {
   return basename(filename, ".md").replace(/^\d{4}-\d{2}-\d{2}-/, "");
 }
 
 /**
- * @deprecated Use slugFromFilename instead. Kept for backward compatibility.
+ * Find the manifest for a given design slug.
+ * Checks .beastmode/pipeline/ only (orchestrator runtime state).
  */
-export const slugFromDesign = slugFromFilename;
+function findManifest(pipeDir: string, slug: string): string | undefined {
+  if (!existsSync(pipeDir)) return undefined;
+  const files = readdirSync(pipeDir);
+  const matches = files
+    .filter((f) => f.endsWith(`-${slug}.manifest.json`))
+    .sort();
+  if (matches.length > 0) return resolve(pipeDir, matches[matches.length - 1]);
+  return undefined;
+}
 
 /**
  * Read and parse a manifest file. Returns undefined on any error.
@@ -74,37 +111,96 @@ export const slugFromDesign = slugFromFilename;
 function readManifest(path: string): Manifest | undefined {
   try {
     const raw = readFileSync(path, "utf-8");
-    return JSON.parse(raw) as Manifest;
+    const parsed = JSON.parse(raw);
+    if (!validateManifest(parsed)) {
+      console.warn(`[beastmode] Skipping malformed manifest: ${path}`);
+      return undefined;
+    }
+    return parsed;
   } catch {
     return undefined;
   }
 }
 
 /**
- * Derive the current phase from manifest state.
- * - Release phase completed in manifest → done
- * - No features → plan
- * - All features completed + validate completed → release
- * - All features completed → validate
- * - Otherwise → implement
+ * Read and parse the run log. Returns empty array on any error.
+ */
+function readRunLog(projectRoot: string): RunLogEntry[] {
+  const logPath = resolve(projectRoot, ".beastmode-runs.json");
+  if (!existsSync(logPath)) return [];
+  try {
+    const raw = readFileSync(logPath, "utf-8").trim();
+    if (!raw) return [];
+    return JSON.parse(raw) as RunLogEntry[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Aggregate cost for a given epic slug from the run log.
+ */
+function aggregateCost(entries: RunLogEntry[], epicSlug: string): number {
+  return entries
+    .filter((e) => e.epic === epicSlug)
+    .reduce((sum, e) => sum + (e.cost_usd ?? 0), 0);
+}
+
+/**
+ * Check for an output.json checkpoint file in state/<phase>/.
+ * Looks for files matching *-<slug>.output.json.
+ */
+function hasOutputJson(stateDir: string, phase: string, slug: string): boolean {
+  const dir = resolve(stateDir, phase);
+  if (!existsSync(dir)) return false;
+  const match = readdirSync(dir).find(
+    (f) => f.endsWith(`-${slug}.output.json`),
+  );
+  if (!match) return false;
+  try {
+    const raw = readFileSync(resolve(dir, match), "utf-8");
+    const parsed = JSON.parse(raw);
+    if (!validateOutputJson(parsed)) {
+      console.warn(`[beastmode] Skipping malformed output.json: ${resolve(dir, match)}`);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Derive the current phase from output.json checkpoint files.
+ * Waterfall: release output.json → validate output.json →
+ * all features completed → implement → plan → design
  */
 function derivePhase(
-  manifest: Manifest,
+  slug: string,
+  manifest: Manifest | undefined,
+  stateDir: string,
 ): { phase: Phase; done: boolean } {
-  if (manifest.phases?.["release"] === "completed") {
+  // Check output.json checkpoints (highest phase wins)
+  if (hasOutputJson(stateDir, "release", slug)) {
     return { phase: "release", done: true };
+  }
+  if (hasOutputJson(stateDir, "validate", slug)) {
+    return { phase: "release", done: false };
+  }
+
+  if (!manifest) {
+    return { phase: "design", done: false };
   }
 
   if (!manifest.features || manifest.features.length === 0) {
     return { phase: "plan", done: false };
   }
 
-  const allCompleted = manifest.features.every((f) => f.status === "completed");
+  const allCompleted = manifest.features.every(
+    (f) => f.status === "completed",
+  );
 
   if (allCompleted) {
-    if (manifest.phases?.["validate"] === "completed") {
-      return { phase: "release", done: false };
-    }
     return { phase: "validate", done: false };
   }
 
@@ -120,7 +216,12 @@ function deriveNextAction(
   manifest: Manifest | undefined,
 ): NextAction | null {
   switch (phase) {
+    case "design":
+      // Design exists but no manifest — needs plan
+      return { phase: "plan", args: [slug], type: "single" };
+
     case "plan":
+      // Manifest exists but no features — needs plan (re-run or first run)
       return { phase: "plan", args: [slug], type: "single" };
 
     case "implement": {
@@ -158,10 +259,12 @@ function checkGateBlocked(
   manifest: Manifest | undefined,
   projectRoot: string,
 ): { blocked: boolean; gateName?: string } {
+  // Check for blocked features in manifest
   if (manifest?.features.some((f) => f.status === "blocked")) {
     return { blocked: true, gateName: "feature-blocked" };
   }
 
+  // Check if the current phase has human gates that would block auto-dispatch
   const config = loadConfig(projectRoot);
   const phaseGates = config.gates[phase as keyof typeof config.gates];
   if (phaseGates) {
@@ -189,56 +292,32 @@ function extractFeatures(manifest: Manifest | undefined): FeatureProgress[] {
 
 /**
  * Scan all epics in the project and return their structured state.
- * Discovery pivots on manifest files — pipeline/ wins dedup over plan/.
  * Pure read-only operation — no filesystem writes or process spawns.
  */
 export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
   const stateDir = resolve(projectRoot, ".beastmode", "state");
-  const planDir = resolve(stateDir, "plan");
+  const designDir = resolve(stateDir, "design");
   const pipeDir = resolve(projectRoot, ".beastmode", "pipeline");
 
-  // Collect manifests: slug -> path
-  // Pipeline wins dedup over plan
-  const manifestMap = new Map<string, string>();
+  if (!existsSync(designDir)) return [];
 
-  // Scan plan dir first (lower priority)
-  if (existsSync(planDir)) {
-    for (const f of readdirSync(planDir)) {
-      if (!f.endsWith(".manifest.json")) continue;
-      const slug = f.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(".manifest.json", "");
-      manifestMap.set(slug, resolve(planDir, f));
-    }
-  }
-
-  // Scan pipeline dir — nested slug dirs (higher priority, overwrites plan entries)
-  if (existsSync(pipeDir)) {
-    for (const entry of readdirSync(pipeDir)) {
-      const nestedManifest = resolve(pipeDir, entry, "manifest.json");
-      if (existsSync(nestedManifest)) {
-        manifestMap.set(entry, nestedManifest);
-        continue;
-      }
-      // Flat file in pipeline dir
-      if (entry.endsWith(".manifest.json")) {
-        const slug = entry.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(".manifest.json", "");
-        manifestMap.set(slug, resolve(pipeDir, entry));
-      }
-    }
-  }
-
+  const designFiles = readdirSync(designDir).filter((f) => f.endsWith(".md"));
+  const runLog = readRunLog(projectRoot);
   const epics: EpicState[] = [];
 
-  for (const [slug, manifestPath] of manifestMap) {
-    const manifest = readManifest(manifestPath);
-    if (!manifest) continue;
+  for (const designFile of designFiles) {
+    const slug = slugFromDesign(designFile);
+    const designPath = resolve(designDir, designFile);
 
-    const { phase, done } = derivePhase(manifest);
+    const manifestPath = findManifest(pipeDir, slug);
+    const manifest = manifestPath ? readManifest(manifestPath) : undefined;
+
+    const { phase, done } = derivePhase(slug, manifest, stateDir);
     const nextAction = done ? null : deriveNextAction(slug, phase, manifest);
     const { blocked, gateName } = checkGateBlocked(phase, manifest, projectRoot);
     const features = extractFeatures(manifest);
-    const githubEpicIssue = manifest.github?.epic;
-    const designPath = manifest.design;
-    const lastUpdated = manifest.lastUpdated;
+    const costUsd = aggregateCost(runLog, slug);
+    const githubEpicIssue = manifest?.github?.epic;
 
     epics.push({
       slug,
@@ -251,8 +330,8 @@ export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
       blockedGate: gateName,
       gateBlocked: blocked,
       gateName,
+      costUsd,
       githubEpicIssue,
-      lastUpdated,
     });
   }
 

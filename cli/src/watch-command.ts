@@ -10,11 +10,9 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, copyFi
 import { loadConfig } from "./config.js";
 import { WatchLoop } from "./watch.js";
 import type { WatchDeps } from "./watch.js";
-import type { EpicState, SessionResult } from "./watch-types.js";
-import { SdkSessionFactory } from "./session.js";
+import type { SessionResult } from "./watch-types.js";
 import * as worktree from "./worktree.js";
-import type { Phase } from "./types";
-import { runPostDispatch } from "./post-dispatch";
+import { scanEpics } from "./state-scanner.js";
 
 /** Discover the project root (walks up to find .beastmode/). */
 function findProjectRoot(from: string = process.cwd()): string {
@@ -26,12 +24,6 @@ function findProjectRoot(from: string = process.cwd()): string {
   throw new Error("Not inside a beastmode project (no .beastmode/ found)");
 }
 
-/** Scan manifests to determine epic states via the canonical state scanner. */
-async function scanEpics(projectRoot: string): Promise<EpicState[]> {
-  const scanner = await import("./state-scanner.js");
-  return scanner.scanEpics(projectRoot);
-}
-
 /**
  * Pipeline state directory — gitignored, orchestrator-owned.
  * Contains manifests and phase markers. Never in a worktree.
@@ -40,64 +32,6 @@ function pipelineDir(projectRoot: string): string {
   const dir = resolve(projectRoot, ".beastmode/pipeline");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
-}
-
-/**
- * Seed pipeline state from existing git-tracked manifests on first run.
- * Copies .beastmode/state/plan/*.manifest.json → .beastmode/pipeline/
- * Migrates validate/release state markers into manifest `phases` objects.
- */
-function seedPipelineState(projectRoot: string): void {
-  const dir = pipelineDir(projectRoot);
-
-  // Seed manifests from git-tracked plan dir
-  const planDir = resolve(projectRoot, ".beastmode/state/plan");
-  if (existsSync(planDir)) {
-    for (const f of readdirSync(planDir)) {
-      if (f.endsWith(".manifest.json")) {
-        const dest = resolve(dir, f);
-        if (!existsSync(dest)) {
-          copyFileSync(resolve(planDir, f), dest);
-        }
-      }
-    }
-  }
-
-  // Migrate existing state dir markers into manifest phases
-  for (const phase of ["validate", "release"] as const) {
-    const phaseDir = resolve(projectRoot, ".beastmode/state", phase);
-    if (!existsSync(phaseDir)) continue;
-    for (const f of readdirSync(phaseDir)) {
-      // Derive epic slug from marker filename: YYYY-MM-DD-<slug>.md
-      const epicSlug = f.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.md$/, "");
-      const manifestFile = readdirSync(dir).find(
-        (m) => m.endsWith(`-${epicSlug}.manifest.json`),
-      );
-      if (!manifestFile) continue;
-
-      const manifestPath = resolve(dir, manifestFile);
-      try {
-        const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
-        if (!manifest.phases) manifest.phases = {};
-        if (!manifest.phases[phase]) {
-          manifest.phases[phase] = "completed";
-          // If release is done, backfill all prior phases
-          if (phase === "release") {
-            manifest.phases.design ??= "completed";
-            manifest.phases.plan ??= "completed";
-            manifest.phases.implement ??= "completed";
-            manifest.phases.validate ??= "completed";
-          }
-          if (phase === "validate") {
-            manifest.phases.design ??= "completed";
-            manifest.phases.plan ??= "completed";
-            manifest.phases.implement ??= "completed";
-          }
-          writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-        }
-      } catch { /* skip unparseable */ }
-    }
-  }
 }
 
 /**
@@ -167,12 +101,16 @@ function reconcilePlan(
     return { slug: match[1], plan: f };
   });
 
-  // Read existing manifest from either new or legacy location
-  const existingManifestPath = findManifestFile(projectRoot, epicSlug);
+  const dir = pipelineDir(projectRoot);
+
+  // Read existing manifest to preserve statuses and metadata
+  const manifestFile = readdirSync(dir).find(
+    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
+  );
   let manifest: Record<string, unknown> = {};
-  if (existingManifestPath) {
+  if (manifestFile) {
     try {
-      manifest = JSON.parse(readFileSync(existingManifestPath, "utf-8"));
+      manifest = JSON.parse(readFileSync(resolve(dir, manifestFile), "utf-8"));
     } catch { /* start fresh */ }
   }
 
@@ -211,10 +149,9 @@ function reconcilePlan(
   (manifest.phases as Record<string, string>).design = "completed";
   (manifest.phases as Record<string, string>).plan = "completed";
 
-  // Write manifest to new pipeline location: .beastmode/pipeline/<slug>/manifest.json
-  const newManifestDir = resolve(projectRoot, ".beastmode/pipeline", epicSlug);
-  if (!existsSync(newManifestDir)) mkdirSync(newManifestDir, { recursive: true });
-  writeFileSync(resolve(newManifestDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+  // Write manifest to pipeline dir
+  const manifestName = manifestFile ?? `${new Date().toISOString().slice(0, 10)}-${epicSlug}.manifest.json`;
+  writeFileSync(resolve(dir, manifestName), JSON.stringify(manifest, null, 2));
 
   // Copy plan files to git-tracked state/plan/ for agents to read
   const destPlanDir = resolve(projectRoot, ".beastmode/state/plan");
@@ -238,34 +175,20 @@ function updatePhaseStatus(
   epicSlug: string,
   phase: string,
 ): void {
-  const manifestFilePath = findManifestFile(projectRoot, epicSlug);
-  if (!manifestFilePath) return;
+  const dir = pipelineDir(projectRoot);
+  const match = readdirSync(dir).find(
+    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
+  );
+  if (!match) return;
 
-  const manifest = JSON.parse(readFileSync(manifestFilePath, "utf-8"));
+  const manifestPath = resolve(dir, match);
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
   if (!manifest.phases) manifest.phases = {};
   manifest.phases[phase] = "completed";
   manifest.lastUpdated = new Date().toISOString();
 
-  writeFileSync(manifestFilePath, JSON.stringify(manifest, null, 2));
-}
-
-/**
- * Find manifest file — checks new nested location first, falls back to flat.
- */
-function findManifestFile(projectRoot: string, epicSlug: string): string | undefined {
-  // New location: .beastmode/pipeline/<slug>/manifest.json
-  const newPath = resolve(projectRoot, ".beastmode/pipeline", epicSlug, "manifest.json");
-  if (existsSync(newPath)) return newPath;
-
-  // Legacy flat location: .beastmode/pipeline/YYYY-MM-DD-<slug>.manifest.json
-  const dir = pipelineDir(projectRoot);
-  const match = readdirSync(dir).find(
-    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
-  );
-  if (match) return resolve(dir, match);
-
-  return undefined;
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 }
 
 /** Mark a single feature as completed in the pipeline manifest. */
@@ -274,10 +197,15 @@ function markFeatureCompleted(
   epicSlug: string,
   featureSlug: string,
 ): { completed: number; total: number } | undefined {
-  const manifestFilePath = findManifestFile(projectRoot, epicSlug);
-  if (!manifestFilePath) return;
+  const dir = pipelineDir(projectRoot);
 
-  const manifest = JSON.parse(readFileSync(manifestFilePath, "utf-8"));
+  const match = readdirSync(dir).find(
+    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
+  );
+  if (!match) return;
+
+  const manifestPath = resolve(dir, match);
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
   const features: { slug: string; status: string }[] = manifest.features ?? [];
   const feature = features.find((f) => f.slug === featureSlug);
@@ -294,7 +222,7 @@ function markFeatureCompleted(
     (manifest.phases as Record<string, string>).implement = "completed";
   }
 
-  writeFileSync(manifestFilePath, JSON.stringify(manifest, null, 2));
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 
   return { completed, total: features.length };
 }
@@ -304,11 +232,15 @@ function readProgress(
   projectRoot: string,
   epicSlug: string,
 ): { completed: number; total: number } | undefined {
-  const manifestFilePath = findManifestFile(projectRoot, epicSlug);
-  if (!manifestFilePath) return;
+  const dir = pipelineDir(projectRoot);
+
+  const match = readdirSync(dir).find(
+    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
+  );
+  if (!match) return;
 
   try {
-    const manifest = JSON.parse(readFileSync(manifestFilePath, "utf-8"));
+    const manifest = JSON.parse(readFileSync(resolve(dir, match), "utf-8"));
     const features: { status: string }[] = manifest.features ?? [];
     if (features.length === 0) return;
     const completed = features.filter((f) => f.status === "completed").length;
@@ -317,7 +249,6 @@ function readProgress(
     return;
   }
 }
-
 
 /** Dispatch a phase using the Claude Agent SDK. */
 async function dispatchPhase(opts: {
@@ -433,7 +364,7 @@ async function dispatchPhase(opts: {
   })();
 
   // After the agent exits, reconcile state on the project root
-  const syncedPromise = promise.then(async (result) => {
+  const syncedPromise = promise.then((result) => {
     const progress = reconcileState({
       worktreePath: wt.path,
       projectRoot: opts.projectRoot,
@@ -442,17 +373,6 @@ async function dispatchPhase(opts: {
       featureSlug: opts.featureSlug,
       success: result.success,
     });
-
-    // Post-dispatch: read phase output, enrich manifest, sync GitHub
-    await runPostDispatch({
-      worktreePath: wt.path,
-      projectRoot: opts.projectRoot,
-      epicSlug: opts.epicSlug,
-      phase: opts.phase as Phase,
-      featureSlug: opts.featureSlug,
-      success: result.success,
-    });
-
     return { ...result, progress };
   });
 
@@ -500,12 +420,9 @@ export async function watchCommand(_args: string[]): Promise<void> {
   const projectRoot = findProjectRoot();
   const config = loadConfig(projectRoot);
 
-  // Bootstrap pipeline state from git-tracked manifests on first run
-  seedPipelineState(projectRoot);
-
   const deps: WatchDeps = {
     scanEpics,
-    sessionFactory: new SdkSessionFactory(dispatchPhase),
+    dispatchPhase,
     logRun,
   };
 

@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
 import { resolve } from "path";
-import { scanEpics, slugFromFilename, slugFromDesign } from "../state-scanner";
+import { scanEpics, slugFromDesign } from "../state-scanner";
 
 const TEST_ROOT = resolve(import.meta.dir, "../../.test-state-scanner");
 
@@ -9,7 +9,10 @@ function setupTestRoot(): void {
   if (existsSync(TEST_ROOT)) {
     rmSync(TEST_ROOT, { recursive: true });
   }
-  mkdirSync(resolve(TEST_ROOT, ".beastmode", "state", "plan"), {
+  mkdirSync(resolve(TEST_ROOT, ".beastmode", "state", "design"), {
+    recursive: true,
+  });
+  mkdirSync(resolve(TEST_ROOT, ".beastmode", "pipeline"), {
     recursive: true,
   });
   // Minimal config so gate checks don't crash
@@ -21,14 +24,23 @@ function setupTestRoot(): void {
 
 const TEST_DATE = "2026-03-29";
 
-/** Write a manifest into state/plan/ (lower priority source). */
-function writePlanManifest(
+function writeDesign(slug: string): void {
+  writeFileSync(
+    resolve(
+      TEST_ROOT,
+      ".beastmode",
+      "state",
+      "design",
+      `${TEST_DATE}-${slug}.md`,
+    ),
+    `# ${slug}\n`,
+  );
+}
+
+function writePipelineManifest(
   slug: string,
   features: Array<{ slug: string; status: string }>,
-  extra?: {
-    github?: { epic: number; repo: string };
-    phases?: Record<string, string>;
-  },
+  github?: { epic: number; repo: string },
 ): void {
   const manifest = {
     design: `.beastmode/state/design/${TEST_DATE}-${slug}.md`,
@@ -38,65 +50,63 @@ function writePlanManifest(
       plan: `${TEST_DATE}-${slug}-${f.slug}.md`,
       status: f.status,
     })),
-    github: extra?.github,
-    phases: extra?.phases,
+    github,
     lastUpdated: `${TEST_DATE}T00:00:00Z`,
   };
   writeFileSync(
     resolve(
       TEST_ROOT,
       ".beastmode",
-      "state",
-      "plan",
+      "pipeline",
       `${TEST_DATE}-${slug}.manifest.json`,
     ),
     JSON.stringify(manifest, null, 2),
   );
 }
 
-/** Write a manifest into pipeline/<slug>/ (higher priority source, wins dedup). */
-function writePipelineManifest(
-  slug: string,
-  features: Array<{ slug: string; status: string }>,
-  extra?: {
-    github?: { epic: number; repo: string };
-    phases?: Record<string, string>;
-  },
-): void {
-  const dir = resolve(TEST_ROOT, ".beastmode", "pipeline", slug);
+function writeOutputJson(phase: string, slug: string): void {
+  const dir = resolve(TEST_ROOT, ".beastmode", "state", phase);
   mkdirSync(dir, { recursive: true });
-  const manifest = {
-    design: `.beastmode/state/design/${TEST_DATE}-${slug}.md`,
-    architecturalDecisions: [],
-    features: features.map((f) => ({
-      slug: f.slug,
-      plan: `${TEST_DATE}-${slug}-${f.slug}.md`,
-      status: f.status,
-    })),
-    github: extra?.github,
-    phases: extra?.phases,
-    lastUpdated: `${TEST_DATE}T12:00:00Z`,
-  };
-  writeFileSync(resolve(dir, "manifest.json"), JSON.stringify(manifest, null, 2));
+  writeFileSync(
+    resolve(dir, `${TEST_DATE}-${slug}.output.json`),
+    JSON.stringify({ status: "completed", artifacts: {} }),
+  );
 }
 
-describe("slugFromFilename", () => {
-  test("extracts slug from dated filename", () => {
-    expect(slugFromFilename("2026-03-28-my-epic.md")).toBe("my-epic");
+function writeRunLog(
+  entries: Array<{
+    epic: string;
+    phase: string;
+    cost_usd: number;
+    duration_ms: number;
+  }>,
+): void {
+  const fullEntries = entries.map((e) => ({
+    ...e,
+    feature: null,
+    exit_status: "success" as const,
+    timestamp: `${TEST_DATE}T00:00:00Z`,
+    session_id: null,
+  }));
+  writeFileSync(
+    resolve(TEST_ROOT, ".beastmode-runs.json"),
+    JSON.stringify(fullEntries),
+  );
+}
+
+describe("slugFromDesign", () => {
+  test("extracts slug from dated design filename", () => {
+    expect(slugFromDesign("2026-03-28-my-epic.md")).toBe("my-epic");
   });
 
   test("handles multi-segment slugs", () => {
     expect(
-      slugFromFilename("2026-03-28-typescript-pipeline-orchestrator.md"),
+      slugFromDesign("2026-03-28-typescript-pipeline-orchestrator.md"),
     ).toBe("typescript-pipeline-orchestrator");
   });
 
   test("handles filename without date prefix", () => {
-    expect(slugFromFilename("my-epic.md")).toBe("my-epic");
-  });
-
-  test("slugFromDesign is a backward-compatible alias", () => {
-    expect(slugFromDesign("2026-03-28-my-epic.md")).toBe("my-epic");
+    expect(slugFromDesign("my-epic.md")).toBe("my-epic");
   });
 });
 
@@ -111,53 +121,42 @@ describe("scanEpics", () => {
     }
   });
 
-  test("returns empty array when no manifests exist", async () => {
+  test("returns empty array when no designs exist", async () => {
     const epics = await scanEpics(TEST_ROOT);
     expect(epics).toEqual([]);
   });
 
-  test("discovers epic from plan manifest", async () => {
-    writePlanManifest("my-epic", [{ slug: "f1", status: "pending" }]);
+  test("design with no manifest returns next-action: plan", async () => {
+    writeDesign("my-epic");
     const epics = await scanEpics(TEST_ROOT);
+
     expect(epics).toHaveLength(1);
     expect(epics[0].slug).toBe("my-epic");
-    expect(epics[0].phase).toBe("implement");
-  });
-
-  test("discovers epic from pipeline manifest", async () => {
-    writePipelineManifest("my-epic", [{ slug: "f1", status: "pending" }]);
-    const epics = await scanEpics(TEST_ROOT);
-    expect(epics).toHaveLength(1);
-    expect(epics[0].slug).toBe("my-epic");
-  });
-
-  test("pipeline manifest wins dedup over plan manifest", async () => {
-    // Plan: feature is pending
-    writePlanManifest("my-epic", [{ slug: "f1", status: "pending" }]);
-    // Pipeline: feature is completed (more up-to-date)
-    writePipelineManifest("my-epic", [{ slug: "f1", status: "completed" }]);
-
-    const epics = await scanEpics(TEST_ROOT);
-    expect(epics).toHaveLength(1);
-    // Should use pipeline data (completed), not plan data (pending)
-    expect(epics[0].features[0].status).toBe("completed");
-    // lastUpdated should be from pipeline manifest (12:00:00Z not 00:00:00Z)
-    expect(epics[0].lastUpdated).toContain("12:00:00");
+    expect(epics[0].phase).toBe("design");
+    expect(epics[0].nextAction).toEqual({
+      phase: "plan",
+      args: ["my-epic"],
+      type: "single",
+    });
   });
 
   test("manifest with empty features returns phase plan", async () => {
-    writePlanManifest("my-epic", []);
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", []);
     const epics = await scanEpics(TEST_ROOT);
+
     expect(epics[0].phase).toBe("plan");
     expect(epics[0].nextAction?.phase).toBe("plan");
   });
 
   test("manifest with pending features returns next-action: implement", async () => {
-    writePlanManifest("my-epic", [
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
       { slug: "feature-a", status: "pending" },
       { slug: "feature-b", status: "pending" },
     ]);
     const epics = await scanEpics(TEST_ROOT);
+
     expect(epics[0].phase).toBe("implement");
     expect(epics[0].nextAction).toEqual({
       phase: "implement",
@@ -168,22 +167,29 @@ describe("scanEpics", () => {
   });
 
   test("manifest with mix of completed and pending features returns implement with pending only", async () => {
-    writePlanManifest("my-epic", [
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
       { slug: "feature-a", status: "completed" },
       { slug: "feature-b", status: "pending" },
       { slug: "feature-c", status: "in-progress" },
     ]);
     const epics = await scanEpics(TEST_ROOT);
+
     expect(epics[0].phase).toBe("implement");
-    expect(epics[0].nextAction?.features).toEqual(["feature-b", "feature-c"]);
+    expect(epics[0].nextAction?.features).toEqual([
+      "feature-b",
+      "feature-c",
+    ]);
   });
 
-  test("all features completed returns phase validate", async () => {
-    writePlanManifest("my-epic", [
+  test("all features completed returns next-action: validate", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
       { slug: "feature-a", status: "completed" },
       { slug: "feature-b", status: "completed" },
     ]);
     const epics = await scanEpics(TEST_ROOT);
+
     expect(epics[0].phase).toBe("validate");
     expect(epics[0].nextAction).toEqual({
       phase: "validate",
@@ -192,13 +198,158 @@ describe("scanEpics", () => {
     });
   });
 
-  test("all features completed + validate phase in manifest.phases returns phase release", async () => {
-    writePlanManifest(
+  test("identifies blocked features", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
+      { slug: "feature-a", status: "blocked" },
+      { slug: "feature-b", status: "pending" },
+    ]);
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics[0].blocked).toBe(true);
+    expect(epics[0].gateBlocked).toBe(true);
+  });
+
+  test("aggregates cost from run log", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [{ slug: "f1", status: "pending" }]);
+    writeRunLog([
+      { epic: "my-epic", phase: "plan", cost_usd: 1.5, duration_ms: 1000 },
+      {
+        epic: "my-epic",
+        phase: "implement",
+        cost_usd: 3.25,
+        duration_ms: 2000,
+      },
+      {
+        epic: "other-epic",
+        phase: "plan",
+        cost_usd: 10.0,
+        duration_ms: 500,
+      },
+    ]);
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics[0].costUsd).toBeCloseTo(4.75);
+  });
+
+  test("returns zero cost when no run log exists", async () => {
+    writeDesign("my-epic");
+    const epics = await scanEpics(TEST_ROOT);
+    expect(epics[0].costUsd).toBe(0);
+  });
+
+  test("extracts feature progress from manifest", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
+      { slug: "feature-a", status: "completed" },
+      { slug: "feature-b", status: "in-progress" },
+      { slug: "feature-c", status: "pending" },
+    ]);
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics[0].features).toEqual([
+      { slug: "feature-a", status: "completed", githubIssue: undefined },
+      { slug: "feature-b", status: "in-progress", githubIssue: undefined },
+      { slug: "feature-c", status: "pending", githubIssue: undefined },
+    ]);
+  });
+
+  test("handles multiple epics simultaneously", async () => {
+    writeDesign("epic-one");
+    writeDesign("epic-two");
+    writePipelineManifest("epic-one", [{ slug: "f1", status: "completed" }]);
+    // epic-two has no manifest
+
+    const epics = await scanEpics(TEST_ROOT);
+    expect(epics).toHaveLength(2);
+
+    const one = epics.find((e) => e.slug === "epic-one")!;
+    const two = epics.find((e) => e.slug === "epic-two")!;
+
+    expect(one.phase).toBe("validate");
+    expect(two.phase).toBe("design");
+  });
+
+  test("preserves github epic issue from manifest", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest(
       "my-epic",
-      [{ slug: "feature-a", status: "completed" }],
-      { phases: { validate: "completed" } },
+      [{ slug: "f1", status: "pending" }],
+      { epic: 42, repo: "user/repo" },
     );
     const epics = await scanEpics(TEST_ROOT);
+    expect(epics[0].githubEpicIssue).toBe(42);
+  });
+
+  test("pure read-only — does not write to filesystem", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [{ slug: "f1", status: "pending" }]);
+
+    // Capture state before
+    const designBefore = Bun.file(
+      resolve(
+        TEST_ROOT,
+        ".beastmode",
+        "state",
+        "design",
+        `${TEST_DATE}-my-epic.md`,
+      ),
+    ).lastModified;
+    const manifestBefore = Bun.file(
+      resolve(
+        TEST_ROOT,
+        ".beastmode",
+        "pipeline",
+        `${TEST_DATE}-my-epic.manifest.json`,
+      ),
+    ).lastModified;
+
+    await scanEpics(TEST_ROOT);
+
+    // Verify no modification
+    const designAfter = Bun.file(
+      resolve(
+        TEST_ROOT,
+        ".beastmode",
+        "state",
+        "design",
+        `${TEST_DATE}-my-epic.md`,
+      ),
+    ).lastModified;
+    const manifestAfter = Bun.file(
+      resolve(
+        TEST_ROOT,
+        ".beastmode",
+        "pipeline",
+        `${TEST_DATE}-my-epic.manifest.json`,
+      ),
+    ).lastModified;
+
+    expect(designAfter).toBe(designBefore);
+    expect(manifestAfter).toBe(manifestBefore);
+  });
+
+  test("output.json in state/release/ causes release phase", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
+      { slug: "f1", status: "completed" },
+    ]);
+    writeOutputJson("release", "my-epic");
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics[0].phase).toBe("release");
+    expect(epics[0].nextAction).toBeNull();
+  });
+
+  test("output.json in state/validate/ with no release output.json causes release phase (needs release)", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
+      { slug: "f1", status: "completed" },
+    ]);
+    writeOutputJson("validate", "my-epic");
+    const epics = await scanEpics(TEST_ROOT);
+
     expect(epics[0].phase).toBe("release");
     expect(epics[0].nextAction).toEqual({
       phase: "release",
@@ -207,86 +358,72 @@ describe("scanEpics", () => {
     });
   });
 
-  test("release phase completed in manifest.phases returns done", async () => {
-    writePlanManifest(
-      "my-epic",
-      [{ slug: "feature-a", status: "completed" }],
-      { phases: { validate: "completed", release: "completed" } },
-    );
+  test("epic without output.json and without manifest shows as design", async () => {
+    writeDesign("my-epic");
     const epics = await scanEpics(TEST_ROOT);
-    expect(epics[0].phase).toBe("release");
-    expect(epics[0].nextAction).toBeNull();
-  });
 
-  test("identifies blocked features", async () => {
-    writePlanManifest("my-epic", [
-      { slug: "feature-a", status: "blocked" },
-      { slug: "feature-b", status: "pending" },
-    ]);
-    const epics = await scanEpics(TEST_ROOT);
-    expect(epics[0].blocked).toBe(true);
-    expect(epics[0].gateBlocked).toBe(true);
-  });
-
-  test("extracts feature progress from manifest", async () => {
-    writePlanManifest("my-epic", [
-      { slug: "feature-a", status: "completed" },
-      { slug: "feature-b", status: "in-progress" },
-      { slug: "feature-c", status: "pending" },
-    ]);
-    const epics = await scanEpics(TEST_ROOT);
-    expect(epics[0].features).toEqual([
-      { slug: "feature-a", status: "completed", githubIssue: undefined },
-      { slug: "feature-b", status: "in-progress", githubIssue: undefined },
-      { slug: "feature-c", status: "pending", githubIssue: undefined },
-    ]);
-  });
-
-  test("handles multiple epics from plan dir", async () => {
-    writePlanManifest("epic-one", [{ slug: "f1", status: "completed" }]);
-    writePlanManifest("epic-two", [{ slug: "f1", status: "pending" }]);
-    const epics = await scanEpics(TEST_ROOT);
-    expect(epics).toHaveLength(2);
-    const one = epics.find((e) => e.slug === "epic-one")!;
-    const two = epics.find((e) => e.slug === "epic-two")!;
-    expect(one.phase).toBe("validate");
-    expect(two.phase).toBe("implement");
-  });
-
-  test("preserves github epic issue from manifest", async () => {
-    writePlanManifest("my-epic", [{ slug: "f1", status: "pending" }], {
-      github: { epic: 42, repo: "user/repo" },
+    expect(epics[0].phase).toBe("design");
+    expect(epics[0].nextAction).toEqual({
+      phase: "plan",
+      args: ["my-epic"],
+      type: "single",
     });
-    const epics = await scanEpics(TEST_ROOT);
-    expect(epics[0].githubEpicIssue).toBe(42);
   });
 
-  test("includes lastUpdated from manifest", async () => {
-    writePlanManifest("my-epic", [{ slug: "f1", status: "pending" }]);
-    const epics = await scanEpics(TEST_ROOT);
-    expect(epics[0].lastUpdated).toBe(`${TEST_DATE}T00:00:00Z`);
-  });
-
-  test("designPath comes from manifest.design field", async () => {
-    writePlanManifest("my-epic", [{ slug: "f1", status: "pending" }]);
-    const epics = await scanEpics(TEST_ROOT);
-    expect(epics[0].designPath).toBe(
-      `.beastmode/state/design/${TEST_DATE}-my-epic.md`,
+  test("malformed manifest (missing required fields) is skipped", async () => {
+    writeDesign("my-epic");
+    // Write a manifest missing "features" and "lastUpdated"
+    writeFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-my-epic.manifest.json`),
+      JSON.stringify({ design: "something" }),
     );
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics).toHaveLength(1);
+    expect(epics[0].phase).toBe("design"); // Manifest was skipped — no valid manifest loaded
+    expect(epics[0].features).toEqual([]); // No features extracted
   });
 
-  test("pure read-only — does not write to filesystem", async () => {
-    writePlanManifest("my-epic", [{ slug: "f1", status: "pending" }]);
-    const manifestPath = resolve(
-      TEST_ROOT,
-      ".beastmode",
-      "state",
-      "plan",
-      `${TEST_DATE}-my-epic.manifest.json`,
+  test("invalid JSON manifest is skipped", async () => {
+    writeDesign("my-epic");
+    writeFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-my-epic.manifest.json`),
+      "this is not valid json {{{",
     );
-    const before = Bun.file(manifestPath).lastModified;
-    await scanEpics(TEST_ROOT);
-    const after = Bun.file(manifestPath).lastModified;
-    expect(after).toBe(before);
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics).toHaveLength(1);
+    expect(epics[0].phase).toBe("design"); // Invalid JSON was skipped
+    expect(epics[0].features).toEqual([]);
+  });
+
+  test("manifest with wrong-typed fields is skipped", async () => {
+    writeDesign("my-epic");
+    writeFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-my-epic.manifest.json`),
+      JSON.stringify({
+        design: 42, // should be string
+        features: [{ slug: "f1", status: "pending" }],
+        lastUpdated: "2026-03-29T00:00:00Z",
+      }),
+    );
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics).toHaveLength(1);
+    expect(epics[0].phase).toBe("design"); // Wrong types — validation rejected
+    expect(epics[0].features).toEqual([]);
+  });
+
+  test("valid manifest passes validation and loads correctly", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
+      { slug: "feature-a", status: "pending" },
+    ]);
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics).toHaveLength(1);
+    expect(epics[0].phase).toBe("implement");
+    expect(epics[0].features).toHaveLength(1);
+    expect(epics[0].features[0].slug).toBe("feature-a");
   });
 });

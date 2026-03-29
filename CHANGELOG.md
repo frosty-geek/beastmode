@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.35.0 — The Status Unfuckery (Mar 2026)
+
+- **Manifest structural validation** — Scanner validates required fields (design, features, lastUpdated) with correct types; malformed manifests skipped with warning instead of corrupting status output
+- **Output.json phase detection** — Phase derivation uses checkpoint output.json files instead of legacy directory artifact scanning; waterfall: release > validate > implement-done > implement > plan > design
+- **Watch command cleanup** — Removed seedPipelineState (stale manifest re-seeding) and dead scanEpicsInline fallback; watch loop imports state-scanner directly
+
 ### v0.34.0 — The Manifest-Only Status (Mar 2026)
 
 - **Manifest-first scanner** — Epic discovery pivots on manifest files instead of design files; status table drops from ~116 noisy rows to ~12 active epics

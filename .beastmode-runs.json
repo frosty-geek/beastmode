@@ -580,5 +580,95 @@
     "exit_status": "success",
     "timestamp": "2026-03-29T08:51:57.046Z",
     "session_id": "26f6907c-4586-44d2-a4e4-e1d38868c41d"
+  },
+  {
+    "epic": "status-unfuckery",
+    "phase": "design",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 1234202,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:20:31.162Z",
+    "session_id": null
+  },
+  {
+    "epic": "status-unfuckery",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 660765,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:31:35.340Z",
+    "session_id": null
+  },
+  {
+    "epic": "cmux-integration-revisited",
+    "phase": "design",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 2124095,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:32:38.853Z",
+    "session_id": null
+  },
+  {
+    "epic": "github-skill-cleanup",
+    "phase": "design",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 266492,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:39:04.759Z",
+    "session_id": null
+  },
+  {
+    "epic": "cmux-integration-revisited",
+    "phase": "plan",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 466654,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:40:31.093Z",
+    "session_id": null
+  },
+  {
+    "epic": "status-unfuckery",
+    "phase": "implement",
+    "feature": "manifest-validation",
+    "cost_usd": null,
+    "duration_ms": 626713,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:41:49.229Z",
+    "session_id": null
+  },
+  {
+    "epic": "status-unfuckery",
+    "phase": "implement",
+    "feature": "output-json-phase-detection",
+    "cost_usd": null,
+    "duration_ms": 625293,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:41:52.563Z",
+    "session_id": null
+  },
+  {
+    "epic": "status-unfuckery",
+    "phase": "implement",
+    "feature": "watch-command-cleanup",
+    "cost_usd": null,
+    "duration_ms": 627802,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:41:59.753Z",
+    "session_id": null
+  },
+  {
+    "epic": "status-unfuckery",
+    "phase": "validate",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 285844,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T10:46:36.339Z",
+    "session_id": null
   }
 ]
