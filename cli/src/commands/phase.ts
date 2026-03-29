@@ -23,8 +23,7 @@ import {
   remove as removeWorktree,
 } from "../worktree";
 import {
-  findManifestPath,
-  readManifest,
+  loadManifest,
   getPendingFeatures,
 } from "../manifest";
 
@@ -137,17 +136,15 @@ async function runImplementFanOut(
   await ensureWorktree(epicSlug);
   const epicCwd = enterWorktree(epicSlug);
 
-  // Read manifest from the epic worktree
-  const manifestPath = findManifestPath(epicCwd, epicSlug);
-  if (!manifestPath) {
+  // Read manifest from pipeline directory (project root)
+  const manifest = loadManifest(projectRoot, epicSlug);
+  if (!manifest) {
     console.error(`[beastmode] No manifest found for epic: ${epicSlug}`);
     console.error(
-      `[beastmode] Expected: .beastmode/state/plan/*-${epicSlug}.manifest.json`,
+      `[beastmode] Expected: .beastmode/pipeline/${epicSlug}/manifest.json`,
     );
     process.exit(1);
   }
-
-  const manifest = readManifest(manifestPath);
   const pendingFeatures = getPendingFeatures(manifest);
 
   if (pendingFeatures.length === 0) {

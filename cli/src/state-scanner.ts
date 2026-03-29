@@ -34,10 +34,12 @@ export interface EpicState {
   githubEpicIssue?: number;
 }
 
-/** Manifest JSON structure as written by /plan */
+/** Manifest JSON structure — supports both legacy and new pipeline format */
 interface Manifest {
-  design: string;
-  architecturalDecisions: Array<{ decision: string; choice: string }>;
+  slug?: string;
+  design?: string;
+  architecturalDecisions?: Array<{ decision: string; choice: string }>;
+  phase?: string;
   features: Array<{
     slug: string;
     plan: string;
@@ -78,10 +80,15 @@ const MANIFEST_EPOCH = "2026-03-28";
 
 /**
  * Find the manifest for a given design slug.
- * Checks .beastmode/pipeline/ first (orchestrator runtime state),
+ * Checks .beastmode/pipeline/<slug>/manifest.json first (new location),
+ * then .beastmode/pipeline/ flat files (orchestrator runtime state),
  * falls back to .beastmode/state/plan/ (git-tracked seed data).
  */
-function findManifest(pipeDir: string, planDir: string, slug: string): string | undefined {
+function findManifest(projectRoot: string, pipeDir: string, planDir: string, slug: string): string | undefined {
+  // New pipeline location: .beastmode/pipeline/<slug>/manifest.json
+  const newPath = resolve(projectRoot, ".beastmode", "pipeline", slug, "manifest.json");
+  if (existsSync(newPath)) return newPath;
+
   for (const dir of [pipeDir, planDir]) {
     if (!existsSync(dir)) continue;
     const files = readdirSync(dir);
@@ -299,7 +306,7 @@ export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
     const slug = slugFromDesign(designFile);
     const designPath = resolve(designDir, designFile);
 
-    const manifestPath = findManifest(pipeDir, planDir, slug);
+    const manifestPath = findManifest(projectRoot, pipeDir, planDir, slug);
     const manifest = manifestPath ? readManifest(manifestPath) : undefined;
 
     const { phase, done } = derivePhase(slug, manifest, stateDir, pipeDir, designFile);

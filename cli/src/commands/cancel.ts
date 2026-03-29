@@ -18,7 +18,7 @@ import {
   archive as archiveWorktree,
   remove as removeWorktree,
 } from "../worktree";
-import { findManifestPath } from "../manifest";
+import { manifestPath, manifestExists, loadManifest } from "../manifest";
 import { readFileSync, writeFileSync } from "fs";
 
 export async function cancelCommand(
@@ -82,16 +82,16 @@ function updateManifestCancelled(
   projectRoot: string,
   slug: string,
 ): void {
-  const manifestPath = findManifestPath(projectRoot, slug);
-  if (!manifestPath) {
+  const path = manifestPath(projectRoot, slug);
+  if (!manifestExists(projectRoot, slug)) {
     throw new Error(`No manifest found for: ${slug}`);
   }
 
-  const raw = readFileSync(manifestPath, "utf-8");
+  const raw = readFileSync(path, "utf-8");
   const manifest = JSON.parse(raw);
   manifest.phase = "cancelled";
   manifest.lastUpdated = new Date().toISOString();
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  writeFileSync(path, JSON.stringify(manifest, null, 2) + "\n");
 }
 
 /**
@@ -102,17 +102,10 @@ async function closeGitHubEpic(
   projectRoot: string,
   slug: string,
 ): Promise<void> {
-  const manifestPath = findManifestPath(projectRoot, slug);
-  if (!manifestPath) return;
+  const manifest = loadManifest(projectRoot, slug);
+  if (!manifest) return;
 
-  let epicNumber: number | undefined;
-  try {
-    const raw = readFileSync(manifestPath, "utf-8");
-    const manifest = JSON.parse(raw);
-    epicNumber = manifest.github?.epic;
-  } catch {
-    return;
-  }
+  const epicNumber = manifest.github?.epic;
 
   if (!epicNumber) return;
 

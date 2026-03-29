@@ -13,6 +13,7 @@ import type { WatchDeps } from "./watch.js";
 import type { EpicState, SessionResult, NextAction, FeatureProgress } from "./watch-types.js";
 import { SdkSessionFactory } from "./session.js";
 import * as worktree from "./worktree.js";
+import { manifestPath as pipelineManifestPath, manifestDir as pipelineManifestDir } from "./manifest.js";
 
 /** Discover the project root (walks up to find .beastmode/). */
 function findProjectRoot(from: string = process.cwd()): string {
@@ -44,6 +45,16 @@ function pipelineDir(projectRoot: string): string {
   const dir = resolve(projectRoot, ".beastmode/pipeline");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+/**
+ * Resolve the manifest file path for a given slug using new nested layout.
+ * Convention: .beastmode/pipeline/<slug>/manifest.json
+ */
+function resolveManifestPath(projectRoot: string, slug: string): string {
+  const dir = resolve(projectRoot, ".beastmode/pipeline", slug);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  return resolve(dir, "manifest.json");
 }
 
 /**
@@ -171,16 +182,12 @@ function reconcilePlan(
     return { slug: match[1], plan: f };
   });
 
-  const dir = pipelineDir(projectRoot);
-
-  // Read existing manifest to preserve statuses and metadata
-  const manifestFile = readdirSync(dir).find(
-    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
-  );
+  // Read existing manifest from either new or legacy location
+  const existingManifestPath = findManifestFile(projectRoot, epicSlug);
   let manifest: Record<string, unknown> = {};
-  if (manifestFile) {
+  if (existingManifestPath) {
     try {
-      manifest = JSON.parse(readFileSync(resolve(dir, manifestFile), "utf-8"));
+      manifest = JSON.parse(readFileSync(existingManifestPath, "utf-8"));
     } catch { /* start fresh */ }
   }
 
@@ -245,20 +252,34 @@ function updatePhaseStatus(
   epicSlug: string,
   phase: string,
 ): void {
-  const dir = pipelineDir(projectRoot);
-  const match = readdirSync(dir).find(
-    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
-  );
-  if (!match) return;
+  const manifestFilePath = findManifestFile(projectRoot, epicSlug);
+  if (!manifestFilePath) return;
 
-  const manifestPath = resolve(dir, match);
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+  const manifest = JSON.parse(readFileSync(manifestFilePath, "utf-8"));
 
   if (!manifest.phases) manifest.phases = {};
   manifest.phases[phase] = "completed";
   manifest.lastUpdated = new Date().toISOString();
 
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  writeFileSync(manifestFilePath, JSON.stringify(manifest, null, 2));
+}
+
+/**
+ * Find manifest file — checks new nested location first, falls back to flat.
+ */
+function findManifestFile(projectRoot: string, epicSlug: string): string | undefined {
+  // New location: .beastmode/pipeline/<slug>/manifest.json
+  const newPath = resolve(projectRoot, ".beastmode/pipeline", epicSlug, "manifest.json");
+  if (existsSync(newPath)) return newPath;
+
+  // Legacy flat location: .beastmode/pipeline/YYYY-MM-DD-<slug>.manifest.json
+  const dir = pipelineDir(projectRoot);
+  const match = readdirSync(dir).find(
+    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
+  );
+  if (match) return resolve(dir, match);
+
+  return undefined;
 }
 
 /** Mark a single feature as completed in the pipeline manifest. */
@@ -267,15 +288,10 @@ function markFeatureCompleted(
   epicSlug: string,
   featureSlug: string,
 ): { completed: number; total: number } | undefined {
-  const dir = pipelineDir(projectRoot);
+  const manifestFilePath = findManifestFile(projectRoot, epicSlug);
+  if (!manifestFilePath) return;
 
-  const match = readdirSync(dir).find(
-    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
-  );
-  if (!match) return;
-
-  const manifestPath = resolve(dir, match);
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+  const manifest = JSON.parse(readFileSync(manifestFilePath, "utf-8"));
 
   const features: { slug: string; status: string }[] = manifest.features ?? [];
   const feature = features.find((f) => f.slug === featureSlug);
@@ -292,7 +308,7 @@ function markFeatureCompleted(
     (manifest.phases as Record<string, string>).implement = "completed";
   }
 
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  writeFileSync(manifestFilePath, JSON.stringify(manifest, null, 2));
 
   return { completed, total: features.length };
 }
@@ -302,15 +318,11 @@ function readProgress(
   projectRoot: string,
   epicSlug: string,
 ): { completed: number; total: number } | undefined {
-  const dir = pipelineDir(projectRoot);
-
-  const match = readdirSync(dir).find(
-    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
-  );
-  if (!match) return;
+  const manifestFilePath = findManifestFile(projectRoot, epicSlug);
+  if (!manifestFilePath) return;
 
   try {
-    const manifest = JSON.parse(readFileSync(resolve(dir, match), "utf-8"));
+    const manifest = JSON.parse(readFileSync(manifestFilePath, "utf-8"));
     const features: { status: string }[] = manifest.features ?? [];
     if (features.length === 0) return;
     const completed = features.filter((f) => f.status === "completed").length;
