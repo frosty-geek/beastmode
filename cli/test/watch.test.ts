@@ -887,4 +887,57 @@ describe("WatchLoop", () => {
 
     await loop.stop();
   });
+
+  it("does not re-dispatch release after successful completion", async () => {
+    let dispatchCount = 0;
+    let scanCount = 0;
+
+    const releaseEpic: EnrichedManifest = {
+      slug: "done-epic",
+      manifestPath: "pipeline/done-epic.manifest.json",
+      phase: "validate",
+      nextAction: { phase: "release", args: ["done-epic"], type: "single" },
+      features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
+      artifacts: {},
+      lastUpdated: "2026-03-29T00:00:00Z",
+      blocked: null,
+    };
+
+    const deps = mockDeps({
+      scanEpics: async () => {
+        scanCount++;
+        if (scanCount === 1) return [releaseEpic];
+        // After successful release, manifest is removed — scanner returns empty
+        return [];
+      },
+      sessionFactory: new SdkSessionFactory(async (opts) => {
+        dispatchCount++;
+        return {
+          id: `release-${Date.now()}`,
+          worktreeSlug: `done-epic-release`,
+          promise: Promise.resolve({
+            success: true,
+            exitCode: 0,
+            costUsd: 1.0,
+            durationMs: 5000,
+          }),
+        };
+      }),
+    });
+
+    const loop = new WatchLoop(
+      { intervalSeconds: 999, projectRoot: TEST_ROOT },
+      deps,
+    );
+    loop.setRunning(true);
+
+    await loop.tick();
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Release should only be dispatched once — not re-dispatched after rescan
+    expect(dispatchCount).toBe(1);
+    expect(loop.getTracker().size).toBe(0);
+
+    await loop.stop();
+  });
 });

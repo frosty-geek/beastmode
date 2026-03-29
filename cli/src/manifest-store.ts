@@ -1,11 +1,11 @@
 /**
  * Manifest Store — sole filesystem interface for pipeline manifests.
  *
- * All reads/writes of .beastmode/pipeline/*.manifest.json go through here.
+ * All reads/writes of .beastmode/state/*.manifest.json go through here.
  * Type definitions for the manifest schema live here too.
  *
  * Schema: pure pipeline state.
- * Location: .beastmode/pipeline/YYYY-MM-DD-<slug>.manifest.json (flat file)
+ * Location: .beastmode/state/YYYY-MM-DD-<slug>.manifest.json (flat file)
  * Lifecycle: CLI creates, enriches, advances, reconstructs.
  */
 
@@ -15,6 +15,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  unlinkSync,
 } from "fs";
 import { resolve } from "path";
 import type { Phase } from "./types";
@@ -61,11 +62,11 @@ function isValidFeatureStatus(s: string): boolean {
 // --- Internal Helpers ---
 
 /**
- * Resolve the pipeline directory.
- * Convention: .beastmode/pipeline/
+ * Resolve the state directory for pipeline manifests.
+ * Convention: .beastmode/state/
  */
 function pipelineDir(projectRoot: string): string {
-  return resolve(projectRoot, ".beastmode", "pipeline");
+  return resolve(projectRoot, ".beastmode", "state");
 }
 
 /**
@@ -81,7 +82,7 @@ function newManifestPath(projectRoot: string, slug: string): string {
 
 /**
  * Find the manifest file path for a given slug.
- * Convention: .beastmode/pipeline/YYYY-MM-DD-<slug>.manifest.json
+ * Convention: .beastmode/state/YYYY-MM-DD-<slug>.manifest.json
  * Returns the latest match (date prefix sorts chronologically).
  */
 export function manifestPath(
@@ -170,6 +171,16 @@ export function save(
   const path =
     manifestPath(projectRoot, slug) ?? newManifestPath(projectRoot, slug);
   writeFileSync(path, JSON.stringify(manifest, null, 2));
+}
+
+/**
+ * Remove a manifest from disk. Returns true if a file was deleted.
+ */
+export function remove(projectRoot: string, slug: string): boolean {
+  const path = manifestPath(projectRoot, slug);
+  if (!path || !existsSync(path)) return false;
+  unlinkSync(path);
+  return true;
 }
 
 /**

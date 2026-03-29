@@ -12,7 +12,7 @@ import type { Phase } from "./types";
 import type { PipelineManifest } from "./manifest-store";
 import * as store from "./manifest-store";
 import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase } from "./manifest";
-import { loadPhaseOutput, extractFeatureStatuses, extractArtifactPaths } from "./phase-output";
+import { loadPhaseOutput, extractFeatureStatuses, extractArtifactPaths, loadWorktreePhaseOutput } from "./phase-output";
 import { syncGitHub } from "./github-sync";
 import { loadConfig } from "./config";
 
@@ -47,8 +47,8 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       return;
     }
 
-    // Load phase output from the worktree
-    const output = loadPhaseOutput(opts.worktreePath, opts.phase, opts.epicSlug);
+    // Load phase output from the worktree artifacts dir (where the stop hook writes)
+    const output = loadWorktreePhaseOutput(opts.worktreePath, opts.phase);
     if (output) {
       console.log(`[post-dispatch] Loaded phase output for ${opts.phase}/${opts.epicSlug} (status: ${output.status})`);
     } else {

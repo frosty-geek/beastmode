@@ -162,6 +162,35 @@ export function extractArtifactPaths(output: PhaseOutput): string[] {
   return paths;
 }
 
+// --- Worktree artifact-based output (where the stop hook actually writes) ---
+
+/**
+ * Find the most recent output.json in a worktree's artifacts directory.
+ * The stop hook writes to .beastmode/artifacts/<phase>/*.output.json,
+ * NOT to .beastmode/state/<phase>/.
+ */
+export function findWorktreeOutputFile(worktreePath: string, phase: Phase): string | undefined {
+  const dir = resolve(worktreePath, ".beastmode", "artifacts", phase);
+  if (!existsSync(dir)) return undefined;
+
+  const matches = readdirSync(dir)
+    .filter((f) => f.endsWith(".output.json"))
+    .sort();
+
+  if (matches.length === 0) return undefined;
+  return resolve(dir, matches[matches.length - 1]);
+}
+
+/**
+ * Find and safely load the most recent phase output from a worktree's
+ * artifacts directory. Returns undefined on any error.
+ */
+export function loadWorktreePhaseOutput(worktreePath: string, phase: Phase): PhaseOutput | undefined {
+  const file = findWorktreeOutputFile(worktreePath, phase);
+  if (!file) return undefined;
+  return loadOutput(file);
+}
+
 /**
  * Validate that a parsed value conforms to the PhaseOutput shape.
  */

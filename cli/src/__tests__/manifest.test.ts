@@ -31,13 +31,13 @@ describe("manifest path conventions", () => {
   });
 
   test("manifestPath returns undefined when no matching manifest exists", () => {
-    const dir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+    const dir = resolve(TEST_ROOT, ".beastmode", "state");
     mkdirSync(dir, { recursive: true });
     expect(manifestPath(TEST_ROOT, "my-epic")).toBeUndefined();
   });
 
   test("manifestPath finds flat-file manifest by slug suffix", () => {
-    const dir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+    const dir = resolve(TEST_ROOT, ".beastmode", "state");
     mkdirSync(dir, { recursive: true });
     writeFileSync(resolve(dir, "2026-03-29-my-epic.manifest.json"), "{}");
     const found = manifestPath(TEST_ROOT, "my-epic");
@@ -45,7 +45,7 @@ describe("manifest path conventions", () => {
   });
 
   test("manifestPath returns latest when multiple date-prefixed manifests exist", () => {
-    const dir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+    const dir = resolve(TEST_ROOT, ".beastmode", "state");
     mkdirSync(dir, { recursive: true });
     writeFileSync(resolve(dir, "2026-03-28-my-epic.manifest.json"), "{}");
     writeFileSync(resolve(dir, "2026-03-29-my-epic.manifest.json"), "{}");
@@ -55,7 +55,7 @@ describe("manifest path conventions", () => {
 
   test("manifest-store and scanner use same flat-file convention", () => {
     create(TEST_ROOT, "convention-test");
-    const pipeDir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+    const pipeDir = resolve(TEST_ROOT, ".beastmode", "state");
     const files = readdirSync(pipeDir);
     const match = files.find((f) => f.endsWith("-convention-test.manifest.json"));
     expect(match).toBeDefined();
@@ -82,7 +82,7 @@ describe("manifest-store core operations", () => {
   });
 
   test("create creates pipeline directory if missing", () => {
-    const pipeDir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+    const pipeDir = resolve(TEST_ROOT, ".beastmode", "state");
     expect(existsSync(pipeDir)).toBe(false);
     create(TEST_ROOT, "fresh-epic");
     expect(existsSync(pipeDir)).toBe(true);
@@ -107,7 +107,7 @@ describe("manifest-store core operations", () => {
   });
 
   test("save creates directories", () => {
-    const pipeDir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+    const pipeDir = resolve(TEST_ROOT, ".beastmode", "state");
     expect(existsSync(pipeDir)).toBe(false);
 
     const manifest: PipelineManifest = {

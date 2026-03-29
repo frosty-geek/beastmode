@@ -9,7 +9,7 @@ const TEST_DATE = "2026-03-29";
 
 function setupTestRoot(): void {
   if (existsSync(TEST_ROOT)) { rmSync(TEST_ROOT, { recursive: true }); }
-  mkdirSync(resolve(TEST_ROOT, ".beastmode", "pipeline"), { recursive: true });
+  mkdirSync(resolve(TEST_ROOT, ".beastmode", "state"), { recursive: true });
   writeFileSync(
     resolve(TEST_ROOT, ".beastmode", "config.yaml"),
     `gates:\n  design:\n    decision-tree: human\n  implement:\n    architectural-deviation: auto\n`,
@@ -28,14 +28,14 @@ function writePipelineManifest(
     lastUpdated: `${TEST_DATE}T00:00:00Z`,
   };
   writeFileSync(
-    resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-${slug}.manifest.json`),
+    resolve(TEST_ROOT, ".beastmode", "state", `${TEST_DATE}-${slug}.manifest.json`),
     JSON.stringify(manifest, null, 2),
   );
 }
 
 function writeRawManifest(slug: string, content: unknown): void {
   writeFileSync(
-    resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-${slug}.manifest.json`),
+    resolve(TEST_ROOT, ".beastmode", "state", `${TEST_DATE}-${slug}.manifest.json`),
     typeof content === "string" ? content : JSON.stringify(content, null, 2),
   );
 }
@@ -92,7 +92,7 @@ describe("scanEpics", () => {
   afterEach(() => { if (existsSync(TEST_ROOT)) rmSync(TEST_ROOT, { recursive: true }); });
 
   test("returns empty when no pipeline dir", async () => {
-    rmSync(resolve(TEST_ROOT, ".beastmode", "pipeline"), { recursive: true });
+    rmSync(resolve(TEST_ROOT, ".beastmode", "state"), { recursive: true });
     const result = await scanEpics(TEST_ROOT);
     expect(result.epics).toEqual([]);
   });
@@ -230,13 +230,13 @@ describe("scanEpics", () => {
     writePipelineManifest("my-epic", "implement", [{ slug: "f1", status: "pending" }]);
     const { epics } = await scanEpics(TEST_ROOT);
     expect(epics[0].manifestPath).toBe(
-      resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-my-epic.manifest.json`),
+      resolve(TEST_ROOT, ".beastmode", "state", `${TEST_DATE}-my-epic.manifest.json`),
     );
   });
 
   test("pure read-only — does not write to filesystem", async () => {
     writePipelineManifest("my-epic", "implement", [{ slug: "f1", status: "pending" }]);
-    const path = resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-my-epic.manifest.json`);
+    const path = resolve(TEST_ROOT, ".beastmode", "state", `${TEST_DATE}-my-epic.manifest.json`);
     const before = Bun.file(path).lastModified;
     await scanEpics(TEST_ROOT);
     const after = Bun.file(path).lastModified;

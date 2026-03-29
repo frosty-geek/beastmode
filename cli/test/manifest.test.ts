@@ -8,6 +8,7 @@ import {
   get,
   load,
   save,
+  remove,
   findLegacyManifestPath,
   readLegacyManifest,
   type PipelineManifest,
@@ -36,12 +37,12 @@ describe("manifestPath", () => {
   });
 
   test("returns undefined when no manifest exists for slug", () => {
-    mkdirSync(resolve(TEST_ROOT, ".beastmode/pipeline"), { recursive: true });
+    mkdirSync(resolve(TEST_ROOT, ".beastmode/state"), { recursive: true });
     expect(manifestPath(TEST_ROOT, "my-epic")).toBeUndefined();
   });
 
   test("finds flat-file manifest by slug", () => {
-    const dir = resolve(TEST_ROOT, ".beastmode/pipeline");
+    const dir = resolve(TEST_ROOT, ".beastmode/state");
     mkdirSync(dir, { recursive: true });
     writeFileSync(resolve(dir, "2026-03-29-my-epic.manifest.json"), "{}");
     const path = manifestPath(TEST_ROOT, "my-epic");
@@ -78,8 +79,8 @@ describe("create (seed)", () => {
     expect(manifest.github).toEqual({ epic: 42, repo: "org/repo" });
   });
 
-  test("creates pipeline directory if missing", () => {
-    const dir = resolve(TEST_ROOT, ".beastmode/pipeline");
+  test("creates state directory if missing", () => {
+    const dir = resolve(TEST_ROOT, ".beastmode/state");
     expect(existsSync(dir)).toBe(false);
     create(TEST_ROOT, "test-epic");
     expect(existsSync(dir)).toBe(true);
@@ -278,6 +279,22 @@ describe("save (writeManifest)", () => {
     expect(reread.slug).toBe("write-test");
     expect(reread.phase).toBe("implement");
     expect(reread.features).toHaveLength(1);
+  });
+});
+
+describe("remove", () => {
+  beforeEach(setupTestRoot);
+  afterEach(() => rmSync(TEST_ROOT, { recursive: true, force: true }));
+
+  test("deletes manifest and returns true", () => {
+    create(TEST_ROOT, "remove-test");
+    expect(manifestExists(TEST_ROOT, "remove-test")).toBe(true);
+    expect(remove(TEST_ROOT, "remove-test")).toBe(true);
+    expect(load(TEST_ROOT, "remove-test")).toBeUndefined();
+  });
+
+  test("returns false for nonexistent manifest", () => {
+    expect(remove(TEST_ROOT, "nonexistent")).toBe(false);
   });
 });
 

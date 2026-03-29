@@ -25,14 +25,14 @@ function setupTestRoot(): void {
 }
 
 function writeTestManifest(slug: string, manifest: object): void {
-  const dir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+  const dir = resolve(TEST_ROOT, ".beastmode", "state");
   mkdirSync(dir, { recursive: true });
   const date = new Date().toISOString().slice(0, 10);
   writeFileSync(resolve(dir, `${date}-${slug}.manifest.json`), JSON.stringify(manifest, null, 2));
 }
 
 function readTestManifest(slug: string): PipelineManifest {
-  const dir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+  const dir = resolve(TEST_ROOT, ".beastmode", "state");
   const files = require("fs").readdirSync(dir) as string[];
   const match = files.find((f: string) => f.endsWith(`-${slug}.manifest.json`));
   if (!match) throw new Error(`No manifest for ${slug}`);
@@ -46,7 +46,8 @@ function writePhaseOutput(
   output: object,
 ): void {
   const date = new Date().toISOString().slice(0, 10);
-  const dir = resolve(root, ".beastmode", "state", phase);
+  // Stop hook writes to artifacts/<phase>/, not state/<phase>/
+  const dir = resolve(root, ".beastmode", "artifacts", phase);
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     resolve(dir, `${date}-${slug}.output.json`),
@@ -79,7 +80,7 @@ describe("runPostDispatch", () => {
   test("skips updates on failure", async () => {
     const manifest = makeManifest({ phase: "plan" });
     writeTestManifest(EPIC_SLUG, manifest);
-    const dir = resolve(TEST_ROOT, ".beastmode", "pipeline");
+    const dir = resolve(TEST_ROOT, ".beastmode", "state");
     const files = require("fs").readdirSync(dir) as string[];
     const manifestFile = files.find((f: string) => f.endsWith(`-${EPIC_SLUG}.manifest.json`))!;
     const before = readFileSync(resolve(dir, manifestFile), "utf-8");

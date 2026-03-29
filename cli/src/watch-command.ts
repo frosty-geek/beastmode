@@ -6,7 +6,7 @@
  */
 
 import { resolve } from "node:path";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { loadConfig } from "./config.js";
 import { WatchLoop } from "./watch.js";
 import type { WatchDeps } from "./watch.js";
@@ -15,9 +15,10 @@ import { SdkSessionFactory } from "./session.js";
 import * as worktree from "./worktree.js";
 import { scanEpics } from "./state-scanner.js";
 import * as store from "./manifest-store.js";
-import { enrich, advancePhase, markFeature } from "./manifest.js";
+import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase } from "./manifest.js";
 import type { PipelineManifest, ManifestFeature } from "./manifest-store.js";
 import type { Phase } from "./types.js";
+import { loadWorktreePhaseOutput, extractFeatureStatuses, extractArtifactPaths } from "./phase-output.js";
 
 /** Discover the project root (walks up to find .beastmode/). */
 function findProjectRoot(from: string = process.cwd()): string {
@@ -29,23 +30,10 @@ function findProjectRoot(from: string = process.cwd()): string {
   throw new Error("Not inside a beastmode project (no .beastmode/ found)");
 }
 
-/** Phase advancement map — which phase follows which. */
-const NEXT_PHASE: Partial<Record<Phase, Phase>> = {
-  design: "plan",
-  plan: "implement",
-  implement: "validate",
-  validate: "release",
-};
-
 /**
- * State reconciliation — the orchestrator is the sole writer of pipeline state.
- *
- * All runtime state lives in .beastmode/state/ (gitignored).
- * Rules:
- *   plan      → scan worktree for feature plan .md files, enrich manifest
- *   implement → mark the completed feature in the manifest
- *   validate  → advance phase
- *   release   → advance phase
+ * State reconciliation — reads the stop hook's output.json from the worktree
+ * and uses it to enrich/advance the manifest. Same logic as post-dispatch,
+ * reading from the correct location (.beastmode/artifacts/<phase>/).
  */
 function reconcileState(opts: {
   worktreePath: string;
@@ -57,137 +45,66 @@ function reconcileState(opts: {
 }): { completed: number; total: number } | undefined {
   if (!opts.success) return readProgress(opts.projectRoot, opts.epicSlug);
 
-  switch (opts.phase) {
-    case "plan":
-      return reconcilePlan(opts.worktreePath, opts.projectRoot, opts.epicSlug);
+  // 1. Load output.json from worktree artifacts dir
+  const output = loadWorktreePhaseOutput(opts.worktreePath, opts.phase as Phase);
 
-    case "implement":
-      if (opts.featureSlug) {
-        return markFeatureCompleted(opts.projectRoot, opts.epicSlug, opts.featureSlug);
-      }
-      return readProgress(opts.projectRoot, opts.epicSlug);
-
-    case "validate":
-    case "release":
-      updatePhaseStatus(opts.projectRoot, opts.epicSlug, opts.phase);
-      return readProgress(opts.projectRoot, opts.epicSlug);
-
-    default:
-      return readProgress(opts.projectRoot, opts.epicSlug);
-  }
-}
-
-/**
- * After plan completes, scan the worktree for feature plan .md files and
- * enrich the manifest via the store + manifest modules.
- */
-function reconcilePlan(
-  worktreePath: string,
-  projectRoot: string,
-  epicSlug: string,
-): { completed: number; total: number } | undefined {
-  const planDir = resolve(worktreePath, ".beastmode/artifacts/plan");
-  if (!existsSync(planDir)) return;
-
-  // Scan worktree for feature plan files
-  const featurePlanPattern = new RegExp(
-    `^\\d{4}-\\d{2}-\\d{2}-${epicSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-(.+)\\.md$`,
-  );
-  const planFiles = readdirSync(planDir).filter((f) => featurePlanPattern.test(f));
-  if (planFiles.length === 0) return;
-
-  const scannedFeatures: ManifestFeature[] = planFiles.map((f) => {
-    const match = f.match(featurePlanPattern)!;
-    return { slug: match[1], plan: f, status: "pending" as const };
-  });
-
-  // Load or create manifest via store
+  // 2. Load or create manifest
   let manifest: PipelineManifest =
-    store.load(projectRoot, epicSlug) ??
-    store.create(projectRoot, epicSlug);
+    store.load(opts.projectRoot, opts.epicSlug) ??
+    store.create(opts.projectRoot, opts.epicSlug);
 
-  // Read worktree manifest for github metadata
-  const wtManifestFile = readdirSync(planDir).find(
-    (f) => f.endsWith(`-${epicSlug}.manifest.json`),
-  );
-  if (wtManifestFile) {
-    try {
-      const wtManifest = JSON.parse(readFileSync(resolve(planDir, wtManifestFile), "utf-8"));
-      if (wtManifest.github && !manifest.github) {
-        manifest = { ...manifest, github: wtManifest.github };
-      }
-    } catch { /* ignore */ }
+  // 3. Enrich from output.json (features, artifact paths)
+  if (output) {
+    const featureStatuses = extractFeatureStatuses(output);
+    const artifactPaths = extractArtifactPaths(output);
+
+    const features: ManifestFeature[] | undefined =
+      featureStatuses.length > 0
+        ? featureStatuses.map((f) => {
+            const raw = (output.artifacts as unknown as Record<string, unknown>).features;
+            const planFile = Array.isArray(raw)
+              ? (raw.find(
+                  (r: unknown) =>
+                    typeof r === "object" &&
+                    r !== null &&
+                    (r as Record<string, unknown>).slug === f.slug,
+                ) as Record<string, unknown> | undefined)?.plan
+              : undefined;
+            return {
+              slug: f.slug,
+              plan: typeof planFile === "string" ? planFile : "",
+              status: (f.status === "unknown" ? "pending" : f.status) as ManifestFeature["status"],
+            };
+          })
+        : undefined;
+
+    manifest = enrich(manifest, {
+      phase: opts.phase as Phase,
+      features,
+      artifacts: artifactPaths.length > 0 ? artifactPaths : undefined,
+    });
   }
 
-  // Enrich manifest with scanned features
-  manifest = enrich(manifest, {
-    phase: "plan",
-    features: scannedFeatures,
-  });
-
-  // Plan completing means we advance to implement
-  manifest = advancePhase(manifest, "implement");
-
-  // Persist
-  store.save(projectRoot, epicSlug, manifest);
-
-  // Copy plan files to git-tracked artifacts/plan/ for agents to read
-  const destPlanDir = resolve(projectRoot, ".beastmode/artifacts/plan");
-  if (!existsSync(destPlanDir)) mkdirSync(destPlanDir, { recursive: true });
-  const allPlanFiles = readdirSync(planDir).filter(
-    (f) => f.includes(epicSlug) && !f.endsWith(".manifest.json"),
-  );
-  for (const file of allPlanFiles) {
-    copyFileSync(resolve(planDir, file), resolve(destPlanDir, file));
+  // 4. Handle implement fan-out: mark specific feature completed
+  if (opts.phase === "implement" && opts.featureSlug) {
+    manifest = markFeature(manifest, opts.featureSlug, "completed");
   }
 
-  const completed = manifest.features.filter(
-    (f) => f.status === "completed",
-  ).length;
-  return { completed, total: manifest.features.length };
-}
-
-/** Advance the manifest phase after a phase completes successfully. */
-function updatePhaseStatus(
-  projectRoot: string,
-  epicSlug: string,
-  phase: string,
-): void {
-  let manifest = store.load(projectRoot, epicSlug);
-  if (!manifest) return;
-
-  const next = NEXT_PHASE[phase as Phase];
-  if (next) {
-    manifest = advancePhase(manifest, next);
+  // 5. Handle validate regression
+  if (opts.phase === "validate" && output?.status !== "completed") {
+    manifest = regressPhase(manifest, "implement" as Phase);
   }
 
-  store.save(projectRoot, epicSlug, manifest);
-}
-
-/** Mark a single feature as completed in the pipeline manifest. */
-function markFeatureCompleted(
-  projectRoot: string,
-  epicSlug: string,
-  featureSlug: string,
-): { completed: number; total: number } | undefined {
-  let manifest = store.load(projectRoot, epicSlug);
-  if (!manifest) return;
-
-  manifest = markFeature(manifest, featureSlug, "completed");
-
-  const completed = manifest.features.filter(
-    (f) => f.status === "completed",
-  ).length;
-  const total = manifest.features.length;
-
-  // If all features done, advance to validate
-  if (total > 0 && completed === total) {
-    manifest = advancePhase(manifest, "validate");
+  // 6. Determine phase advancement
+  const nextPhase = shouldAdvance(manifest, output);
+  if (nextPhase) {
+    manifest = advancePhase(manifest, nextPhase);
   }
 
-  store.save(projectRoot, epicSlug, manifest);
+  // 7. Persist
+  store.save(opts.projectRoot, opts.epicSlug, manifest);
 
-  return { completed, total };
+  return readProgress(opts.projectRoot, opts.epicSlug);
 }
 
 /** Read feature progress from the pipeline manifest. */
@@ -307,10 +224,15 @@ async function dispatchPhase(opts: {
 
         await worktree.remove(worktreeSlug, { cwd: opts.projectRoot });
         console.log(`[watch] ${opts.epicSlug}: worktree removed`);
+
+        // Manifest served its purpose — remove so scanner doesn't re-dispatch
+        store.remove(opts.projectRoot, opts.epicSlug);
+        console.log(`[watch] ${opts.epicSlug}: manifest removed`);
       } catch (err) {
         console.error(`[watch] ${opts.epicSlug}: release teardown failed:`, err);
         console.error(`[watch] ${opts.epicSlug}: worktree preserved for manual cleanup`);
-        // Don't fail the session — the release phase itself succeeded
+        // Propagate teardown failure so the watch loop doesn't re-dispatch
+        sessionResult = { ...sessionResult, success: false };
       }
     }
 

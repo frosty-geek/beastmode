@@ -230,6 +230,8 @@ export async function merge(
 
   // Squash-merge into main (from project root, not worktree)
   await git(["checkout", mainBranch], { cwd });
+  // Remove untracked artifacts that could conflict with the merge
+  await git(["clean", "-fd", ".beastmode/artifacts/"], { cwd, allowFailure: true });
   await git(["merge", "--squash", branch], { cwd });
   await git(["commit", "--no-edit"], { cwd, allowFailure: true });
 }
