@@ -16,6 +16,10 @@ export interface GatesConfig {
 export interface GitHubConfig {
   enabled: boolean;
   "project-name"?: string;
+  "project-id"?: string;
+  "project-number"?: number;
+  "field-id"?: string;
+  "field-options"?: Record<string, string>;
 }
 
 export interface CliConfig {
@@ -91,11 +95,16 @@ export function loadConfig(projectRoot: string): BeastmodeConfig {
   const raw = parseSimpleYaml(content);
 
   const gates = (raw.gates ?? {}) as GatesConfig;
+  const rawGithub = (raw.github ?? {}) as Record<string, unknown>;
   const github = {
-    enabled: (raw.github as Record<string, unknown>)?.enabled === true,
-    "project-name":
-      ((raw.github as Record<string, unknown>)?.["project-name"] as string) ??
-      undefined,
+    enabled: rawGithub.enabled === true,
+    "project-name": (rawGithub["project-name"] as string) ?? undefined,
+    "project-id": (rawGithub["project-id"] as string) ?? undefined,
+    "project-number": (rawGithub["project-number"] as number) ?? undefined,
+    "field-id": (rawGithub["field-id"] as string) ?? undefined,
+    "field-options": rawGithub["field-options"]
+      ? (rawGithub["field-options"] as Record<string, string>)
+      : undefined,
   } satisfies GitHubConfig;
   const cli = {
     interval:
