@@ -37,6 +37,12 @@ export interface FanOutResult {
   }>;
 }
 
+/** Tracked dispatch for a single feature session within fan-out. */
+interface FeatureDispatch {
+  featureSlug: string;
+  promise: Promise<PhaseResult>;
+}
+
 /**
  * Execute a phase command. Called directly from the top-level router.
  * Phase is already validated by the argument parser.
@@ -114,8 +120,8 @@ export async function phaseCommand(
 }
 
 /**
- * Implement fan-out: create per-feature worktrees, dispatch parallel SDK
- * sessions, merge results back to epic branch, clean up.
+ * Implement fan-out: dispatch parallel SDK sessions for each pending feature,
+ * all sharing the single epic worktree.
  */
 async function runImplementFanOut(
   args: string[],
@@ -127,8 +133,8 @@ async function runImplementFanOut(
     process.exit(1);
   }
 
-  // Create epic worktree (holds the manifest and is the merge target)
-  await createWorktree(epicSlug);
+  // Single epic worktree shared by all feature sessions
+  await ensureWorktree(epicSlug);
   const epicCwd = enterWorktree(epicSlug);
 
   // Read manifest from the epic worktree
@@ -155,36 +161,21 @@ async function runImplementFanOut(
   );
   console.log("");
 
-  // Create per-feature worktrees and dispatch parallel SDK sessions
-  const dispatches: Array<{
-    featureSlug: string;
-    worktreeSlug: string;
-    cwd: string;
-    promise: Promise<PhaseResult>;
-  }> = [];
+  // Dispatch parallel SDK sessions — all share the epic worktree
+  const dispatches: FeatureDispatch[] = [];
 
   for (const feature of pendingFeatures) {
-    const worktreeSlug = `${epicSlug}-${feature.slug}`;
-
-    await createWorktree(worktreeSlug);
-    const featureCwd = enterWorktree(worktreeSlug);
-
     console.log(
-      `[beastmode] Dispatching: ${feature.slug} -> ${worktreeSlug}`,
+      `[beastmode] Dispatching: ${feature.slug}`,
     );
 
     const promise = runPhaseWithSdk({
       phase: "implement",
       args: [epicSlug, feature.slug],
-      cwd: featureCwd,
+      cwd: epicCwd,
     });
 
-    dispatches.push({
-      featureSlug: feature.slug,
-      worktreeSlug,
-      cwd: featureCwd,
-      promise,
-    });
+    dispatches.push({ featureSlug: feature.slug, promise });
   }
 
   // Wait for all sessions to complete
@@ -194,7 +185,7 @@ async function runImplementFanOut(
 
   const results = await Promise.allSettled(
     dispatches.map(async (d) => ({
-      ...d,
+      featureSlug: d.featureSlug,
       result: await d.promise,
     })),
   );
@@ -206,13 +197,13 @@ async function runImplementFanOut(
 
   for (const settled of results) {
     if (settled.status === "fulfilled") {
-      const { featureSlug, worktreeSlug, result } = settled.value;
-      featureResults.push({ featureSlug, worktreeSlug, result });
+      const { featureSlug, result } = settled.value;
+      featureResults.push({ featureSlug, result });
 
       if (result.exit_status === "success") {
-        succeeded.push(worktreeSlug);
+        succeeded.push(featureSlug);
       } else {
-        failed.push(worktreeSlug);
+        failed.push(featureSlug);
       }
 
       // Log each feature run
@@ -233,55 +224,9 @@ async function runImplementFanOut(
     );
   }
 
-  // Merge successful feature branches back to epic branch
-  if (succeeded.length > 0) {
-    console.log("");
-    console.log("[beastmode] Merging feature branches to epic branch...");
-
-    const epicBranch = `feature/${epicSlug}`;
-    const featureBranches = succeeded.map((s) => `feature/${s}`);
-
-    try {
-      const mergeReport = await coordinateMerges(featureBranches, {
-        cwd: projectRoot,
-        targetBranch: epicBranch,
-      });
-
-      console.log(
-        `[beastmode] Merge: ${mergeReport.succeeded} succeeded, ${mergeReport.conflictResolved} conflict-resolved, ${mergeReport.failed} failed`,
-      );
-
-      // Remove worktrees for successfully merged features
-      for (const mergeResult of mergeReport.results) {
-        if (mergeResult.status === "success" || mergeResult.status === "conflict-resolved") {
-          const slug = mergeResult.branch.replace("feature/", "");
-          try {
-            await removeWorktree(slug, { cwd: projectRoot });
-            console.log(`[beastmode] Removed worktree: ${slug}`);
-          } catch (err) {
-            console.warn(`[beastmode] Warning: failed to remove worktree ${slug}:`, err);
-          }
-        }
-      }
-
-      // Report failed merges — worktrees preserved for retry
-      for (const mergeResult of mergeReport.results) {
-        if (mergeResult.status === "failed") {
-          const slug = mergeResult.branch.replace("feature/", "");
-          console.warn(
-            `[beastmode] Worktree preserved for retry: ${slug} (${mergeResult.error})`,
-          );
-        }
-      }
-    } catch (err) {
-      console.error("[beastmode] Merge coordination failed:", err);
-    }
-  }
-
-  // Preserve failed feature worktrees for retry
   if (failed.length > 0) {
     console.log("");
-    console.log("[beastmode] Failed features (worktrees preserved for retry):");
+    console.log("[beastmode] Failed features:");
     for (const slug of failed) {
       console.log(`  - ${slug}`);
     }
