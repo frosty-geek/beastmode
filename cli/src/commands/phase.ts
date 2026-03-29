@@ -9,6 +9,9 @@
  * - All phases: logs run metadata to .beastmode-runs.json on completion
  */
 
+import { writeFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
+
 import type { BeastmodeConfig } from "../config";
 import type { Phase, PhaseResult } from "../types";
 import { VALID_PHASES } from "../types";
@@ -38,6 +41,30 @@ export interface FanOutResult {
     result: PhaseResult;
   }>;
   mergeReport?: MergeReport;
+}
+
+/** Schema for .dispatch-done.json marker file. */
+export interface DispatchDoneMarker {
+  exitCode: number;
+  costUsd: number | null;
+  durationMs: number;
+  sessionId: string | null;
+  timestamp: string;
+}
+
+/** Write .dispatch-done.json marker file to the worktree. */
+function writeDispatchDone(worktreePath: string, result: PhaseResult): void {
+  const marker: DispatchDoneMarker = {
+    exitCode: result.exit_status === "success" ? 0 : result.exit_status === "cancelled" ? 130 : 1,
+    costUsd: result.cost_usd,
+    durationMs: result.duration_ms,
+    sessionId: result.session_id,
+    timestamp: new Date().toISOString(),
+  };
+  writeFileSync(
+    resolvePath(worktreePath, ".dispatch-done.json"),
+    JSON.stringify(marker, null, 2),
+  );
 }
 
 /**
@@ -81,6 +108,9 @@ export async function phaseCommand(
   }
 
   await appendRunLog(projectRoot, phase, args, result);
+
+  // Write completion marker for strategy-based detection
+  writeDispatchDone(cwd, result);
 
   console.log("");
   console.log(
@@ -131,6 +161,7 @@ async function runImplementFanOut(
   }
 
   // Create epic worktree (holds the manifest and is the merge target)
+  const fanOutStartTime = Date.now();
   await createWorktree(epicSlug);
   const epicCwd = enterWorktree(epicSlug);
 
@@ -220,6 +251,12 @@ async function runImplementFanOut(
 
       // Log each feature run
       await appendRunLog(projectRoot, "implement", [epicSlug, featureSlug], result);
+
+      // Write per-feature completion marker
+      const featureDispatch = dispatches.find(d => d.featureSlug === settled.value.featureSlug);
+      if (featureDispatch) {
+        writeDispatchDone(featureDispatch.cwd, settled.value.result);
+      }
     } else {
       // Session threw — shouldn't normally happen
       console.error("[beastmode] Feature session error:", settled.reason);
@@ -296,6 +333,14 @@ async function runImplementFanOut(
   console.log(
     `[beastmode] implement ${allSuccess ? "success" : "partial"} — ${succeeded.length}/${dispatches.length} features completed`,
   );
+
+  // Write overall fan-out completion marker
+  writeDispatchDone(epicCwd, {
+    exit_status: failed.length === 0 ? "success" : "error",
+    cost_usd: null,
+    duration_ms: Date.now() - fanOutStartTime,
+    session_id: null,
+  });
 
   if (!allSuccess) {
     process.exit(1);
