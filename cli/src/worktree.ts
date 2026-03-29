@@ -15,10 +15,31 @@ import { git, gitCheck } from "./git.js";
 
 const WORKTREE_DIR = ".claude/worktrees";
 
+/**
+ * Resolve the default branch name from the remote.
+ * Runs `git symbolic-ref refs/remotes/origin/HEAD` and strips the prefix.
+ * Falls back to "main" if the command fails (e.g., no remote configured).
+ */
+export async function resolveMainBranch(
+  opts: { cwd?: string } = {},
+): Promise<string> {
+  const result = await git(
+    ["symbolic-ref", "refs/remotes/origin/HEAD"],
+    { cwd: opts.cwd, allowFailure: true },
+  );
+  if (result.exitCode === 0) {
+    // Strip "refs/remotes/origin/" prefix → branch name
+    return result.stdout.replace(/^refs\/remotes\/origin\//, "");
+  }
+  return "main";
+}
+
 export interface WorktreeInfo {
   slug: string;
   path: string;
   branch: string;
+  mainBranch: string;
+  forkPoint?: string;
 }
 
 /**
@@ -36,6 +57,9 @@ export async function create(
   const branch = `feature/${slug}`;
   const wtPath = `${WORKTREE_DIR}/${slug}`;
 
+  // Resolve the main branch name once
+  const mainBranch = await resolveMainBranch({ cwd });
+
   // Prune stale worktree references
   await git(["worktree", "prune"], { cwd, allowFailure: true });
 
@@ -45,9 +69,15 @@ export async function create(
     cwd,
   });
   if (existingWorktrees.stdout.includes(absPath)) {
-    // Worktree already exists — ensure settings are present
+    // Worktree already exists — derive fork-point and ensure settings
+    const mbResult = await git(
+      ["merge-base", mainBranch, branch],
+      { cwd, allowFailure: true },
+    );
+    const forkPoint =
+      mbResult.exitCode === 0 ? mbResult.stdout : undefined;
     await copySettingsLocal(cwd ?? process.cwd(), absPath);
-    return { slug, path: absPath, branch };
+    return { slug, path: absPath, branch, mainBranch, forkPoint };
   }
 
   // Check if feature branch exists locally
@@ -62,13 +92,21 @@ export async function create(
     { cwd },
   );
 
+  let forkPoint: string | undefined;
+
   if (localExists || remoteExists) {
     // Existing branch — create worktree from it
     await git(["worktree", "add", wtPath, branch], { cwd });
+    // Derive fork-point via merge-base
+    const mbResult = await git(
+      ["merge-base", mainBranch, branch],
+      { cwd, allowFailure: true },
+    );
+    forkPoint = mbResult.exitCode === 0 ? mbResult.stdout : undefined;
   } else {
-    // New feature — create branch from origin/HEAD or HEAD
+    // New feature — create branch from local main branch
     const baseResult = await git(
-      ["rev-parse", "--verify", "origin/HEAD"],
+      ["rev-parse", "--verify", mainBranch],
       { cwd, allowFailure: true },
     );
     const base =
@@ -77,6 +115,9 @@ export async function create(
         : (await git(["rev-parse", "HEAD"], { cwd })).stdout;
 
     await git(["worktree", "add", wtPath, "-b", branch, base], { cwd });
+
+    // Fork-point is the SHA of main at creation time
+    forkPoint = base;
   }
 
   const absWtPath = resolve(cwd ?? process.cwd(), wtPath);
@@ -84,7 +125,7 @@ export async function create(
   // Copy .claude/settings.local.json so plugins are enabled in the worktree
   await copySettingsLocal(cwd ?? process.cwd(), absWtPath);
 
-  return { slug, path: absWtPath, branch };
+  return { slug, path: absWtPath, branch, mainBranch, forkPoint };
 }
 
 /**

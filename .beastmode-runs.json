@@ -700,5 +700,25 @@
     "exit_status": "success",
     "timestamp": "2026-03-29T11:21:18.148Z",
     "session_id": null
+  },
+  {
+    "epic": "cmux-integration-revisited",
+    "phase": "release",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 797499,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T11:21:58.352Z",
+    "session_id": null
+  },
+  {
+    "epic": "status-unfuckery-v2",
+    "phase": "design",
+    "feature": null,
+    "cost_usd": null,
+    "duration_ms": 1791841,
+    "exit_status": "success",
+    "timestamp": "2026-03-29T11:24:13.440Z",
+    "session_id": null
   }
 ]

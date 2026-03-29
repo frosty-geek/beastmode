@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.37.0 — The Fork Point (Mar 2026)
+
+- **Fork-point tracking** — Worktrees fork from local main instead of stale `origin/HEAD`; fork-point SHA recorded in `WorktreeInfo` for audit trail
+- **Main branch resolution** — `resolveMainBranch()` resolves default branch from `git symbolic-ref` with `"main"` fallback
+- **Graceful degradation** — `forkPoint` set to `undefined` when `merge-base` fails (unrelated histories, missing branch)
+
 ### v0.36.0 — The Terminal Multiplexer (Mar 2026)
 
 - **SessionStrategy interface** — Formal strategy pattern (`dispatch()`, `isComplete()`, `cleanup()`) with `SdkStrategy` and `CmuxStrategy` implementations
