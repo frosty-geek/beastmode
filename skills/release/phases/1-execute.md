@@ -87,4 +87,3 @@ Save to `.beastmode/state/release/YYYY-MM-DD-<feature>.md`:
 Omit empty sections (e.g., no Breaking Changes → skip that heading).
 
 Use `**Bump:** major|minor|patch` instead of a concrete version — the actual version is computed post-merge from main's current state.
-
