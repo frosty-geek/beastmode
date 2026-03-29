@@ -16,8 +16,8 @@ export interface EpicState {
   gateBlocked: boolean;
   /** Gate name if blocked */
   gateName?: string;
-  /** Cost-to-date in USD */
-  costUsd: number;
+  /** Last updated timestamp from manifest */
+  lastUpdated?: string;
 }
 
 /** A dispatchable action derived from epic state. */
