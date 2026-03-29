@@ -133,13 +133,22 @@ describe("formatStatus", () => {
     expect(result).toContain("run beastmode implement my-epic");
   });
 
-  test("returns 'done' for release phase with no nextAction", () => {
+  test("returns 'done' for done phase", () => {
     const epic = makeEpic({
-      phase: "release",
+      phase: "done",
       nextAction: null,
     });
     const result = stripAnsi(formatStatus(epic));
     expect(result).toBe("done");
+  });
+
+  test("returns phase name for release phase (no heuristic)", () => {
+    const epic = makeEpic({
+      phase: "release",
+      nextAction: null,
+    });
+    const result = formatStatus(epic);
+    expect(result).toBe("release");
   });
 
   test("returns phase name when not blocked and not done", () => {
@@ -240,13 +249,74 @@ describe("buildStatusRows", () => {
     expect(stripAnsi(rows[0].phase)).toBe("implement");
   });
 
-  test("release with no nextAction shows 'done' in status", () => {
+  test("done phase is colored green+dim", () => {
+    const epic = makeEpic({ slug: "finished", phase: "done", nextAction: null });
+    const rows = buildStatusRows([epic], { all: true });
+    // Should have ANSI green (\x1b[32m) and dim (\x1b[2m) codes
+    expect(rows[0].phase).toContain("\x1b[32m");
+    expect(rows[0].phase).toContain("\x1b[2m");
+    expect(stripAnsi(rows[0].phase)).toBe("done");
+  });
+
+  test("cancelled phase is colored red+dim", () => {
+    const epic = makeEpic({ slug: "dead", phase: "cancelled", nextAction: null });
+    const rows = buildStatusRows([epic], { all: true });
+    // Should have ANSI red (\x1b[31m) and dim (\x1b[2m) codes
+    expect(rows[0].phase).toContain("\x1b[31m");
+    expect(rows[0].phase).toContain("\x1b[2m");
+    expect(stripAnsi(rows[0].phase)).toBe("cancelled");
+  });
+
+  test("done phase shows 'done' in status when --all is passed", () => {
     const epic = makeEpic({
       slug: "finished",
-      phase: "release",
+      phase: "done",
       nextAction: null,
     });
-    const rows = buildStatusRows([epic]);
+    const rows = buildStatusRows([epic], { all: true });
+    expect(rows).toHaveLength(1);
     expect(stripAnsi(rows[0].status)).toBe("done");
+  });
+
+  test("filters out done epics by default", () => {
+    const epics = [
+      makeEpic({ slug: "active", phase: "implement" }),
+      makeEpic({ slug: "finished", phase: "done", nextAction: null }),
+    ];
+    const rows = buildStatusRows(epics);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].name).toBe("active");
+  });
+
+  test("filters out cancelled epics by default", () => {
+    const epics = [
+      makeEpic({ slug: "active", phase: "design" }),
+      makeEpic({ slug: "dead", phase: "cancelled", nextAction: null }),
+    ];
+    const rows = buildStatusRows(epics);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].name).toBe("active");
+  });
+
+  test("--all flag includes done and cancelled epics", () => {
+    const epics = [
+      makeEpic({ slug: "active", phase: "implement" }),
+      makeEpic({ slug: "finished", phase: "done", nextAction: null }),
+      makeEpic({ slug: "dead", phase: "cancelled", nextAction: null }),
+    ];
+    const rows = buildStatusRows(epics, { all: true });
+    expect(rows).toHaveLength(3);
+  });
+
+  test("done sorts below active work, cancelled sorts to top", () => {
+    const epics = [
+      makeEpic({ slug: "active", phase: "implement" }),
+      makeEpic({ slug: "finished", phase: "done", nextAction: null }),
+      makeEpic({ slug: "dead", phase: "cancelled", nextAction: null }),
+    ];
+    const rows = buildStatusRows(epics, { all: true });
+    expect(rows[0].name).toBe("finished");  // done: 5 (highest, sorted first)
+    expect(rows[1].name).toBe("active");    // implement: 2
+    expect(rows[2].name).toBe("dead");      // cancelled: -1 (lowest, sorted last)
   });
 });
