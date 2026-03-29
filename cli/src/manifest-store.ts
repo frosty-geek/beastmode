@@ -20,6 +20,13 @@ import {
 import { resolve } from "path";
 import type { Phase } from "./types";
 import { isValidPhase } from "./types";
+import { syncGitHub } from "./github-sync";
+import { loadConfig } from "./config";
+import { detectRepo } from "./repo-detect";
+import { setGitHubEpic, setFeatureGitHubIssue } from "./manifest";
+
+/** Re-entrancy guard — prevents mutation write-back from triggering sync. */
+let _syncing = false;
 
 // --- Types ---
 
@@ -159,18 +166,89 @@ export function list(projectRoot: string): PipelineManifest[] {
 }
 
 /**
- * Write a manifest to disk.
+ * Write a manifest to disk, then sync to GitHub if enabled.
+ *
+ * After writing JSON, if github.enabled and not re-entrant:
+ * 1. Auto-detect repo if missing
+ * 2. Call syncGitHub()
+ * 3. Apply returned mutations (write-back epic/feature issue numbers)
+ * 4. Write enriched manifest (with _syncing flag to prevent re-trigger)
+ *
+ * Sync is fire-and-forget: failures warn but never block the save.
  */
-export function save(
+export async function save(
   projectRoot: string,
   slug: string,
   manifest: PipelineManifest,
-): void {
+): Promise<void> {
   const dir = pipelineDir(projectRoot);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   const path =
     manifestPath(projectRoot, slug) ?? newManifestPath(projectRoot, slug);
   writeFileSync(path, JSON.stringify(manifest, null, 2));
+
+  // Sync to GitHub — fire-and-forget, warn-and-continue
+  if (_syncing) return;
+
+  try {
+    const config = loadConfig(projectRoot);
+    if (!config.github.enabled) return;
+
+    // Auto-detect repo if not in manifest
+    let syncManifest = manifest;
+    if (!syncManifest.github?.repo) {
+      const repo = detectRepo(projectRoot);
+      if (repo) {
+        syncManifest = {
+          ...syncManifest,
+          github: {
+            ...syncManifest.github,
+            epic: syncManifest.github?.epic ?? 0,
+            repo,
+          },
+        };
+      }
+    }
+
+    const result = await syncGitHub(syncManifest, config);
+
+    // Apply mutations
+    if (result.mutations.length > 0) {
+      let enriched = manifest;
+      for (const mutation of result.mutations) {
+        if (mutation.type === "setEpic") {
+          enriched = setGitHubEpic(
+            enriched,
+            mutation.epicNumber,
+            mutation.repo,
+          );
+        } else if (mutation.type === "setFeatureIssue") {
+          enriched = setFeatureGitHubIssue(
+            enriched,
+            mutation.featureSlug,
+            mutation.issueNumber,
+          );
+        }
+      }
+      // Write back with re-entrancy guard
+      _syncing = true;
+      try {
+        writeFileSync(path, JSON.stringify(enriched, null, 2));
+      } finally {
+        _syncing = false;
+      }
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.log(
+      `[manifest-store] GitHub sync failed (non-blocking): ${message}`,
+    );
+  }
+}
+
+/** Exported for testing only — do not use in production code. */
+export function _isSyncing(): boolean {
+  return _syncing;
 }
 
 /**

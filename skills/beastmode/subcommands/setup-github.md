@@ -172,33 +172,43 @@ pipeline_field=$(gh api graphql -f query='
 echo "Pipeline field created: $pipeline_field"
 ```
 
-### 6. Write Project Cache
+### 6. Write Project Config
 
-Parse the Pipeline field response and write a local cache for checkpoint sync:
+Parse the Pipeline field response and write project metadata directly to `config.yaml`:
 
 ```bash
 # Extract field ID and options from the createProjectV2Field response
 pipeline_field_id=$(echo "$pipeline_field" | jq -r '.data.createProjectV2Field.projectV2Field.id')
 pipeline_options=$(echo "$pipeline_field" | jq -r '.data.createProjectV2Field.projectV2Field.options')
 
-# Build options map: { "Backlog": "option-id", "Design": "option-id", ... }
+# Build options map
 options_map=$(echo "$pipeline_options" | jq 'map({(.name): .id}) | add')
 
-# Write cache file
-mkdir -p .beastmode/state
-cat > .beastmode/state/github-project.cache.json <<CACHE
-{
-  "projectId": "$project_id",
-  "projectNumber": $project_number,
-  "statusField": {
-    "id": "$pipeline_field_id",
-    "options": $options_map
-  },
-  "cachedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-}
-CACHE
+# Write project metadata to config.yaml
+# Using sed/awk to append after the github section
+config_file=".beastmode/config.yaml"
 
-echo "Cache written: .beastmode/state/github-project.cache.json"
+# Remove old project metadata if present (idempotent)
+sed -i '' '/^  project-id:/d' "$config_file"
+sed -i '' '/^  project-number:/d' "$config_file"
+sed -i '' '/^  field-id:/d' "$config_file"
+sed -i '' '/^  field-options:/d' "$config_file"
+# Remove indented option lines (4-space indent under field-options)
+sed -i '' '/^    [A-Z][a-z]*: [a-f0-9]/d' "$config_file"
+
+# Append project metadata after the project-name line
+sed -i '' "/^  project-name:/a\\
+\\  project-id: $project_id\\
+\\  project-number: $project_number\\
+\\  field-id: $pipeline_field_id" "$config_file"
+
+# Append field-options as nested YAML
+{
+  echo "  field-options:"
+  echo "$options_map" | jq -r 'to_entries[] | "    \(.key): \(.value)"'
+} >> "$config_file"
+
+echo "Config written: .beastmode/config.yaml (project metadata)"
 ```
 
 ### 7. Link Repo to Project
@@ -218,7 +228,7 @@ gh api graphql -f query='
 
 Discover any existing `type/epic` and `type/feature` issues and add them to the project with the correct Pipeline status.
 
-Uses the cache written in step 6 — requires `$project_number`, `$project_id`, `$pipeline_field_id`, and `$options_map` from earlier steps.
+Uses the config values written in step 6 — requires `$project_number`, `$project_id`, `$pipeline_field_id`, and `$options_map` from earlier steps.
 
 ```bash
 echo "Backfilling existing issues into project..."
@@ -340,7 +350,7 @@ Labels created (12):
 
 Project: Beastmode Pipeline (#<number>)
 Pipeline field: Backlog | Design | Plan | Implement | Validate | Release | Done
-Cache: .beastmode/state/github-project.cache.json
+Config: project metadata written to .beastmode/config.yaml
 Backfilled: <N> issues synced to project
 
 Manual Setup Required (GitHub UI only):

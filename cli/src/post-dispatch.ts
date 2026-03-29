@@ -4,7 +4,7 @@
  *
  * Stateless, post-only design: reads the phase output file from the
  * worktree, enriches the manifest, optionally advances the phase,
- * then mirrors state to GitHub via syncGitHub. Never throws — all
+ * then saves the manifest (which triggers GitHub sync via store.save). Never throws — all
  * errors are caught and logged with a [post-dispatch] prefix.
  */
 
@@ -13,8 +13,6 @@ import type { PipelineManifest } from "./manifest-store";
 import * as store from "./manifest-store";
 import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase } from "./manifest";
 import { loadPhaseOutput, extractFeatureStatuses, extractArtifactPaths, loadWorktreePhaseOutput } from "./phase-output";
-import { syncGitHub } from "./github-sync";
-import { loadConfig } from "./config";
 
 /** Options for the post-dispatch hook. */
 export interface PostDispatchOptions {
@@ -34,9 +32,9 @@ export interface PostDispatchOptions {
 
 /**
  * Run post-dispatch processing: read phase output, enrich the manifest,
- * determine if the phase should advance, and sync state to GitHub.
+ * determine if the phase should advance, and save the updated manifest.
  *
- * Never throws. All errors are caught and logged as warnings so a sync
+ * Never throws. All errors are caught and logged as warnings so a save
  * failure never blocks the pipeline.
  */
 export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> {
@@ -82,21 +80,21 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
         features,
         artifacts: artifactPaths.length > 0 ? artifactPaths : undefined,
       });
-      store.save(opts.projectRoot, opts.epicSlug, manifest);
+      await store.save(opts.projectRoot, opts.epicSlug, manifest);
       console.log(`[post-dispatch] Enriched manifest (artifacts: ${artifactPaths.length}, features: ${featureStatuses.length})`);
     }
 
     // Handle implement fan-out: mark individual feature as completed
     if (opts.phase === "implement" && opts.featureSlug) {
       manifest = markFeature(manifest, opts.featureSlug, "completed");
-      store.save(opts.projectRoot, opts.epicSlug, manifest);
+      await store.save(opts.projectRoot, opts.epicSlug, manifest);
       console.log(`[post-dispatch] Marked feature ${opts.featureSlug} as completed`);
     }
 
     // Handle validate regression: if validate didn't complete, regress to implement
     if (opts.phase === "validate" && output?.status !== "completed") {
       manifest = regressPhase(manifest, "implement");
-      store.save(opts.projectRoot, opts.epicSlug, manifest);
+      await store.save(opts.projectRoot, opts.epicSlug, manifest);
       console.log(`[post-dispatch] Regressed phase: validate -> implement (features reset to pending)`);
     }
 
@@ -104,21 +102,12 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     const nextPhase = shouldAdvance(manifest, output);
     if (nextPhase) {
       manifest = advancePhase(manifest, nextPhase);
-      store.save(opts.projectRoot, opts.epicSlug, manifest);
+      await store.save(opts.projectRoot, opts.epicSlug, manifest);
       console.log(`[post-dispatch] Advanced phase: ${opts.phase} -> ${nextPhase}`);
     } else {
       console.log(`[post-dispatch] No phase advancement for ${opts.phase}`);
     }
 
-    // Sync to GitHub — warn-and-continue
-    try {
-      const config = loadConfig(opts.projectRoot);
-      await syncGitHub(manifest, config);
-      console.log("[post-dispatch] GitHub sync complete");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.log(`[post-dispatch] GitHub sync failed (non-blocking): ${message}`);
-    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.log(`[post-dispatch] Unexpected error (non-blocking): ${message}`);

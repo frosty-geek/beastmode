@@ -230,6 +230,114 @@ export async function ghIssueLabels(
 }
 
 /**
+ * List issues matching filters. Returns issue objects or undefined.
+ */
+export async function ghIssueList(
+  repo: string,
+  opts: { labels?: string[]; state?: "open" | "closed" | "all"; cwd?: string } = {},
+): Promise<Array<{ number: number; title: string; labels: string[] }> | undefined> {
+  const args = [
+    "issue",
+    "list",
+    "--repo",
+    repo,
+    "--json",
+    "number,title,labels",
+    "--limit",
+    "500",
+  ];
+  if (opts.state) args.push("--state", opts.state);
+  if (opts.labels?.length) args.push("--label", opts.labels.join(","));
+  const result = await ghJson<Array<{ number: number; title: string; labels: Array<{ name: string }> }>>(
+    args,
+    { cwd: opts.cwd },
+  );
+  return result?.map((i) => ({
+    number: i.number,
+    title: i.title,
+    labels: i.labels.map((l) => l.name),
+  }));
+}
+
+/**
+ * List all labels in a repository. Returns label names or undefined.
+ */
+export async function ghLabelList(
+  repo: string,
+  opts: { cwd?: string } = {},
+): Promise<string[] | undefined> {
+  const result = await ghJson<Array<{ name: string }>>(
+    ["label", "list", "--repo", repo, "--json", "name", "--limit", "200"],
+    { cwd: opts.cwd },
+  );
+  return result?.map((l) => l.name);
+}
+
+/**
+ * Delete a label from a repository. Returns true on success.
+ */
+export async function ghLabelDelete(
+  repo: string,
+  name: string,
+  opts: { cwd?: string } = {},
+): Promise<boolean> {
+  const result = await gh(
+    ["label", "delete", name, "--repo", repo, "--yes"],
+    { cwd: opts.cwd },
+  );
+  return result !== undefined;
+}
+
+/**
+ * List all items on a Projects V2 board. Returns item objects or undefined.
+ */
+export async function ghProjectItemList(
+  projectNumber: number,
+  owner: string,
+  opts: { cwd?: string } = {},
+): Promise<Array<{ id: string; title: string; content?: { number: number; type: string; url: string } }> | undefined> {
+  const result = await ghJson<{ items: Array<{ id: string; title: string; content?: { number: number; type: string; url: string } }> }>(
+    [
+      "project",
+      "item-list",
+      String(projectNumber),
+      "--owner",
+      owner,
+      "--format",
+      "json",
+      "--limit",
+      "500",
+    ],
+    { cwd: opts.cwd },
+  );
+  return result?.items;
+}
+
+/**
+ * Remove an item from a Projects V2 board. Returns true on success.
+ */
+export async function ghProjectItemRemove(
+  projectNumber: number,
+  owner: string,
+  itemId: string,
+  opts: { cwd?: string } = {},
+): Promise<boolean> {
+  const result = await gh(
+    [
+      "project",
+      "item-delete",
+      String(projectNumber),
+      "--owner",
+      owner,
+      "--id",
+      itemId,
+    ],
+    { cwd: opts.cwd },
+  );
+  return result !== undefined;
+}
+
+/**
  * Add an issue to a Projects V2 board. Returns the item ID or undefined.
  */
 export async function ghProjectItemAdd(

@@ -33,3 +33,14 @@ cli:
 github:
   enabled: true                     # Set to true by /beastmode setup-github
   project-name: "Beastmode Pipeline" # Projects V2 board name
+  project-id: PVT_kwHOAAI_qc4BTDHr
+  project-number: 2
+  field-id: PVTSSF_lAHOAAI_qc4BTDHrzhAahQs
+  field-options:
+    Backlog: 1512ab63
+    Design: ad192401
+    Plan: 80c21320
+    Implement: 05c1e950
+    Validate: f710f3d9
+    Release: 1cac1de9
+    Done: 14844120

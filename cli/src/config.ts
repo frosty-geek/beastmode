@@ -1,5 +1,6 @@
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, writeFileSync } from "fs";
 import { resolve } from "path";
+import { spawnSync } from "child_process";
 
 export interface GateConfig {
   [key: string]: "human" | "auto";
@@ -16,6 +17,7 @@ export interface GatesConfig {
 
 export interface GitHubConfig {
   enabled: boolean;
+  repo?: string;
   "project-name"?: string;
   "project-id"?: string;
   "project-number"?: number;
@@ -102,6 +104,7 @@ export function loadConfig(projectRoot: string): BeastmodeConfig {
   const rawGithub = (raw.github ?? {}) as Record<string, unknown>;
   const github = {
     enabled: rawGithub.enabled === true,
+    repo: (rawGithub.repo as string) ?? undefined,
     "project-name": (rawGithub["project-name"] as string) ?? undefined,
     "project-id": (rawGithub["project-id"] as string) ?? undefined,
     "project-number": (rawGithub["project-number"] as number) ?? undefined,
@@ -129,4 +132,176 @@ export function resolveGateMode(
   const phaseGates = config.gates[phase as keyof GatesConfig];
   if (!phaseGates) return "auto";
   return phaseGates[gate] ?? "auto";
+}
+
+/**
+ * Update specific fields in config.yaml while preserving comments and structure.
+ * Patch is a nested object — only specified keys are modified.
+ *
+ * Example: updateConfig(root, { github: { repo: "owner/repo" } })
+ */
+export function updateConfig(
+  projectRoot: string,
+  patch: Record<string, Record<string, unknown>>,
+): void {
+  const configPath = resolve(projectRoot, ".beastmode", "config.yaml");
+  const lines = existsSync(configPath)
+    ? readFileSync(configPath, "utf-8").split("\n")
+    : [];
+
+  for (const [section, fields] of Object.entries(patch)) {
+    for (const [key, value] of Object.entries(fields)) {
+      const formattedValue = formatYamlValue(value);
+      const keyPattern = new RegExp(`^(\\s+)${escapeRegex(key)}:\\s*`);
+      const sectionPattern = new RegExp(`^${escapeRegex(section)}:`);
+
+      // Find section
+      let sectionIdx = lines.findIndex((l) => sectionPattern.test(l));
+      if (sectionIdx === -1) {
+        // Add section at end
+        lines.push("", `${section}:`, `  ${key}: ${formattedValue}`);
+        continue;
+      }
+
+      // Find key within section
+      let keyIdx = -1;
+      const sectionIndent = lines[sectionIdx].match(/^\s*/)?.[0].length ?? 0;
+      for (let i = sectionIdx + 1; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trimStart();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const indent = line.length - trimmed.length;
+        if (indent <= sectionIndent && trimmed.includes(":")) break; // left section
+        if (keyPattern.test(line)) {
+          keyIdx = i;
+          break;
+        }
+      }
+
+      if (keyIdx !== -1) {
+        // Check if this is a map value (field-options)
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          !Array.isArray(value)
+        ) {
+          // Remove old map entries
+          const keyIndent = lines[keyIdx].match(/^\s*/)?.[0].length ?? 0;
+          let endIdx = keyIdx + 1;
+          while (endIdx < lines.length) {
+            const l = lines[endIdx];
+            const t = l.trimStart();
+            if (!t || t.startsWith("#")) {
+              endIdx++;
+              continue;
+            }
+            const ind = l.length - t.length;
+            if (ind <= keyIndent) break;
+            endIdx++;
+          }
+          const indent = " ".repeat(keyIndent);
+          const childIndent = " ".repeat(keyIndent + 2);
+          const mapLines = Object.entries(
+            value as Record<string, string>,
+          ).map(([k, v]) => `${childIndent}${k}: ${formatYamlValue(v)}`);
+          lines.splice(
+            keyIdx,
+            endIdx - keyIdx,
+            `${indent}${key}:`,
+            ...mapLines,
+          );
+        } else {
+          // Replace value in place, preserve comment
+          const match = lines[keyIdx].match(
+            /^(\s+\S+:\s*)\S.*?(\s+#.*)?$/,
+          );
+          if (match) {
+            lines[keyIdx] = `${match[1]}${formattedValue}${match[2] ?? ""}`;
+          } else {
+            const indent = lines[keyIdx].match(/^\s*/)?.[0] ?? "  ";
+            lines[keyIdx] = `${indent}${key}: ${formattedValue}`;
+          }
+        }
+      } else {
+        // Find the end of the section to insert
+        let insertIdx = sectionIdx + 1;
+        for (let i = sectionIdx + 1; i < lines.length; i++) {
+          const line = lines[i];
+          const trimmed = line.trimStart();
+          if (!trimmed || trimmed.startsWith("#")) {
+            insertIdx = i + 1;
+            continue;
+          }
+          const indent = line.length - trimmed.length;
+          if (indent <= sectionIndent && trimmed.includes(":")) break;
+          insertIdx = i + 1;
+        }
+
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          !Array.isArray(value)
+        ) {
+          const mapLines = Object.entries(
+            value as Record<string, string>,
+          ).map(([k, v]) => `    ${k}: ${formatYamlValue(v)}`);
+          lines.splice(insertIdx, 0, `  ${key}:`, ...mapLines);
+        } else {
+          lines.splice(insertIdx, 0, `  ${key}: ${formattedValue}`);
+        }
+      }
+    }
+  }
+
+  writeFileSync(configPath, lines.join("\n"));
+}
+
+function formatYamlValue(value: unknown): string {
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") {
+    // Quote strings that contain special chars
+    if (/[:#{}[\],&*?|>!%@`]/.test(value) || value.includes(" ")) {
+      return `"${value.replace(/"/g, '\\"')}"`;
+    }
+    return value;
+  }
+  return String(value);
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Detect the GitHub repo from git remote, parsing HTTPS and SSH URLs.
+ * Returns "owner/repo" or undefined if not a GitHub remote.
+ */
+export function detectRepo(projectRoot: string): string | undefined {
+  try {
+    const result = spawnSync("git", ["remote", "get-url", "origin"], {
+      cwd: projectRoot,
+      encoding: "utf-8",
+      timeout: 5000,
+    });
+    if (result.status !== 0 || !result.stdout) return undefined;
+
+    const url = result.stdout.trim();
+
+    // HTTPS: https://github.com/owner/repo.git or https://github.com/owner/repo
+    const httpsMatch = url.match(
+      /github\.com\/([^/]+)\/([^/.]+?)(?:\.git)?$/,
+    );
+    if (httpsMatch) return `${httpsMatch[1]}/${httpsMatch[2]}`;
+
+    // SSH: git@github.com:owner/repo.git or git@github.com:owner/repo
+    const sshMatch = url.match(
+      /github\.com:([^/]+)\/([^/.]+?)(?:\.git)?$/,
+    );
+    if (sshMatch) return `${sshMatch[1]}/${sshMatch[2]}`;
+
+    return undefined;
+  } catch {
+    return undefined;
+  }
 }

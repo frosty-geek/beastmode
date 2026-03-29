@@ -50,6 +50,11 @@ mock.module("../src/gh", () => ({
     if (mockErrors.ghIssueClose) return false;
     return mockReturns.ghIssueClose ?? true;
   },
+  ghIssueComment: async (...args: unknown[]) => {
+    trackCall("ghIssueComment", ...args);
+    if (mockErrors.ghIssueComment) return false;
+    return mockReturns.ghIssueComment ?? true;
+  },
   ghIssueLabels: async (...args: unknown[]) => {
     trackCall("ghIssueLabels", ...args);
     if (mockErrors.ghIssueLabels) return undefined;
@@ -166,7 +171,7 @@ describe("syncGitHub", () => {
       const result = await syncGitHub(manifest, config);
 
       expect(result.warnings).toContain(
-        "No github.repo in manifest — skipping sync",
+        "No github.repo — not in manifest, config, or git remote",
       );
       expect(mockCalls).toHaveLength(0);
     });
@@ -182,7 +187,7 @@ describe("syncGitHub", () => {
       const result = await syncGitHub(manifest, config);
 
       expect(result.warnings).toContain(
-        "No github.repo in manifest — skipping sync",
+        "No github.repo — not in manifest, config, or git remote",
       );
       expect(mockCalls).toHaveLength(0);
     });
@@ -632,6 +637,143 @@ describe("syncGitHub", () => {
       // No close calls for the epic
       const closeCalls = callsTo("ghIssueClose");
       expect(closeCalls.filter((c) => c.args[1] === 10)).toHaveLength(0);
+    });
+  });
+
+  // -------------------------------------------------------
+  // 11b. Done epics close ALL child features
+  // -------------------------------------------------------
+  describe("done epic closes all child features", () => {
+    test("closes all feature issues when phase is done", async () => {
+      const features = [
+        makeFeature({ slug: "feat-1", status: "completed", github: { issue: 31 } }),
+        makeFeature({ slug: "feat-2", status: "in-progress", github: { issue: 32 } }),
+        makeFeature({ slug: "feat-3", status: "pending", github: { issue: 33 } }),
+      ];
+      const manifest = makeManifest({ phase: "done", features });
+      const config = makeConfig();
+
+      const result = await syncGitHub(manifest, config);
+
+      expect(result.epicClosed).toBe(true);
+      // All 3 features should be closed by terminal state handler
+      // (feat-1 also closed by syncFeature since completed, but terminal handler closes all)
+      const closeCalls = callsTo("ghIssueClose");
+      // Epic (10) + feat-1 (31, from syncFeature) + feat-1,2,3 (31,32,33 from terminal)
+      const featureCloses = closeCalls.filter(c => [31, 32, 33].includes(c.args[1] as number));
+      expect(featureCloses.length).toBeGreaterThanOrEqual(3);
+    });
+
+    test("skips features without issue numbers", async () => {
+      const features = [
+        makeFeature({ slug: "has-issue", status: "pending", github: { issue: 31 } }),
+        makeFeature({ slug: "no-issue", status: "pending" }), // no github.issue
+      ];
+      const manifest = makeManifest({ phase: "done", features });
+      const config = makeConfig();
+
+      const result = await syncGitHub(manifest, config);
+
+      // Should close epic and feat with issue, but not crash on the one without
+      expect(result.epicClosed).toBe(true);
+      const closeCalls = callsTo("ghIssueClose");
+      const noIssueCalls = closeCalls.filter(c => c.args[1] === undefined);
+      expect(noIssueCalls).toHaveLength(0);
+    });
+
+    test("sets board status to Done", async () => {
+      const manifest = makeManifest({ phase: "done" });
+      const config = makeConfigWithProject();
+
+      await syncGitHub(manifest, config);
+
+      const fieldCalls = callsTo("ghProjectSetField");
+      const doneCalls = fieldCalls.filter(c => c.args[3] === "opt-done");
+      expect(doneCalls.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  // -------------------------------------------------------
+  // 11c. Cancelled epics — comment, close, close features
+  // -------------------------------------------------------
+  describe("cancelled epic handling", () => {
+    test("adds Cancelled comment to epic", async () => {
+      const manifest = makeManifest({ phase: "cancelled" });
+      const config = makeConfig();
+
+      await syncGitHub(manifest, config);
+
+      const commentCalls = callsTo("ghIssueComment");
+      expect(commentCalls).toHaveLength(1);
+      expect(commentCalls[0].args[0]).toBe("org/repo");
+      expect(commentCalls[0].args[1]).toBe(10); // epic number
+      expect(commentCalls[0].args[2]).toBe("Cancelled");
+    });
+
+    test("closes epic issue", async () => {
+      const manifest = makeManifest({ phase: "cancelled" });
+      const config = makeConfig();
+
+      const result = await syncGitHub(manifest, config);
+
+      expect(result.epicClosed).toBe(true);
+      const closeCalls = callsTo("ghIssueClose");
+      const epicClose = closeCalls.find(c => c.args[1] === 10);
+      expect(epicClose).toBeDefined();
+    });
+
+    test("closes all child feature issues", async () => {
+      const features = [
+        makeFeature({ slug: "feat-a", status: "pending", github: { issue: 41 } }),
+        makeFeature({ slug: "feat-b", status: "in-progress", github: { issue: 42 } }),
+      ];
+      const manifest = makeManifest({ phase: "cancelled", features });
+      const config = makeConfig();
+
+      const result = await syncGitHub(manifest, config);
+
+      const closeCalls = callsTo("ghIssueClose");
+      const feat41 = closeCalls.filter(c => c.args[1] === 41);
+      const feat42 = closeCalls.filter(c => c.args[1] === 42);
+      expect(feat41.length).toBeGreaterThanOrEqual(1);
+      expect(feat42.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("sets board status to Done (no Cancelled column)", async () => {
+      const manifest = makeManifest({ phase: "cancelled" });
+      const config = makeConfigWithProject();
+
+      await syncGitHub(manifest, config);
+
+      const fieldCalls = callsTo("ghProjectSetField");
+      const doneCalls = fieldCalls.filter(c => c.args[3] === "opt-done");
+      expect(doneCalls.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("does not add Cancelled comment for done phase", async () => {
+      const manifest = makeManifest({ phase: "done" });
+      const config = makeConfig();
+
+      await syncGitHub(manifest, config);
+
+      const commentCalls = callsTo("ghIssueComment");
+      expect(commentCalls).toHaveLength(0);
+    });
+
+    test("skips features without issue numbers when cancelled", async () => {
+      const features = [
+        makeFeature({ slug: "has-issue", status: "blocked", github: { issue: 43 } }),
+        makeFeature({ slug: "no-issue", status: "pending" }),
+      ];
+      const manifest = makeManifest({ phase: "cancelled", features });
+      const config = makeConfig();
+
+      await syncGitHub(manifest, config);
+
+      // Should not crash — ghIssueClose should not be called with undefined
+      const closeCalls = callsTo("ghIssueClose");
+      const undefinedCalls = closeCalls.filter(c => c.args[1] === undefined);
+      expect(undefinedCalls).toHaveLength(0);
     });
   });
 

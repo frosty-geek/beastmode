@@ -9,11 +9,12 @@
  */
 
 import type { PipelineManifest, ManifestFeature } from "./manifest";
-import type { BeastmodeConfig, GitHubConfig } from "./config";
+import { detectRepo, updateConfig, type BeastmodeConfig, type GitHubConfig } from "./config";
 import {
   ghIssueCreate,
   ghIssueEdit,
   ghIssueClose,
+  ghIssueComment,
   ghIssueLabels,
   ghProjectItemAdd,
   ghProjectSetField,
@@ -77,6 +78,7 @@ const ALL_PHASE_LABELS = [
 export async function syncGitHub(
   manifest: PipelineManifest,
   config: BeastmodeConfig,
+  projectRoot?: string,
 ): Promise<SyncResult> {
   const result: SyncResult = {
     epicCreated: false,
@@ -95,10 +97,20 @@ export async function syncGitHub(
     return result;
   }
 
-  // Need a repo to sync to
-  const repo = manifest.github?.repo;
+  // Resolve repo: manifest → config → git remote detection
+  let repo = manifest.github?.repo;
   if (!repo) {
-    result.warnings.push("No github.repo in manifest — skipping sync");
+    repo = config.github.repo;
+  }
+  if (!repo && projectRoot) {
+    repo = detectRepo(projectRoot);
+    if (repo) {
+      // Cache in config.yaml for future syncs
+      updateConfig(projectRoot, { github: { repo } });
+    }
+  }
+  if (!repo) {
+    result.warnings.push("No github.repo — not in manifest, config, or git remote");
     return result;
   }
 
@@ -163,13 +175,31 @@ export async function syncGitHub(
     await syncFeature(repo, epicNumber, feature, result);
   }
 
-  // --- Epic Close (if done) ---
-  if (manifest.phase === "done") {
+  // --- Terminal State (done / cancelled) ---
+  if (manifest.phase === "done" || manifest.phase === "cancelled") {
+    // Cancelled gets a comment before closing
+    if (manifest.phase === "cancelled") {
+      await ghIssueComment(repo, epicNumber, "Cancelled");
+    }
+
+    // Close the epic issue
     const closed = await ghIssueClose(repo, epicNumber);
     if (closed) {
       result.epicClosed = true;
     } else {
       result.warnings.push("Failed to close epic");
+    }
+
+    // Close ALL child feature issues (regardless of their status)
+    for (const feature of manifest.features) {
+      const featureNumber = feature.github?.issue;
+      if (!featureNumber) continue; // Skip features without issue numbers
+      const featureClosed = await ghIssueClose(repo, featureNumber);
+      if (featureClosed) {
+        result.featuresClosed++;
+      } else {
+        result.warnings.push(`Failed to close feature ${feature.slug}`);
+      }
     }
 
     // Set project board to Done
@@ -247,7 +277,6 @@ async function syncFeature(
       }
     }
   }
-
 }
 
 /**
