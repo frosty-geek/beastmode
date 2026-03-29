@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.44.3 — Slim Down Design (Mar 2026)
+
+- **Remove prior-decisions gate** — Deleted `[GATE|design.prior-decisions]` from design prime phase; design interviews now start without accumulated rules biasing the conversation
+- **Config cleanup** — Removed `prior-decisions: auto` from `gates.design` in config.yaml
+- **Step renumbering** — Renumbered prime phase steps (4 -> 3, 5 -> 4) for contiguous ordering
+
 ### v0.44.2 — README & ROADMAP Accuracy Fix (Mar 2026)
 
 - **Config example fix** — README config.yaml example now shows real gate names; removed deleted `transitions:` block
