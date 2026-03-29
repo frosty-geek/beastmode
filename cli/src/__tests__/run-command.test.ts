@@ -26,6 +26,14 @@ describe("isValidPhase", () => {
     expect(isValidPhase("")).toBe(false);
     expect(isValidPhase("build")).toBe(false);
   });
+
+  test("accepts done phase", () => {
+    expect(isValidPhase("done")).toBe(true);
+  });
+
+  test("accepts cancelled phase", () => {
+    expect(isValidPhase("cancelled")).toBe(true);
+  });
 });
 
 describe("appendRunLog", () => {

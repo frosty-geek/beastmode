@@ -339,6 +339,30 @@ describe("validate", () => {
       }),
     ).toBe(false);
   });
+
+  test("accepts manifest with done phase", () => {
+    expect(
+      validate({
+        slug: "test",
+        phase: "done",
+        features: [],
+        artifacts: {},
+        lastUpdated: "2026-03-29T00:00:00Z",
+      }),
+    ).toBe(true);
+  });
+
+  test("accepts manifest with cancelled phase", () => {
+    expect(
+      validate({
+        slug: "test",
+        phase: "cancelled",
+        features: [],
+        artifacts: {},
+        lastUpdated: "2026-03-29T00:00:00Z",
+      }),
+    ).toBe(true);
+  });
 });
 
 describe("PipelineManifest type", () => {

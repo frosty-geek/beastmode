@@ -224,12 +224,7 @@ async function dispatchPhase(opts: {
         await worktree.remove(worktreeSlug, { cwd: opts.projectRoot });
         console.log(`[watch] ${opts.epicSlug}: worktree removed`);
 
-        // Mark manifest as done so scanner skips it (deriveNextAction returns null for "done")
-        const doneManifest = store.load(opts.projectRoot, opts.epicSlug);
-        if (doneManifest) {
-          store.save(opts.projectRoot, opts.epicSlug, { ...doneManifest, phase: "done", lastUpdated: new Date().toISOString() });
-        }
-        console.log(`[watch] ${opts.epicSlug}: manifest marked done`);
+        // done transition handled by reconcileState → shouldAdvance(release, completed) → "done"
       } catch (err) {
         console.error(`[watch] ${opts.epicSlug}: release teardown failed:`, err);
         console.error(`[watch] ${opts.epicSlug}: worktree preserved for manual cleanup`);
