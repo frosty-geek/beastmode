@@ -27,6 +27,7 @@ Design and planning artifacts for the async dispatch mutex — serializing concu
 
 ## Full Changelog
 
+- `93af52a` release(polling-behaviour): checkpoint
 - `f483cad` plan(polling-behaviour): checkpoint
 - `646362a` design(polling-behaviour): checkpoint
 - `c068c07` design(polling-behaviour): checkpoint
