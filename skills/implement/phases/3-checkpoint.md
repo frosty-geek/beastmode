@@ -91,12 +91,12 @@ Feature Status:
   ○ feature-2 — pending
   ○ feature-3 — pending
 
-Next pending: just implement <design> <feature-2>
+Next pending: beastmode implement <design> <feature-2>
 ```
 
 If ALL features completed:
 ```
-All features implemented. Next: just validate <design>
+All features implemented. Next: beastmode validate <design>
 ```
 
 STOP. No additional output.

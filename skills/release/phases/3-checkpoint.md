@@ -32,7 +32,7 @@ If GitHub sync fails, continue — the release proceeds regardless.
 
 ---
 
-> **TRANSITION BOUNDARY — Steps below operate from main repo, NOT the worktree.**
+> **TRANSITION BOUNDARY — Steps below operate from main repo, NOT the feature branch working directory.**
 
 ## 3. Commit to Feature Branch
 
@@ -46,7 +46,7 @@ git commit -m "release(<feature>): checkpoint"
 ## 4. Squash Merge to Main
 
 ```bash
-worktree_abs=$(pwd)
+feature_dir=$(pwd)
 feature_branch=$(git branch --show-current)
 main_repo=$(git rev-parse --show-toplevel)/..
 

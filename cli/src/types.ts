@@ -6,7 +6,7 @@
 export type Phase = "design" | "plan" | "implement" | "validate" | "release";
 
 /** Valid top-level CLI commands: phases + utilities */
-export type Command = Phase | "watch" | "status" | "help";
+export type Command = Phase | "watch" | "status" | "cancel" | "help";
 
 /** A single entry in .beastmode-runs.json */
 export interface RunLogEntry {

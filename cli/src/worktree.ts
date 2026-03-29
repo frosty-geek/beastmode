@@ -111,6 +111,37 @@ async function copySettingsLocal(
 }
 
 /**
+ * Check whether a worktree exists for the given slug.
+ */
+export async function exists(
+  slug: string,
+  opts: { cwd?: string } = {},
+): Promise<boolean> {
+  const cwd = opts.cwd;
+  const wtPath = `${WORKTREE_DIR}/${slug}`;
+  const absPath = resolve(cwd ?? process.cwd(), wtPath);
+
+  await git(["worktree", "prune"], { cwd, allowFailure: true });
+
+  const result = await git(["worktree", "list", "--porcelain"], { cwd });
+  return result.stdout.includes(absPath);
+}
+
+/**
+ * Ensure a worktree exists for the given slug.
+ *
+ * If the worktree already exists, returns its info without modification.
+ * If it doesn't exist, creates one. This is the canonical entry point
+ * for all phase commands — the idempotent create-or-reuse lifecycle.
+ */
+export async function ensureWorktree(
+  slug: string,
+  opts: { cwd?: string } = {},
+): Promise<WorktreeInfo> {
+  return create(slug, opts);
+}
+
+/**
  * Return the absolute path of a worktree for use as `cwd` in SDK sessions.
  */
 export function enter(

@@ -4,18 +4,18 @@ Show features grouped by current workflow phase. Reads manifest JSON files for p
 
 ## Steps
 
-### 1. Scan Worktrees and Manifests
+### 1. Scan Working Directories and Manifests
 
-List all active worktrees and look for manifest files:
+List all active feature working directories and look for manifest files:
 
 ```bash
 ls -d .claude/worktrees/*/ 2>/dev/null
 ```
 
-For each worktree, scan for manifest files:
+For each working directory, scan for manifest files:
 
 ```bash
-ls .claude/worktrees/*/\.beastmode/state/plan/*.manifest.json 2>/dev/null
+ls .claude/worktrees/*/.beastmode/state/plan/*.manifest.json 2>/dev/null
 ```
 
 Also check the main repo for manifests (in case of completed releases):

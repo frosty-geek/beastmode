@@ -1,14 +1,12 @@
 # 3. Checkpoint
 
-## 0. Derive Feature Name
+## 0. Resolve Feature Slug
 
-Derive the feature slug from the topic using [worktree-manager.md](../_shared/worktree-manager.md) → "Derive Feature Name" (from user topic).
-
-The derived feature name is used for all artifact file paths below.
+The feature slug comes from the skill argument. Use it directly for all artifact file paths below.
 
 ## 1. Write PRD
 
-Save to `.beastmode/state/design/YYYY-MM-DD-<feature>.md` where `<feature>` is the worktree directory name (from "Derive Feature Name").
+Save to `.beastmode/state/design/YYYY-MM-DD-<feature>.md` where `<feature>` is the feature slug (from step 0).
 
 Use this template:
 
@@ -60,7 +58,7 @@ Do NOT include specific file paths or code snippets — they may become outdated
 
 Create a minimal manifest JSON so the feature is tracked from inception.
 
-**Path:** `.beastmode/state/plan/YYYY-MM-DD-<feature>.manifest.json` where `<feature>` is the worktree directory name (from "Derive Feature Name").
+**Path:** `.beastmode/state/plan/YYYY-MM-DD-<feature>.manifest.json` where `<feature>` is the feature slug (from step 0).
 
 Write this JSON:
 
@@ -128,7 +126,7 @@ git commit -m "design(<feature>): checkpoint"
 Print:
 
 ```
-Next: just plan <feature>
+Next: beastmode plan <feature>
 ```
 
 STOP. No additional output.

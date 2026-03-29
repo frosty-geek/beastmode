@@ -21,7 +21,7 @@ Prior decisions, conventions, and learnings inform this phase — don't re-decid
 
 ## 4. Load Artifacts
 
-From the worktree, locate:
+Locate:
 - Design doc path (`.beastmode/state/design/YYYY-MM-DD-<feature>.md`)
 - Plan doc path (`.beastmode/state/plan/YYYY-MM-DD-<feature>.md`)
 - Validation report path (`.beastmode/state/validate/YYYY-MM-DD-<feature>.md`)

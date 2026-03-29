@@ -4,17 +4,17 @@
 
 **NEVER call `EnterPlanMode` or `ExitPlanMode` during this skill.** This skill operates in normal mode. Calling either traps or breaks the workflow.
 
-## Worktree Isolation
+## Working Directory Isolation
 
 - Never work directly on main/master branch
-- All work happens in isolated worktree (managed by external Justfile orchestrator)
+- The CLI provides the working directory — skills don't manage worktrees
 - Each phase commits to the feature branch at checkpoint
 - Merge happens only at /release
 
 ## Subagent Safety
 
 - Spawn ONE agent per task (never parallel implementer agents on the same wave — file conflicts)
-- Controller stays in the worktree — agents inherit the working directory
+- Controller stays in the working directory — agents inherit it
 - Agents must NOT commit, push, or switch branches
 - Agents must NOT read the plan file — controller provides task text
 - Agents must NOT modify files outside their task's file list

@@ -10,17 +10,6 @@
           }
         ]
       }
-    ],
-    "WorktreeCreate": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-create.sh"
-          }
-        ]
-      }
     ]
   }
 }

@@ -14,12 +14,12 @@ Your FIRST tool call MUST be TodoWrite with parsed phases from below.
 Do not output anything else first.
 Do not skip this for "simple" tasks.
 
-No EnterPlanMode or ExitPlanMode — worktree isolation only. [→ Why](references/constraints.md)
+No EnterPlanMode or ExitPlanMode. [→ Why](references/constraints.md)
 </HARD-GATE>
 
 ## Phases
 
-0. [Prime](phases/0-prime.md) — Load plan, parse waves, enter worktree
+0. [Prime](phases/0-prime.md) — Load plan, parse waves
 1. [Execute](phases/1-execute.md) — Dispatch agents, spec check, wave checkpoints
 2. [Validate](phases/2-validate.md) — Run tests, deviation summary, fix loop
 3. [Checkpoint](phases/3-checkpoint.md) — Save deviations, suggest /validate

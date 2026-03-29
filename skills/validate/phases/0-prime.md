@@ -21,7 +21,13 @@ Prior decisions, conventions, and learnings inform this phase — don't re-decid
 
 ## 4. Check Feature Completion
 
-Resolve the manifest using [worktree-manager.md](../_shared/worktree-manager.md) → "Resolve Manifest" with the design name.
+Locate the manifest by convention glob using the design name (epic slug):
+
+```bash
+matches=$(ls .beastmode/state/plan/*-$design.manifest.json 2>/dev/null)
+```
+
+If no matches, error: "No manifest found for design '$design'". If multiple, take the latest (date prefix sorts chronologically).
 
 Read the manifest JSON. Check all features have status `completed`.
 

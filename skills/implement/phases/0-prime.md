@@ -21,7 +21,14 @@ Prior decisions, conventions, and learnings inform this phase — don't re-decid
 
 ## 4. Resolve Feature Plan
 
-1. Resolve the manifest using [worktree-manager.md](../_shared/worktree-manager.md) → "Resolve Manifest" with the design name (worktree directory name)
+1. Locate the manifest by convention glob using the design name (epic slug):
+
+```bash
+matches=$(ls .beastmode/state/plan/*-$design.manifest.json 2>/dev/null)
+```
+
+If no matches, error: "No manifest found for design '$design'". If multiple, take the latest (date prefix sorts chronologically).
+
 2. Read the manifest JSON
 3. Find the feature entry matching the feature slug from the argument
 4. Read the feature plan file referenced in the manifest

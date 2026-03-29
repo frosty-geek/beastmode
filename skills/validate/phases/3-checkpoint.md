@@ -2,7 +2,7 @@
 
 ## 1. Save Report
 
-Save to `.beastmode/state/validate/YYYY-MM-DD-<feature>.md` where `<feature>` is the worktree directory name.
+Save to `.beastmode/state/validate/YYYY-MM-DD-<feature>.md` where `<feature>` is the epic slug.
 
 ## 2. Sync GitHub
 
@@ -33,7 +33,7 @@ If the label is already set, this is a no-op. If GitHub sync fails, continue —
 If FAIL:
 ```
 Validation failed. Fix issues and re-run:
-just validate <feature>
+beastmode validate <feature>
 ```
 STOP — do not proceed to commit.
 
@@ -49,7 +49,7 @@ git commit -m "validate(<feature>): checkpoint"
 Print:
 
 ```
-Next: just release <feature>
+Next: beastmode release <feature>
 ```
 
 STOP. No additional output.

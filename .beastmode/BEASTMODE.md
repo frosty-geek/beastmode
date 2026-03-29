@@ -24,7 +24,7 @@
 ## Workflow
 
 - Five phases: design -> plan -> implement -> validate -> release
-- External orchestrator (Justfile) manages worktrees and phase transitions
+- CLI manages worktree lifecycle and phase transitions
 - Each phase commits to the feature branch at checkpoint
 - Release squash-merges to main
 

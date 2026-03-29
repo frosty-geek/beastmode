@@ -4,7 +4,7 @@
 
 For each feature, save to `.beastmode/state/plan/YYYY-MM-DD-<design>-<feature-slug>.md` using the template from [feature-format.md](../references/feature-format.md).
 
-Where `<design>` is the worktree directory name (from "Derive Feature Name") and `<feature-slug>` is the feature's name slug.
+Where `<design>` is the epic slug and `<feature-slug>` is the feature's name slug.
 
 ## 2. Write Manifest
 
@@ -91,8 +91,8 @@ Print features and their implement commands:
 ```
 Features ready for implementation:
 
-1. <feature-1> → just implement <design> <feature-1>
-2. <feature-2> → just implement <design> <feature-2>
+1. <feature-1> → beastmode implement <design> <feature-1>
+2. <feature-2> → beastmode implement <design> <feature-2>
 ```
 
 STOP. No additional output.

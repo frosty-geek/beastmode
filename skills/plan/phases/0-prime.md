@@ -30,6 +30,12 @@ If triggered, spawn Explore agent with `@../../agents/common-researcher.md`, sav
 
 ## 5. Read Design Document
 
-Resolve the design artifact using [worktree-manager.md](../_shared/worktree-manager.md) → "Resolve Artifact" with type=`design` and the feature name from step 1.
+Locate the design artifact by convention glob:
+
+```bash
+matches=$(ls .beastmode/state/design/*-$feature.md 2>/dev/null)
+```
+
+If no matches, error: "No design artifact found for feature '$feature'". If multiple, take the latest (date prefix sorts chronologically).
 
 Read the resolved file path.

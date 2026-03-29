@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { git, gitCheck } from "../src/git.js";
-import { create, enter, merge, archive, remove } from "../src/worktree.js";
+import { create, enter, merge, archive, remove, ensureWorktree, exists } from "../src/worktree.js";
 
 /**
  * Integration tests for the worktree manager.
@@ -207,6 +207,84 @@ describe("worktree remove", () => {
       cwd: repoDir,
       allowFailure: true,
     });
+  });
+});
+
+describe("worktree exists", () => {
+  test("returns false when no worktree exists for slug", async () => {
+    const result = await exists("nonexistent-slug", { cwd: repoDir });
+    expect(result).toBe(false);
+  });
+
+  test("returns true when worktree exists for slug", async () => {
+    await create("test-exists-check", { cwd: repoDir });
+
+    const result = await exists("test-exists-check", { cwd: repoDir });
+    expect(result).toBe(true);
+
+    // Clean up
+    await remove("test-exists-check", { cwd: repoDir });
+  });
+
+  test("returns false after worktree is removed", async () => {
+    await create("test-exists-removed", { cwd: repoDir });
+    await remove("test-exists-removed", { cwd: repoDir });
+
+    const result = await exists("test-exists-removed", { cwd: repoDir });
+    expect(result).toBe(false);
+  });
+});
+
+describe("ensureWorktree", () => {
+  test("creates a new worktree when none exists", async () => {
+    const info = await ensureWorktree("test-ensure-new", { cwd: repoDir });
+
+    expect(info.slug).toBe("test-ensure-new");
+    expect(info.branch).toBe("feature/test-ensure-new");
+    expect(info.path).toBe(join(repoDir, ".claude/worktrees/test-ensure-new"));
+
+    // Verify worktree was actually created
+    const worktreeExists = await exists("test-ensure-new", { cwd: repoDir });
+    expect(worktreeExists).toBe(true);
+
+    // Clean up
+    await remove("test-ensure-new", { cwd: repoDir });
+  });
+
+  test("reuses existing worktree without modification", async () => {
+    // Create the worktree first
+    const info1 = await ensureWorktree("test-ensure-reuse", { cwd: repoDir });
+
+    // Add a file so we can verify it's the same worktree
+    await Bun.write(join(info1.path, "marker.txt"), "marker\n");
+    await git(["add", "."], { cwd: info1.path });
+    await git(["commit", "-m", "add marker"], { cwd: info1.path });
+
+    // Ensure again — should reuse
+    const info2 = await ensureWorktree("test-ensure-reuse", { cwd: repoDir });
+
+    expect(info2.path).toBe(info1.path);
+    expect(info2.branch).toBe(info1.branch);
+
+    // Verify the marker file still exists (worktree was reused, not recreated)
+    const markerExists = await Bun.file(join(info2.path, "marker.txt")).exists();
+    expect(markerExists).toBe(true);
+
+    // Clean up
+    await remove("test-ensure-reuse", { cwd: repoDir });
+  });
+
+  test("idempotent: multiple calls return same info", async () => {
+    const info1 = await ensureWorktree("test-ensure-idempotent", { cwd: repoDir });
+    const info2 = await ensureWorktree("test-ensure-idempotent", { cwd: repoDir });
+    const info3 = await ensureWorktree("test-ensure-idempotent", { cwd: repoDir });
+
+    expect(info1.path).toBe(info2.path);
+    expect(info2.path).toBe(info3.path);
+    expect(info1.branch).toBe(info2.branch);
+
+    // Clean up
+    await remove("test-ensure-idempotent", { cwd: repoDir });
   });
 });
 

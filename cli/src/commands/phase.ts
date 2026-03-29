@@ -16,7 +16,7 @@ import { runPhaseWithSdk } from "../runners/sdk-runner";
 import { runDesignInteractive } from "../runners/design-runner";
 import { appendRunLog } from "../utils/run-log";
 import {
-  create as createWorktree,
+  ensureWorktree,
   enter as enterWorktree,
   archive as archiveWorktree,
   merge as mergeWorktree,
@@ -27,17 +27,14 @@ import {
   readManifest,
   getPendingFeatures,
 } from "../manifest";
-import { coordinateMerges, type MergeReport } from "../merge-coordinator";
 
 /** Result of a fan-out implement run (per-feature results). */
 export interface FanOutResult {
   epicSlug: string;
   featureResults: Array<{
     featureSlug: string;
-    worktreeSlug: string;
     result: PhaseResult;
   }>;
-  mergeReport?: MergeReport;
 }
 
 /**
@@ -59,7 +56,7 @@ export async function phaseCommand(
   // Non-implement phases: single epic worktree
   const worktreeSlug = deriveWorktreeSlug(phase, args);
 
-  await createWorktree(worktreeSlug);
+  await ensureWorktree(worktreeSlug);
   const cwd = enterWorktree(worktreeSlug);
 
   console.log(`[beastmode] Phase: ${phase}`);
