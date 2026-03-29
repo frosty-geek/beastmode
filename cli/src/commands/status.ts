@@ -57,6 +57,12 @@ function lastActivity(
   return latest.timestamp.slice(0, 19).replace("T", " ");
 }
 
+function aggregateCost(entries: RunLogEntry[], epicSlug: string): number {
+  return entries
+    .filter((e) => e.epic === epicSlug)
+    .reduce((sum, e) => sum + (e.cost_usd ?? 0), 0);
+}
+
 export function buildStatusRows(
   epics: EpicState[],
   runLog: RunLogEntry[],
@@ -75,7 +81,7 @@ export function buildStatusRows(
       phase: epic.phase,
       progress: formatProgress(epic),
       blocked: formatBlocked(epic),
-      cost: formatCost(epic.costUsd),
+      cost: formatCost(aggregateCost(runLog, epic.slug)),
       lastActivity: lastActivity(runLog, epic.slug),
     }));
 }

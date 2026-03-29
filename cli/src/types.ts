@@ -3,7 +3,7 @@
  */
 
 /** Valid beastmode workflow phases */
-export type Phase = "design" | "plan" | "implement" | "validate" | "release";
+export type Phase = "design" | "plan" | "implement" | "validate" | "release" | "released";
 
 /** Valid top-level CLI commands: phases + utilities */
 export type Command = Phase | "watch" | "status" | "help";
@@ -34,6 +34,7 @@ export const VALID_PHASES: readonly Phase[] = [
   "implement",
   "validate",
   "release",
+  "released",
 ] as const;
 
 export function isValidPhase(s: string): s is Phase {

@@ -1,7 +1,6 @@
 import { readFileSync, readdirSync, existsSync } from "fs";
 import { resolve, basename } from "path";
-import type { Phase, RunLogEntry } from "./types";
-import { loadConfig } from "./config";
+import type { Phase } from "./types";
 
 /** Feature-level progress within an epic */
 export interface FeatureProgress {
@@ -30,7 +29,6 @@ export interface EpicState {
   blockedGate?: string;
   gateBlocked: boolean;
   gateName?: string;
-  costUsd: number;
   githubEpicIssue?: number;
 }
 
@@ -44,6 +42,7 @@ interface Manifest {
     status: string;
     github?: { issue: number };
   }>;
+  phase?: Phase;
   github?: {
     epic: number;
     repo: string;
@@ -60,21 +59,6 @@ export function slugFromDesign(filename: string): string {
   return basename(filename, ".md").replace(/^\d{4}-\d{2}-\d{2}-/, "");
 }
 
-/**
- * Extract date prefix from a design artifact filename.
- * Input: "2026-03-28-typescript-pipeline-orchestrator.md"
- * Output: "2026-03-28"
- */
-function dateFromDesign(filename: string): string | undefined {
-  const match = basename(filename).match(/^(\d{4}-\d{2}-\d{2})-/);
-  return match ? match[1] : undefined;
-}
-
-/**
- * The manifest system was introduced on this date. Design artifacts before
- * this date that lack a manifest are pre-manifest completed epics.
- */
-const MANIFEST_EPOCH = "2026-03-28";
 
 /**
  * Find the manifest for a given design slug.
@@ -94,107 +78,96 @@ function findManifest(pipeDir: string, planDir: string, slug: string): string | 
 }
 
 /**
+ * Detect and resolve git merge conflict markers in raw file content.
+ * Uses an "ours-side" strategy: keeps content before ======= in each
+ * conflict block, discards theirs. Returns the original string unchanged
+ * if no conflict markers are present.
+ */
+export function resolveConflicts(raw: string): string {
+  if (!raw.includes("<<<<<<<")) return raw;
+
+  const lines = raw.split("\n");
+  const result: string[] = [];
+  let inConflict = false;
+  let inTheirs = false;
+
+  for (const line of lines) {
+    if (line.startsWith("<<<<<<<")) {
+      inConflict = true;
+      inTheirs = false;
+      continue;
+    }
+    if (inConflict && line.startsWith("=======")) {
+      inTheirs = true;
+      continue;
+    }
+    if (line.startsWith(">>>>>>>")) {
+      inConflict = false;
+      inTheirs = false;
+      continue;
+    }
+    if (!inTheirs) {
+      result.push(line);
+    }
+  }
+
+  return result.join("\n");
+}
+
+/**
  * Read and parse a manifest file. Returns undefined on any error.
+ * Automatically resolves git merge conflict markers before parsing.
  */
 function readManifest(path: string): Manifest | undefined {
   try {
     const raw = readFileSync(path, "utf-8");
-    return JSON.parse(raw) as Manifest;
+    if (!raw.trim()) {
+      console.warn(`[scanner] Skipping empty manifest: ${path}`);
+      return undefined;
+    }
+    const resolved = resolveConflicts(raw);
+    if (resolved !== raw) {
+      console.warn(`[scanner] Auto-resolved merge conflicts in ${path}`);
+    }
+    return JSON.parse(resolved) as Manifest;
   } catch {
+    console.warn(`[scanner] Skipping unparseable manifest: ${path}`);
     return undefined;
   }
 }
 
-/**
- * Read and parse the run log. Returns empty array on any error.
- */
-function readRunLog(projectRoot: string): RunLogEntry[] {
-  const logPath = resolve(projectRoot, ".beastmode-runs.json");
-  if (!existsSync(logPath)) return [];
-  try {
-    const raw = readFileSync(logPath, "utf-8").trim();
-    if (!raw) return [];
-    return JSON.parse(raw) as RunLogEntry[];
-  } catch {
-    return [];
-  }
-}
 
 /**
- * Aggregate cost for a given epic slug from the run log.
- */
-function aggregateCost(entries: RunLogEntry[], epicSlug: string): number {
-  return entries
-    .filter((e) => e.epic === epicSlug)
-    .reduce((sum, e) => sum + (e.cost_usd ?? 0), 0);
-}
-
-/**
- * Derive the current phase from manifest state and design artifact date.
- * - No manifest + release artifact exists → release (already shipped)
- * - No manifest + pre-MANIFEST_EPOCH date → release (pre-manifest completed epic)
- * - No manifest + post-MANIFEST_EPOCH date → design (new epic needs plan)
- * - Manifest with no features → plan (empty manifest, needs feature decomposition)
- * - All features completed → validate/release based on artifacts
- * - Otherwise → implement (features need work)
+ * Derive phase from manifest state.
+ * Primary: manifest.phase field (set by reconciler).
+ * Fallback: structural inference for pre-migration manifests.
  */
 function derivePhase(
-  slug: string,
   manifest: Manifest | undefined,
-  stateDir: string,
-  pipeDir: string,
-  designFilename: string,
 ): { phase: Phase; done: boolean } {
   if (!manifest) {
-    // No manifest — check pipeline dir then legacy state/release for markers
-    if (
-      hasPhaseMarker(pipeDir, slug, "release") ||
-      hasLegacyArtifact(stateDir, "release", slug)
-    ) {
-      return { phase: "release", done: true };
-    }
-    // Pre-manifest epics are completed — they shipped through the old workflow
-    const date = dateFromDesign(designFilename);
-    if (date && date < MANIFEST_EPOCH) {
-      return { phase: "release", done: true };
-    }
     return { phase: "design", done: false };
   }
-  if (!manifest.features || manifest.features.length === 0)
+
+  // Primary path: read manifest.phase directly
+  if (manifest.phase) {
+    const done = manifest.phase === "released";
+    return { phase: manifest.phase, done };
+  }
+
+  // Fallback: structural inference for pre-migration manifests
+  if (!manifest.features || manifest.features.length === 0) {
     return { phase: "plan", done: false };
+  }
 
-  const allCompleted = manifest.features.every(
-    (f) => f.status === "completed",
-  );
-
+  const allCompleted = manifest.features.every((f) => f.status === "completed");
   if (allCompleted) {
-    // Check pipeline dir markers (authoritative), then legacy state dirs
-    const hasRelease =
-      hasPhaseMarker(pipeDir, slug, "release") ||
-      hasLegacyArtifact(stateDir, "release", slug);
-    const hasValidate =
-      hasPhaseMarker(pipeDir, slug, "validate") ||
-      hasLegacyArtifact(stateDir, "validate", slug);
-
-    if (hasRelease) return { phase: "release", done: true };
-    if (hasValidate) return { phase: "release", done: false };
     return { phase: "validate", done: false };
   }
 
   return { phase: "implement", done: false };
 }
 
-/** Check for a phase marker in the pipeline directory. */
-function hasPhaseMarker(pipeDir: string, slug: string, phase: string): boolean {
-  if (!existsSync(pipeDir)) return false;
-  return readdirSync(pipeDir).some((f) => f === `${phase}-${slug}`);
-}
-
-/** Check for a legacy artifact in state/<phase>/. */
-function hasLegacyArtifact(stateDir: string, phase: string, slug: string): boolean {
-  const dir = resolve(stateDir, phase);
-  return existsSync(dir) && readdirSync(dir).some((f) => f.includes(slug));
-}
 
 /**
  * Derive the next action for an epic given its phase and manifest state.
@@ -233,6 +206,9 @@ function deriveNextAction(
     case "release":
       return { phase: "release", args: [slug], type: "single" };
 
+    case "released":
+      return null;
+
     default:
       return null;
   }
@@ -240,30 +216,14 @@ function deriveNextAction(
 
 /**
  * Check if an epic is blocked on a human gate.
- * Looks for features with status "blocked" or checks config for human gates
- * on the current phase.
+ * Reactive strategy: only check for blocked features, no preemptive config checking.
  */
 function checkGateBlocked(
-  phase: Phase,
   manifest: Manifest | undefined,
-  projectRoot: string,
 ): { blocked: boolean; gateName?: string } {
-  // Check for blocked features in manifest
   if (manifest?.features.some((f) => f.status === "blocked")) {
     return { blocked: true, gateName: "feature-blocked" };
   }
-
-  // Check if the current phase has human gates that would block auto-dispatch
-  const config = loadConfig(projectRoot);
-  const phaseGates = config.gates[phase as keyof typeof config.gates];
-  if (phaseGates) {
-    for (const [gate, mode] of Object.entries(phaseGates)) {
-      if (mode === "human") {
-        return { blocked: true, gateName: `${phase}.${gate}` };
-      }
-    }
-  }
-
   return { blocked: false };
 }
 
@@ -280,6 +240,39 @@ function extractFeatures(manifest: Manifest | undefined): FeatureProgress[] {
 }
 
 /**
+ * Deduplicate manifest entries by slug. When multiple design files resolve
+ * to the same slug, the newest (last sorted by filename) wins. Collisions
+ * are warned to stderr so operators notice in watch loop output.
+ */
+function deduplicateManifests(
+  entries: Array<{ slug: string; manifestPath?: string; designFile: string }>,
+): Array<{ slug: string; manifestPath?: string; designFile: string }> {
+  const bySlug = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    const existing = bySlug.get(entry.slug) ?? [];
+    existing.push(entry);
+    bySlug.set(entry.slug, existing);
+  }
+
+  const result: typeof entries = [];
+  for (const [slug, group] of bySlug) {
+    if (group.length > 1) {
+      // Sort by designFile name — last wins (newest date)
+      group.sort((a, b) => a.designFile.localeCompare(b.designFile));
+      const winner = group[group.length - 1];
+      const losers = group.slice(0, -1);
+      console.warn(
+        `[scanner] Slug collision "${slug}": ${losers.map((l) => l.designFile).join(", ")} shadowed by ${winner.designFile}`,
+      );
+      result.push(winner);
+    } else {
+      result.push(group[0]);
+    }
+  }
+  return result;
+}
+
+/**
  * Scan all epics in the project and return their structured state.
  * Pure read-only operation — no filesystem writes or process spawns.
  */
@@ -292,37 +285,45 @@ export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
   if (!existsSync(designDir)) return [];
 
   const designFiles = readdirSync(designDir).filter((f) => f.endsWith(".md"));
-  const runLog = readRunLog(projectRoot);
   const epics: EpicState[] = [];
 
-  for (const designFile of designFiles) {
-    const slug = slugFromDesign(designFile);
-    const designPath = resolve(designDir, designFile);
+  // Build entries and deduplicate by slug before processing
+  const entries = designFiles.map((f) => ({
+    slug: slugFromDesign(f),
+    manifestPath: findManifest(pipeDir, planDir, slugFromDesign(f)),
+    designFile: f,
+  }));
+  const deduplicated = deduplicateManifests(entries);
 
-    const manifestPath = findManifest(pipeDir, planDir, slug);
-    const manifest = manifestPath ? readManifest(manifestPath) : undefined;
+  for (const { slug, manifestPath: mPath, designFile } of deduplicated) {
+    try {
+      const designPath = resolve(designDir, designFile);
+      const manifestPath = mPath;
+      const manifest = manifestPath ? readManifest(manifestPath) : undefined;
 
-    const { phase, done } = derivePhase(slug, manifest, stateDir, pipeDir, designFile);
-    const nextAction = done ? null : deriveNextAction(slug, phase, manifest);
-    const { blocked, gateName } = checkGateBlocked(phase, manifest, projectRoot);
-    const features = extractFeatures(manifest);
-    const costUsd = aggregateCost(runLog, slug);
-    const githubEpicIssue = manifest?.github?.epic;
+      const { phase, done } = derivePhase(manifest);
+      const nextAction = done ? null : deriveNextAction(slug, phase, manifest);
+      const { blocked, gateName } = checkGateBlocked(manifest);
+      const features = extractFeatures(manifest);
+      const githubEpicIssue = manifest?.github?.epic;
 
-    epics.push({
-      slug,
-      designPath,
-      manifestPath,
-      phase,
-      nextAction,
-      features,
-      blocked,
-      blockedGate: gateName,
-      gateBlocked: blocked,
-      gateName,
-      costUsd,
-      githubEpicIssue,
-    });
+      epics.push({
+        slug,
+        designPath,
+        manifestPath,
+        phase,
+        nextAction,
+        features,
+        blocked,
+        blockedGate: gateName,
+        gateBlocked: blocked,
+        gateName,
+        githubEpicIssue,
+      });
+    } catch (err) {
+      console.warn(`[scanner] Error processing ${designFile}, skipping: ${err}`);
+      continue;
+    }
   }
 
   return epics;

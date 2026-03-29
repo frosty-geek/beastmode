@@ -19,7 +19,6 @@ function makeEpic(overrides: Partial<EpicState> = {}): EpicState {
     features: [],
     blocked: false,
     gateBlocked: false,
-    costUsd: 0,
     ...overrides,
   };
 }
@@ -53,7 +52,6 @@ describe("buildStatusRows", () => {
           { slug: "f2", status: "pending" },
           { slug: "f3", status: "in-progress" },
         ],
-        costUsd: 0.3,
       }),
     ];
     const runLog: RunLogEntry[] = [
@@ -139,25 +137,26 @@ describe("buildStatusRows", () => {
     expect(implRow.progress).toBe("2/3");
   });
 
-  test("formats cost as dash when zero", () => {
+  test("formats cost as dash when no run log entries", () => {
     const epics: EpicState[] = [
       makeEpic({
         slug: "no-cost",
-        costUsd: 0,
       }),
     ];
     const rows = buildStatusRows(epics, []);
     expect(rows[0].cost).toBe("-");
   });
 
-  test("formats cost with two decimal places", () => {
+  test("formats cost with two decimal places from run log", () => {
     const epics: EpicState[] = [
       makeEpic({
         slug: "has-cost",
-        costUsd: 1.5,
       }),
     ];
-    const rows = buildStatusRows(epics, []);
+    const runLog: RunLogEntry[] = [
+      makeRunEntry({ epic: "has-cost", cost_usd: 1.5 }),
+    ];
+    const rows = buildStatusRows(epics, runLog);
     expect(rows[0].cost).toBe("$1.50");
   });
 

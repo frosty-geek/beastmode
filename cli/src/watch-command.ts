@@ -10,7 +10,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, copyFi
 import { loadConfig } from "./config.js";
 import { WatchLoop } from "./watch.js";
 import type { WatchDeps } from "./watch.js";
-import type { EpicState, SessionResult, NextAction, FeatureProgress } from "./watch-types.js";
+import type { SessionResult } from "./watch-types.js";
+import { scanEpics } from "./state-scanner.js";
 import * as worktree from "./worktree.js";
 
 /** Discover the project root (walks up to find .beastmode/). */
@@ -23,17 +24,6 @@ function findProjectRoot(from: string = process.cwd()): string {
   throw new Error("Not inside a beastmode project (no .beastmode/ found)");
 }
 
-/** Scan manifests to determine epic states. Minimal inline scanner. */
-async function scanEpics(projectRoot: string): Promise<EpicState[]> {
-  // Dynamically import state-scanner if available, otherwise use inline logic
-  try {
-    const scanner = await import("./state-scanner.js");
-    return scanner.scanEpics(projectRoot);
-  } catch {
-    // Fallback: inline manifest scanner
-    return scanEpicsInline(projectRoot);
-  }
-}
 
 /**
  * Pipeline state directory — gitignored, orchestrator-owned.
@@ -66,40 +56,46 @@ function seedPipelineState(projectRoot: string): void {
     }
   }
 
-  // Migrate existing state dir markers into manifest phases
-  for (const phase of ["validate", "release"] as const) {
-    const phaseDir = resolve(projectRoot, ".beastmode/state", phase);
-    if (!existsSync(phaseDir)) continue;
-    for (const f of readdirSync(phaseDir)) {
-      // Derive epic slug from marker filename: YYYY-MM-DD-<slug>.md
-      const epicSlug = f.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.md$/, "");
-      const manifestFile = readdirSync(dir).find(
-        (m) => m.endsWith(`-${epicSlug}.manifest.json`),
-      );
-      if (!manifestFile) continue;
+  // Migrate existing state dir markers into manifest.phase field
+  for (const manifestFile of readdirSync(dir).filter(f => f.endsWith(".manifest.json"))) {
+    const manifestPath = resolve(dir, manifestFile);
+    try {
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
-      const manifestPath = resolve(dir, manifestFile);
-      try {
-        const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
-        if (!manifest.phases) manifest.phases = {};
-        if (!manifest.phases[phase]) {
-          manifest.phases[phase] = "completed";
-          // If release is done, backfill all prior phases
-          if (phase === "release") {
-            manifest.phases.design ??= "completed";
-            manifest.phases.plan ??= "completed";
-            manifest.phases.implement ??= "completed";
-            manifest.phases.validate ??= "completed";
-          }
-          if (phase === "validate") {
-            manifest.phases.design ??= "completed";
-            manifest.phases.plan ??= "completed";
-            manifest.phases.implement ??= "completed";
-          }
-          writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+      // Skip if already has the new phase field
+      if (manifest.phase) continue;
+
+      // Derive phase from legacy phases map or markers
+      const epicSlug = manifestFile.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(".manifest.json", "");
+      const releaseDir = resolve(projectRoot, ".beastmode/state", "release");
+      const validateDir = resolve(projectRoot, ".beastmode/state", "validate");
+      const hasRelease = existsSync(releaseDir) && readdirSync(releaseDir).some(f => f.includes(epicSlug));
+      const hasValidate = existsSync(validateDir) && readdirSync(validateDir).some(f => f.includes(epicSlug));
+
+      // Check legacy phases map
+      const legacyPhases: Record<string, string> = manifest.phases ?? {};
+
+      if (legacyPhases.release === "completed" || hasRelease) {
+        manifest.phase = "released";
+      } else if (legacyPhases.validate === "completed" || hasValidate) {
+        manifest.phase = "release";
+      } else if (manifest.features?.length > 0) {
+        const allCompleted = manifest.features.every((f: {status: string}) => f.status === "completed");
+        if (allCompleted) {
+          manifest.phase = "validate";
+        } else {
+          manifest.phase = "implement";
         }
-      } catch { /* skip unparseable */ }
-    }
+      } else {
+        manifest.phase = "plan";
+      }
+
+      // Remove legacy phases map
+      delete manifest.phases;
+      manifest.lastUpdated = new Date().toISOString();
+
+      writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    } catch { /* skip unparseable */ }
   }
 }
 
@@ -213,10 +209,8 @@ function reconcilePlan(
   });
   manifest.lastUpdated = new Date().toISOString();
 
-  // Plan completing implies design is done too
-  if (!manifest.phases) manifest.phases = {};
-  (manifest.phases as Record<string, string>).design = "completed";
-  (manifest.phases as Record<string, string>).plan = "completed";
+  // Plan completing means features are ready for implementation
+  manifest.phase = "implement";
 
   // Write manifest to pipeline dir
   const manifestName = manifestFile ?? `${new Date().toISOString().slice(0, 10)}-${epicSlug}.manifest.json`;
@@ -238,7 +232,7 @@ function reconcilePlan(
   return { completed, total: features.length };
 }
 
-/** Update a phase status in the manifest's `phases` object. */
+/** Update a phase status in the manifest. */
 function updatePhaseStatus(
   projectRoot: string,
   epicSlug: string,
@@ -253,9 +247,18 @@ function updatePhaseStatus(
   const manifestPath = resolve(dir, match);
   const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
-  if (!manifest.phases) manifest.phases = {};
-  manifest.phases[phase] = "completed";
+  // Advance phase: validate → "release", release → "released"
+  if (phase === "validate") {
+    manifest.phase = "release";
+  } else if (phase === "release") {
+    manifest.phase = "released";
+  } else {
+    manifest.phase = phase;
+  }
   manifest.lastUpdated = new Date().toISOString();
+
+  // Remove legacy phases map if present
+  delete manifest.phases;
 
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 }
@@ -285,11 +288,13 @@ function markFeatureCompleted(
 
   const completed = features.filter((f) => f.status === "completed").length;
 
-  // If all features done, mark implement phase completed
+  // If all features done, advance to validate
   if (completed === features.length) {
-    if (!manifest.phases) manifest.phases = {};
-    (manifest.phases as Record<string, string>).implement = "completed";
+    manifest.phase = "validate";
   }
+
+  // Remove legacy phases map if present
+  delete manifest.phases;
 
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 
@@ -319,126 +324,6 @@ function readProgress(
   }
 }
 
-/** Inline epic scanner — reads manifests from pipeline dir (fallback to state/plan/). */
-function scanEpicsInline(projectRoot: string): EpicState[] {
-  const pipeDir = pipelineDir(projectRoot);
-  const planDir = resolve(projectRoot, ".beastmode", "state", "plan");
-
-  // Prefer pipeline dir manifests, fall back to plan dir
-  const manifestDir = readdirSync(pipeDir).some(f => f.endsWith(".manifest.json"))
-    ? pipeDir
-    : planDir;
-  if (!existsSync(manifestDir)) return [];
-
-  const files = readdirSync(manifestDir).filter((f: string) =>
-    f.endsWith(".manifest.json"),
-  );
-
-  const epics: EpicState[] = [];
-
-  for (const file of files) {
-    try {
-      const content = readFileSync(resolve(manifestDir, file), "utf-8");
-      const manifest = JSON.parse(content);
-
-      // Derive slug from filename: YYYY-MM-DD-<slug>.manifest.json
-      const slug = file.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(".manifest.json", "");
-
-      const features: FeatureProgress[] = (manifest.features ?? []).map(
-        (f: { slug: string; status: string }) => ({
-          slug: f.slug,
-          status: f.status as FeatureProgress["status"],
-        }),
-      );
-
-      const allCompleted = features.length > 0 && features.every((f) => f.status === "completed");
-      const pendingFeatures = features.filter((f) => f.status === "pending");
-      const hasDesign = existsSync(resolve(projectRoot, manifest.design ?? ""));
-      const phases: Record<string, string> = manifest.phases ?? {};
-
-      let phase: string;
-      let nextAction: NextAction | null = null;
-      let gateBlocked = false;
-
-      if (phases.release === "completed") {
-        // Epic is done
-        phase = "release";
-        nextAction = null;
-      } else if (phases.validate === "completed") {
-        // Validated — ready for release
-        phase = "validate";
-        nextAction = { phase: "release", args: [slug], type: "single" };
-      } else if (allCompleted) {
-        // All features done — needs validate
-        phase = "implement";
-        nextAction = { phase: "validate", args: [slug], type: "single" };
-      } else if (features.length === 0 && hasDesign) {
-        // Design exists but no features planned yet
-        phase = "design";
-        nextAction = { phase: "plan", args: [slug], type: "single" };
-      } else if (pendingFeatures.length > 0) {
-        // Has pending features — implement fan-out
-        phase = "implement";
-        nextAction = {
-          phase: "implement",
-          args: [slug],
-          type: "fan-out",
-          features: pendingFeatures.map((f) => f.slug),
-        };
-      } else {
-        // In progress or blocked
-        phase = "implement";
-        nextAction = null;
-      }
-
-      // Check for human gates in config
-      const config = loadConfig(projectRoot);
-      const gateConfig = config.gates?.implement;
-      if (gateConfig) {
-        for (const [_gate, mode] of Object.entries(gateConfig)) {
-          if (mode === "human") {
-            // Check if any feature has a blocked status indicating gate hit
-            const blocked = features.some((f) => f.status === "blocked" as string);
-            if (blocked) {
-              gateBlocked = true;
-              break;
-            }
-          }
-        }
-      }
-
-      // Aggregate cost from .beastmode-runs.json
-      let costUsd = 0;
-      const runsPath = resolve(projectRoot, ".beastmode-runs.json");
-      if (existsSync(runsPath)) {
-        try {
-          const runs = JSON.parse(readFileSync(runsPath, "utf-8")) as Array<{
-            epic: string;
-            cost_usd: number;
-          }>;
-          costUsd = runs
-            .filter((r) => r.epic === slug)
-            .reduce((sum, r) => sum + (r.cost_usd ?? 0), 0);
-        } catch {
-          // Corrupted runs file — ignore
-        }
-      }
-
-      epics.push({
-        slug,
-        phase,
-        nextAction,
-        features,
-        gateBlocked,
-        costUsd,
-      });
-    } catch {
-      // Skip unparseable manifests
-    }
-  }
-
-  return epics;
-}
 
 /** Dispatch a phase using the Claude Agent SDK. */
 async function dispatchPhase(opts: {
