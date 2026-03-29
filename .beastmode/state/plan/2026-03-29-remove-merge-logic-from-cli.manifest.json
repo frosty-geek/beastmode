@@ -16,7 +16,7 @@
     {
       "slug": "strip-worktree-ops",
       "plan": "2026-03-29-remove-merge-logic-from-cli-strip-worktree-ops.md",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "slug": "simplify-watch-fanout",
@@ -28,5 +28,5 @@
     "epic": 92,
     "repo": "BugRoger/beastmode"
   },
-  "lastUpdated": "2026-03-29T18:00:00.000Z"
+  "lastUpdated": "2026-03-29T19:00:00.000Z"
 }
