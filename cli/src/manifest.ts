@@ -8,7 +8,6 @@
 import type {
   PipelineManifest,
   ManifestFeature,
-  ManifestGitHub,
 } from "./manifest-store";
 import type { Phase, PhaseOutput } from "./types";
 import type { GatesConfig } from "./config";
@@ -267,7 +266,7 @@ const PHASE_SEQUENCE: Partial<Record<Phase, Phase>> = {
  * Check if the phase output artifacts contain features.
  */
 function outputHasFeatures(output: PhaseOutput): boolean {
-  const artifacts = output.artifacts as Record<string, unknown>;
+  const artifacts = output.artifacts as unknown as Record<string, unknown>;
   const features = artifacts?.features;
   return Array.isArray(features) && features.length > 0;
 }

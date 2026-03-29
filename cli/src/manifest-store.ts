@@ -1,11 +1,11 @@
 /**
  * Manifest Store — sole filesystem interface for pipeline manifests.
  *
- * All reads/writes of .beastmode/state/*.manifest.json go through here.
+ * All reads/writes of .beastmode/pipeline/*.manifest.json go through here.
  * Type definitions for the manifest schema live here too.
  *
  * Schema: pure pipeline state.
- * Location: .beastmode/state/YYYY-MM-DD-<slug>.manifest.json (flat file)
+ * Location: .beastmode/pipeline/YYYY-MM-DD-<slug>.manifest.json (flat file)
  * Lifecycle: CLI creates, enriches, advances, reconstructs.
  */
 
@@ -61,11 +61,11 @@ function isValidFeatureStatus(s: string): boolean {
 // --- Internal Helpers ---
 
 /**
- * Resolve the state directory.
- * Convention: .beastmode/state/
+ * Resolve the pipeline directory.
+ * Convention: .beastmode/pipeline/
  */
 function pipelineDir(projectRoot: string): string {
-  return resolve(projectRoot, ".beastmode", "state");
+  return resolve(projectRoot, ".beastmode", "pipeline");
 }
 
 /**
@@ -81,7 +81,7 @@ function newManifestPath(projectRoot: string, slug: string): string {
 
 /**
  * Find the manifest file path for a given slug.
- * Convention: .beastmode/state/YYYY-MM-DD-<slug>.manifest.json
+ * Convention: .beastmode/pipeline/YYYY-MM-DD-<slug>.manifest.json
  * Returns the latest match (date prefix sorts chronologically).
  */
 export function manifestPath(

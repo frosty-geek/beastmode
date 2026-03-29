@@ -13,9 +13,6 @@ import type { PipelineManifest, ManifestFeature } from "../manifest-store";
 import {
   enrich,
   advancePhase,
-  regressPhase,
-  markFeature,
-  cancel,
   getPendingFeatures,
 } from "../manifest";
 

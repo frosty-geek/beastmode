@@ -20,7 +20,7 @@ function cleanup(): void {
 }
 
 function pipeDir(): string {
-  return resolve(TEST_ROOT, ".beastmode", "state");
+  return resolve(TEST_ROOT, ".beastmode", "pipeline");
 }
 
 function writeManifestFile(filename: string, content: unknown): void {

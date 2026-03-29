@@ -1,20 +1,7 @@
 import type { BeastmodeConfig } from "../config";
+import type { EnrichedManifest } from "../state-scanner";
 import { scanEpics } from "../state-scanner";
 import { findProjectRoot } from "../project-root";
-
-/**
- * Local interface matching the new EnrichedManifest from state-scanner.
- * Defined here so status.ts compiles even if the scanner agent hasn't
- * landed the new types yet.
- */
-interface EnrichedManifest {
-  slug: string;
-  phase: string;
-  features: Array<{ slug: string; status: string }>;
-  nextAction: { phase: string; args: string[]; type: string; features?: string[] } | null;
-  blocked: { gate: string; reason: string } | null;
-  manifestPath: string;
-}
 
 export interface StatusRow {
   name: string;
@@ -71,7 +58,7 @@ export function formatFeatures(epic: EnrichedManifest): string {
 
 export function formatStatus(epic: EnrichedManifest): string {
   if (epic.blocked) {
-    return color(`blocked (${epic.blocked.gate}): ${epic.blocked.reason}`, ANSI.red);
+    return color(`blocked: run beastmode ${epic.phase} ${epic.slug}`, ANSI.red);
   }
   // Check if all features completed and phase is beyond implement
   if (epic.phase === "release" && epic.nextAction === null) {
@@ -155,6 +142,6 @@ export function formatTable(rows: StatusRow[]): string {
 export async function statusCommand(_config: BeastmodeConfig, _args: string[] = []): Promise<void> {
   const projectRoot = findProjectRoot();
   const { epics } = await scanEpics(projectRoot);
-  const rows = buildStatusRows(epics as unknown as EnrichedManifest[]);
+  const rows = buildStatusRows(epics);
   console.log(formatTable(rows));
 }

@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import type { PipelineManifest, ManifestFeature } from "../manifest-store";
-import type { Phase, PhaseOutput, PlanArtifacts } from "../types";
+import type { PhaseOutput, PlanArtifacts } from "../types";
 import type { GatesConfig } from "../config";
 import {
   enrich,
@@ -196,7 +196,7 @@ describe("cancel", () => {
     const manifest = makeManifest({ phase: "implement" });
     const result = cancel(manifest);
 
-    expect(result.phase).toBe("cancelled");
+    expect(result.phase as string).toBe("cancelled");
   });
 });
 
