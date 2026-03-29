@@ -11,6 +11,10 @@
 
 set -e
 
+# Resolve repo root so the hook works regardless of cwd
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$REPO_ROOT"
+
 ARTIFACTS_DIR=".beastmode/artifacts"
 
 # Bail if artifacts dir doesn't exist (not in a beastmode worktree)

@@ -89,16 +89,23 @@ describe("formatStatus", () => {
     expect(result).toContain("\x1b[31m");
   });
 
-  test("release epic with null nextAction shows done", () => {
+  test("done phase shows done in status", () => {
     const epic = makeEpic({
-      phase: "release",
+      phase: "done",
       nextAction: null,
     });
     const result = formatStatus(epic);
     const visible = stripAnsi(result);
     expect(visible).toBe("done");
-    // Should contain ANSI green
-    expect(result).toContain("\x1b[32m");
+  });
+
+  test("release epic with null nextAction shows release (no heuristic)", () => {
+    const epic = makeEpic({
+      phase: "release",
+      nextAction: null,
+    });
+    const result = formatStatus(epic);
+    expect(result).toBe("release");
   });
 
   test("non-blocked implement epic shows implement", () => {

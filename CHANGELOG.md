@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.44.0 — Terminal Phase States (Mar 2026)
+
+- **Terminal phases** — `done` and `cancelled` added as first-class Phase values; `shouldAdvance` returns `"done"` for completed releases, `deriveNextAction` returns null for both terminal phases
+- **Type-safe cancel** — `cancel()` no longer needs `as Phase` cast; `"cancelled"` is a valid Phase
+- **GitHub Done sync** — `PHASE_TO_BOARD_STATUS` maps `done` to "Done" column; epic issues auto-close on completion
+- **Status filtering** — `buildStatusRows` hides done/cancelled epics by default; `--all` flag shows full history
+- **Phase styling** — `colorPhase` green+dim for done, red+dim for cancelled; PHASE_ORDER positions done below active work
+- **Scanner reconciliation** — Pre-reconcile worktree outputs in scanner to prevent stale data; preserve manifests after release
+
 ### v0.43.0 — Orchestrator State Reconciliation (Mar 2026)
 
 - **Orchestrator-driven state reconciliation** — Watch loop reconciles state by scanning worktree plan files directly instead of parsing output.json; the orchestrator is the sole writer of pipeline state

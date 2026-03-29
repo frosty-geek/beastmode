@@ -140,7 +140,7 @@ export function markFeature(
 export function cancel(manifest: PipelineManifest): PipelineManifest {
   return {
     ...manifest,
-    phase: "cancelled" as Phase,
+    phase: "cancelled",
     lastUpdated: now(),
   };
 }
@@ -217,6 +217,10 @@ export function deriveNextAction(
     case "release":
       return { phase: "release", args: [slug], type: "single" };
 
+    case "done":
+    case "cancelled":
+      return null;
+
     default:
       return null;
   }
@@ -260,6 +264,7 @@ const PHASE_SEQUENCE: Partial<Record<Phase, Phase>> = {
   plan: "implement",
   implement: "validate",
   validate: "release",
+  release: "done",
 };
 
 /**
@@ -300,6 +305,9 @@ export function shouldAdvance(
     }
 
     case "validate":
+      return output?.status === "completed" ? nextPhase : null;
+
+    case "release":
       return output?.status === "completed" ? nextPhase : null;
 
     default:

@@ -196,7 +196,7 @@ describe("cancel", () => {
     const manifest = makeManifest({ phase: "implement" });
     const result = cancel(manifest);
 
-    expect(result.phase as string).toBe("cancelled");
+    expect(result.phase).toBe("cancelled");
   });
 });
 
@@ -303,6 +303,16 @@ describe("deriveNextAction", () => {
       args: ["test-epic"],
       type: "single",
     });
+  });
+
+  test("done -> null (terminal phase)", () => {
+    const manifest = makeManifest({ phase: "done" });
+    expect(deriveNextAction(manifest)).toBeNull();
+  });
+
+  test("cancelled -> null (terminal phase)", () => {
+    const manifest = makeManifest({ phase: "cancelled" });
+    expect(deriveNextAction(manifest)).toBeNull();
   });
 });
 
@@ -419,6 +429,36 @@ describe("shouldAdvance", () => {
     };
 
     expect(shouldAdvance(manifest, output)).toBeNull();
+  });
+
+  test("release -> done (output completed)", () => {
+    const manifest = makeManifest({ phase: "release" });
+    const output: PhaseOutput = {
+      status: "completed",
+      artifacts: { version: "1.0.0" } as any,
+    };
+
+    expect(shouldAdvance(manifest, output)).toBe("done");
+  });
+
+  test("release -> null (output not completed)", () => {
+    const manifest = makeManifest({ phase: "release" });
+    const output: PhaseOutput = {
+      status: "error",
+      artifacts: { version: "1.0.0" } as any,
+    };
+
+    expect(shouldAdvance(manifest, output)).toBeNull();
+  });
+
+  test("done -> null (terminal)", () => {
+    const manifest = makeManifest({ phase: "done" });
+    expect(shouldAdvance(manifest, undefined)).toBeNull();
+  });
+
+  test("cancelled -> null (terminal)", () => {
+    const manifest = makeManifest({ phase: "cancelled" });
+    expect(shouldAdvance(manifest, undefined)).toBeNull();
   });
 });
 

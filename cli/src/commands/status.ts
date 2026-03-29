@@ -41,6 +41,8 @@ function colorPhase(phase: string): string {
     case "implement": return color(phase, ANSI.yellow);
     case "validate": return color(phase, ANSI.cyan);
     case "release": return color(phase, ANSI.green);
+    case "done": return color(phase, ANSI.green, ANSI.dim);
+    case "cancelled": return color(phase, ANSI.red, ANSI.dim);
     default: return phase;
   }
 }
@@ -60,10 +62,6 @@ export function formatStatus(epic: EnrichedManifest): string {
   if (epic.blocked) {
     return color(`blocked: run beastmode ${epic.phase} ${epic.slug}`, ANSI.red);
   }
-  // Check if all features completed and phase is beyond implement
-  if (epic.phase === "release" && epic.nextAction === null) {
-    return color("done", ANSI.green, ANSI.dim);
-  }
   return epic.phase;
 }
 
@@ -72,15 +70,21 @@ export function formatStatus(epic: EnrichedManifest): string {
 // ---------------------------------------------------------------------------
 
 const PHASE_ORDER: Record<string, number> = {
+  cancelled: -1,
   design: 0,
   plan: 1,
   implement: 2,
   validate: 3,
   release: 4,
+  done: 5,
 };
 
-export function buildStatusRows(epics: EnrichedManifest[]): StatusRow[] {
-  return epics
+export function buildStatusRows(epics: EnrichedManifest[], opts: { all?: boolean } = {}): StatusRow[] {
+  const filtered = opts.all
+    ? epics
+    : epics.filter(e => e.phase !== "done" && e.phase !== "cancelled");
+
+  return filtered
     .sort((a, b) => {
       const aPhase = PHASE_ORDER[a.phase] ?? 99;
       const bPhase = PHASE_ORDER[b.phase] ?? 99;
@@ -139,9 +143,10 @@ export function formatTable(rows: StatusRow[]): string {
 // Command entry point
 // ---------------------------------------------------------------------------
 
-export async function statusCommand(_config: BeastmodeConfig, _args: string[] = []): Promise<void> {
+export async function statusCommand(_config: BeastmodeConfig, args: string[] = []): Promise<void> {
+  const all = args.includes("--all");
   const projectRoot = findProjectRoot();
   const { epics } = await scanEpics(projectRoot);
-  const rows = buildStatusRows(epics);
+  const rows = buildStatusRows(epics, { all });
   console.log(formatTable(rows));
 }
