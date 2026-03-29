@@ -4,6 +4,11 @@ All notable changes to beastmode.
 
 ---
 
+### v0.33.0 — The Interactive Terminal (Mar 2026)
+
+- **Interactive runner** — All five manual phase commands spawn interactive `claude` CLI sessions with inherited stdio; operators get a live terminal for every phase
+- **Phase dispatch unification** — `phaseCommand()` simplified from ~270 lines with fan-out logic to uniform interactive dispatch; implement is no longer a special case
+
 ### v0.32.0 — The GitHub CLI Migration (Mar 2026)
 
 - **Manifest redesign** — Pipeline manifest restructured as pure state: single epic, top-level phase, feature statuses, artifact refs; CLI is sole mutator
