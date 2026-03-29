@@ -1,6 +1,6 @@
 # Release: remove-merge-logic-from-cli
 
-**Version:** v0.36.0
+**Version:** v0.40.0
 **Date:** 2026-03-29
 
 ## Highlights

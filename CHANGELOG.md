@@ -4,12 +4,42 @@ All notable changes to beastmode.
 
 ---
 
-### v0.36.0 — The Great Unbundling (Mar 2026)
+### v0.40.0 — The Great Unbundling (Mar 2026)
 
 - **Merge coordinator deleted** — Removed `merge-coordinator.ts` (328 lines) and all associated types, functions, and tests; CLI no longer drives git merges
 - **Worktree ops stripped** — Removed `merge()` and `archive()` from `worktree.ts`; module reduced to create, enter, ensureWorktree, exists, remove
 - **Watch fan-out simplified** — Implement fan-out dispatches all feature sessions to the same epic worktree instead of creating per-feature branches
 - **Release/cancel teardown** — Release calls `removeWorktree()` only (no archive, no merge); cancel skips archive step entirely
+
+### v0.39.0 — The Problem-Space Purification (Mar 2026)
+
+- **Module sketch removal** — Removed Execute step 3 (module sketch) from design phase; design stays in problem-space (decisions, gray areas, user stories) without premature structural decomposition
+- **Deep modules guidance** — Moved "deep modules" guidance (from A Philosophy of Software Design) to plan phase's architectural decisions step where it applies with actual codebase context
+- **Reference cleanup** — Removed all module-related references from design SKILL.md, express path, executive summary template, and PRD template
+
+### v0.38.0 — The Skill Cleanup (Mar 2026)
+
+- **Checkpoint sync removal** — Removed orphaned "Sync GitHub" sections and `@../_shared/github.md` imports from all 5 checkpoint files; skills no longer reference the deleted shared GitHub utility
+- **Status subcommand deletion** — Deleted `skills/beastmode/subcommands/status.md` and removed routing/help text from SKILL.md (status moved to CLI in v0.32.0)
+- **Context doc update** — DESIGN.md GitHub State Model section updated to reflect skills are no longer GitHub-aware at checkpoint time
+
+### v0.37.0 — The Fork Point (Mar 2026)
+
+- **Fork-point tracking** — Worktrees fork from local main instead of stale `origin/HEAD`; fork-point SHA recorded in `WorktreeInfo` for audit trail
+- **Main branch resolution** — `resolveMainBranch()` resolves default branch from `git symbolic-ref` with `"main"` fallback
+- **Graceful degradation** — `forkPoint` set to `undefined` when `merge-base` fails (unrelated histories, missing branch)
+
+### v0.36.0 — The Terminal Multiplexer (Mar 2026)
+
+- **SessionStrategy interface** — Formal strategy pattern (`dispatch()`, `isComplete()`, `cleanup()`) with `SdkStrategy` and `CmuxStrategy` implementations
+- **CmuxClient** — Typed CLI wrapper for the `cmux` binary with `--json` flag: `ping()`, `newWorkspace()`, `newSplit()`, `sendSurface()`, `closeSurface()`, `listWorkspaces()`, `notify()`
+- **CmuxStrategy** — Workspace-per-epic surface model with `fs.watch` completion detection via `.dispatch-done.json` marker files
+- **SessionFactory** — Strategy selection based on `cli.dispatch-strategy` config (`sdk | cmux | auto`) and runtime cmux availability
+- **Startup reconciliation** — Adopts live cmux surfaces, closes dead ones, removes empty workspaces on watch restart
+- **Surface cleanup** — Automatic workspace teardown when epic reaches release
+- **Universal completion marker** — `phaseCommand` writes `.dispatch-done.json` regardless of dispatch method
+- **Desktop notifications** — Error and blocked gate notifications via `cmux notify`
+- **220 tests passing** — Full test coverage across all new modules
 
 ### v0.35.0 — The Status Unfuckery (Mar 2026)
 
