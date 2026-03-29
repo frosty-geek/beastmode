@@ -4,6 +4,12 @@ All notable changes to beastmode.
 
 ---
 
+### v0.34.0 — The Manifest-Only Status (Mar 2026)
+
+- **Manifest-first scanner** — Epic discovery pivots on manifest files instead of design files; status table drops from ~116 noisy rows to ~12 active epics
+- **Status cleanup** — Removed Cost column, readRunLog, formatCost; table simplified to 5 columns (Epic, Phase, Progress, Blocked, Last Activity)
+- **Watch convergence** — Deleted scanEpicsInline() from watch-command.ts; watch loop delegates to canonical state-scanner.scanEpics()
+
 ### v0.33.0 — The Interactive Terminal (Mar 2026)
 
 - **Interactive runner** — All five manual phase commands spawn interactive `claude` CLI sessions with inherited stdio; operators get a live terminal for every phase
