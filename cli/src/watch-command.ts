@@ -11,6 +11,7 @@ import { loadConfig } from "./config.js";
 import { WatchLoop } from "./watch.js";
 import type { WatchDeps } from "./watch.js";
 import type { SessionResult } from "./watch-types.js";
+import { SdkSessionFactory } from "./session.js";
 import * as worktree from "./worktree.js";
 import { scanEpics } from "./state-scanner.js";
 
@@ -341,22 +342,14 @@ async function dispatchPhase(opts: {
       };
     }
 
-    // Release teardown: archive, merge, remove on success
+    // Release teardown: remove worktree on success
     if (opts.phase === "release" && sessionResult.success) {
       try {
-        console.log(`[watch] ${opts.epicSlug}: release teardown — archiving branch...`);
-        const tagName = await worktree.archive(worktreeSlug, { cwd: opts.projectRoot });
-        console.log(`[watch] ${opts.epicSlug}: archived as ${tagName}`);
-
-        await worktree.merge(worktreeSlug, { cwd: opts.projectRoot });
-        console.log(`[watch] ${opts.epicSlug}: squash-merged to main`);
-
         await worktree.remove(worktreeSlug, { cwd: opts.projectRoot });
         console.log(`[watch] ${opts.epicSlug}: worktree removed`);
       } catch (err) {
         console.error(`[watch] ${opts.epicSlug}: release teardown failed:`, err);
         console.error(`[watch] ${opts.epicSlug}: worktree preserved for manual cleanup`);
-        // Don't fail the session — the release phase itself succeeded
       }
     }
 
@@ -422,7 +415,7 @@ export async function watchCommand(_args: string[]): Promise<void> {
 
   const deps: WatchDeps = {
     scanEpics,
-    dispatchPhase,
+    sessionFactory: new SdkSessionFactory(dispatchPhase),
     logRun,
   };
 
