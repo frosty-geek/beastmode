@@ -1,33 +1,12 @@
 import type { BeastmodeConfig } from "../config";
 import { scanEpics, type EpicState } from "../state-scanner";
-import { readFileSync, existsSync } from "fs";
-import { resolve } from "path";
-import type { RunLogEntry } from "../types";
 
 export interface StatusRow {
   name: string;
   phase: string;
   progress: string;
   blocked: string;
-  cost: string;
   lastActivity: string;
-}
-
-function readRunLog(projectRoot: string): RunLogEntry[] {
-  const logPath = resolve(projectRoot, ".beastmode-runs.json");
-  if (!existsSync(logPath)) return [];
-  try {
-    const raw = readFileSync(logPath, "utf-8").trim();
-    if (!raw) return [];
-    return JSON.parse(raw) as RunLogEntry[];
-  } catch {
-    return [];
-  }
-}
-
-function formatCost(usd: number): string {
-  if (usd === 0) return "-";
-  return `$${usd.toFixed(2)}`;
 }
 
 function formatProgress(epic: EpicState): string {
@@ -45,29 +24,19 @@ function formatBlocked(epic: EpicState): string {
   return epic.blockedGate ?? epic.gateName ?? "yes";
 }
 
-function lastActivity(
-  entries: RunLogEntry[],
-  epicSlug: string,
-): string {
-  const epicEntries = entries.filter((e) => e.epic === epicSlug);
-  if (epicEntries.length === 0) return "-";
-  const latest = epicEntries.reduce((a, b) =>
-    a.timestamp > b.timestamp ? a : b,
-  );
-  return latest.timestamp.slice(0, 19).replace("T", " ");
+function formatLastActivity(epic: EpicState): string {
+  if (!epic.lastUpdated) return "-";
+  return epic.lastUpdated.slice(0, 19).replace("T", " ");
 }
 
-export function buildStatusRows(
-  epics: EpicState[],
-  runLog: RunLogEntry[],
-): StatusRow[] {
+export function buildStatusRows(epics: EpicState[]): StatusRow[] {
   return epics
     .sort((a, b) => {
-      const aTime = lastActivity(runLog, a.slug);
-      const bTime = lastActivity(runLog, b.slug);
-      if (aTime === "-" && bTime === "-") return a.slug.localeCompare(b.slug);
-      if (aTime === "-") return 1;
-      if (bTime === "-") return -1;
+      const aTime = a.lastUpdated ?? "";
+      const bTime = b.lastUpdated ?? "";
+      if (!aTime && !bTime) return a.slug.localeCompare(b.slug);
+      if (!aTime) return 1;
+      if (!bTime) return -1;
       return bTime.localeCompare(aTime);
     })
     .map((epic) => ({
@@ -75,8 +44,7 @@ export function buildStatusRows(
       phase: epic.phase,
       progress: formatProgress(epic),
       blocked: formatBlocked(epic),
-      cost: formatCost(epic.costUsd),
-      lastActivity: lastActivity(runLog, epic.slug),
+      lastActivity: formatLastActivity(epic),
     }));
 }
 
@@ -92,7 +60,6 @@ export function formatTable(rows: StatusRow[]): string {
     "phase",
     "progress",
     "blocked",
-    "cost",
     "lastActivity",
   ];
   const labels: Record<keyof StatusRow, string> = {
@@ -100,7 +67,6 @@ export function formatTable(rows: StatusRow[]): string {
     phase: "Phase",
     progress: "Progress",
     blocked: "Blocked",
-    cost: "Cost",
     lastActivity: "Last Activity",
   };
 
@@ -123,7 +89,6 @@ export function formatTable(rows: StatusRow[]): string {
 export async function statusCommand(_config: BeastmodeConfig): Promise<void> {
   const projectRoot = process.cwd();
   const epics = await scanEpics(projectRoot);
-  const runLog = readRunLog(projectRoot);
-  const rows = buildStatusRows(epics, runLog);
+  const rows = buildStatusRows(epics);
   console.log(formatTable(rows));
 }

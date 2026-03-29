@@ -31,6 +31,7 @@ export interface EpicState {
   gateBlocked: boolean;
   gateName?: string;
   costUsd: number;
+  lastUpdated?: string;
   githubEpicIssue?: number;
 }
 
@@ -328,6 +329,7 @@ export async function scanEpics(projectRoot: string): Promise<EpicState[]> {
       gateBlocked: blocked,
       gateName,
       costUsd,
+      lastUpdated: manifest?.lastUpdated,
       githubEpicIssue,
     });
   }
