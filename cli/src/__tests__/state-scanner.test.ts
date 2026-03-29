@@ -329,4 +329,101 @@ describe("scanEpics", () => {
     expect(designAfter).toBe(designBefore);
     expect(manifestAfter).toBe(manifestBefore);
   });
+
+  test("output.json in state/release/ causes release phase", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
+      { slug: "f1", status: "completed" },
+    ]);
+    writeOutputJson("release", "my-epic");
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics[0].phase).toBe("release");
+    expect(epics[0].nextAction).toBeNull();
+  });
+
+  test("output.json in state/validate/ with no release output.json causes release phase (needs release)", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
+      { slug: "f1", status: "completed" },
+    ]);
+    writeOutputJson("validate", "my-epic");
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics[0].phase).toBe("release");
+    expect(epics[0].nextAction).toEqual({
+      phase: "release",
+      args: ["my-epic"],
+      type: "single",
+    });
+  });
+
+  test("epic without output.json and without manifest shows as design", async () => {
+    writeDesign("my-epic");
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics[0].phase).toBe("design");
+    expect(epics[0].nextAction).toEqual({
+      phase: "plan",
+      args: ["my-epic"],
+      type: "single",
+    });
+  });
+
+  test("malformed manifest (missing required fields) is skipped", async () => {
+    writeDesign("my-epic");
+    // Write a manifest missing "features" and "lastUpdated"
+    writeFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-my-epic.manifest.json`),
+      JSON.stringify({ design: "something" }),
+    );
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics).toHaveLength(1);
+    expect(epics[0].phase).toBe("design"); // Manifest was skipped — no valid manifest loaded
+    expect(epics[0].features).toEqual([]); // No features extracted
+  });
+
+  test("invalid JSON manifest is skipped", async () => {
+    writeDesign("my-epic");
+    writeFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-my-epic.manifest.json`),
+      "this is not valid json {{{",
+    );
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics).toHaveLength(1);
+    expect(epics[0].phase).toBe("design"); // Invalid JSON was skipped
+    expect(epics[0].features).toEqual([]);
+  });
+
+  test("manifest with wrong-typed fields is skipped", async () => {
+    writeDesign("my-epic");
+    writeFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", `${TEST_DATE}-my-epic.manifest.json`),
+      JSON.stringify({
+        design: 42, // should be string
+        features: [{ slug: "f1", status: "pending" }],
+        lastUpdated: "2026-03-29T00:00:00Z",
+      }),
+    );
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics).toHaveLength(1);
+    expect(epics[0].phase).toBe("design"); // Wrong types — validation rejected
+    expect(epics[0].features).toEqual([]);
+  });
+
+  test("valid manifest passes validation and loads correctly", async () => {
+    writeDesign("my-epic");
+    writePipelineManifest("my-epic", [
+      { slug: "feature-a", status: "pending" },
+    ]);
+    const epics = await scanEpics(TEST_ROOT);
+
+    expect(epics).toHaveLength(1);
+    expect(epics[0].phase).toBe("implement");
+    expect(epics[0].features).toHaveLength(1);
+    expect(epics[0].features[0].slug).toBe("feature-a");
+  });
 });
