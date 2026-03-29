@@ -7,13 +7,13 @@
     {
       "slug": "checkpoint-sync-removal",
       "plan": "2026-03-29-github-skill-cleanup-checkpoint-sync-removal.md",
-      "status": "pending",
+      "status": "completed",
       "github": {"issue": 89}
     },
     {
       "slug": "status-subcommand-removal",
       "plan": "2026-03-29-github-skill-cleanup-status-subcommand-removal.md",
-      "status": "pending",
+      "status": "completed",
       "github": {"issue": 90}
     }
   ],
@@ -21,5 +21,5 @@
     "epic": 87,
     "repo": "BugRoger/beastmode"
   },
-  "lastUpdated": "2026-03-29T17:31:00Z"
+  "lastUpdated": "2026-03-29T18:06:00Z"
 }
