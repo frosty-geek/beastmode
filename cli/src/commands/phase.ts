@@ -11,7 +11,7 @@
  */
 
 import type { BeastmodeConfig } from "../config";
-import type { Phase, PhaseResult } from "../types";
+import type { Phase } from "../types";
 import { runInteractive } from "../runners/interactive-runner";
 import { appendRunLog } from "../utils/run-log";
 import {
