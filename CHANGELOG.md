@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.42.1 — Polling Behaviour (Mar 2026)
+
+- **Async dispatch mutex design** — PRD for promise-based async mutex serializing concurrent `tick()` and `rescanEpic()` calls in the watch loop, closing a check-then-act race condition
+- **Dispatch mutex plan** — Feature plan for global async mutex in `WatchLoop` with acquire/release semantics and wait-queue contention model
+- **Concurrent dispatch test plan** — Feature plan for CI test proving mutex serialization: simultaneous `tick()` + `rescanEpic()` asserts exactly one `sessionFactory.create()` call
+- **Housekeeping** — Removed stale `.beastmode-runs.json`, added to `.gitignore`, fixed plugin update scope in release skill
+
 ### v0.42.0 — Manifest File Management (Mar 2026)
 
 - **Pure manifest state machine** — Split `manifest.ts` into pure state transitions and new `manifest-store.ts` filesystem boundary; pipeline logic is fully testable without disk IO
