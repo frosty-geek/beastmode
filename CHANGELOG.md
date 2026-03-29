@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.45.0 — GitHub No For Real Sync (Mar 2026)
+
+- **Reconciling factory** — Extract state reconciliation and release teardown from `dispatchPhase` into `ReconcilingFactory`, eliminating duplication between SDK and cmux paths
+- **Cmux dispatch strategy** — `watchCommand` reads `dispatch-strategy` from config, wires `CmuxSessionFactory` when cmux is available with graceful fallback
+- **Output.json scan-all** — Stop hook scans ALL artifact .md files with frontmatter instead of only the most recent; uses mtime comparison for efficiency
+- **Epic-level worktrees** — `dispatchPhase` always uses epic-level worktree slug, removing per-feature worktree creation
+- **Implement checkpoint wording** — Clarify "Next:" handoff message
+
 ### v0.44.3 — Slim Down Design (Mar 2026)
 
 - **Remove prior-decisions gate** — Deleted `[GATE|design.prior-decisions]` from design prime phase; design interviews now start without accumulated rules biasing the conversation

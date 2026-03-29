@@ -1,10 +1,10 @@
 #!/bin/sh
 # generate-output-json.sh — Stop hook that reads artifact frontmatter
-# and generates the output.json completion contract.
+# and generates output.json completion contracts.
 #
 # Runs after Claude finishes responding. Scans .beastmode/artifacts/<phase>/
-# for the most recently modified .md file with YAML frontmatter, parses it,
-# and writes the corresponding output.json file.
+# for ALL .md files with YAML frontmatter, parses each, and writes the
+# corresponding output.json file if the artifact is newer than its output.
 #
 # Idempotent: safe to run multiple times; same input produces same output.
 # Exits 0 always — hook failure must never block Claude.
@@ -43,98 +43,78 @@ has_frontmatter() {
   head -1 "$1" 2>/dev/null | grep -q '^---$'
 }
 
-# --- Scan for artifacts with frontmatter ---
-# Find the most recently modified .md file with frontmatter across all phases.
-# We check each phase directory for .md files (not .output.json, not .tasks.json).
+# Get file mtime (portable: macOS stat -f, Linux stat -c)
+get_mtime() {
+  if stat -f %m "$1" >/dev/null 2>&1; then
+    stat -f %m "$1"
+  else
+    stat -c %Y "$1" 2>/dev/null || echo 0
+  fi
+}
 
-latest_file=""
-latest_mtime=0
+# --- Generate output.json for a single artifact ---
+generate_output() {
+  _artifact="$1"
 
-for phase_dir in "$ARTIFACTS_DIR"/design "$ARTIFACTS_DIR"/plan "$ARTIFACTS_DIR"/implement "$ARTIFACTS_DIR"/validate "$ARTIFACTS_DIR"/release; do
-  [ -d "$phase_dir" ] || continue
+  phase=$(fm_get "$_artifact" "phase")
+  # Phase is required
+  [ -n "$phase" ] || return 0
 
-  for f in "$phase_dir"/*.md; do
-    [ -f "$f" ] || continue
-    has_frontmatter "$f" || continue
+  artifact_basename=$(basename "$_artifact" .md)
+  output_file="$ARTIFACTS_DIR/$phase/${artifact_basename}.output.json"
 
-    # Get modification time (portable: stat -f on macOS, stat -c on Linux)
-    if stat -f %m "$f" >/dev/null 2>&1; then
-      mtime=$(stat -f %m "$f")
-    else
-      mtime=$(stat -c %Y "$f" 2>/dev/null || echo 0)
-    fi
+  # Skip if output.json exists and is newer than the artifact
+  if [ -f "$output_file" ]; then
+    art_mtime=$(get_mtime "$_artifact")
+    out_mtime=$(get_mtime "$output_file")
+    [ "$art_mtime" -gt "$out_mtime" ] || return 0
+  fi
 
-    if [ "$mtime" -gt "$latest_mtime" ]; then
-      latest_mtime="$mtime"
-      latest_file="$f"
-    fi
-  done
-done
+  slug=$(fm_get "$_artifact" "slug")
+  epic=$(fm_get "$_artifact" "epic")
+  feature=$(fm_get "$_artifact" "feature")
+  status=$(fm_get "$_artifact" "status")
+  bump=$(fm_get "$_artifact" "bump")
 
-# No artifact with frontmatter found — nothing to do
-if [ -z "$latest_file" ]; then
-  exit 0
-fi
-
-# --- Parse frontmatter ---
-phase=$(fm_get "$latest_file" "phase")
-slug=$(fm_get "$latest_file" "slug")
-epic=$(fm_get "$latest_file" "epic")
-feature=$(fm_get "$latest_file" "feature")
-status=$(fm_get "$latest_file" "status")
-bump=$(fm_get "$latest_file" "bump")
-
-# Phase is required
-if [ -z "$phase" ]; then
-  exit 0
-fi
-
-# Derive the output filename from the artifact filename
-artifact_basename=$(basename "$latest_file" .md)
-output_file="$ARTIFACTS_DIR/$phase/${artifact_basename}.output.json"
-
-# --- Build output.json per phase ---
-case "$phase" in
-  design)
-    # Design: { status, artifacts: { design: <path> } }
-    _status="${status:-completed}"
-    cat > "${output_file}.tmp" <<ENDJSON
+  case "$phase" in
+    design)
+      _status="${status:-completed}"
+      cat > "${output_file}.tmp" <<ENDJSON
 {
   "status": "$_status",
   "artifacts": {
-    "design": "$latest_file"
+    "design": "$_artifact"
   }
 }
 ENDJSON
-    ;;
+      ;;
 
-  plan)
-    # Plan: { status, artifacts: { features: [...] } }
-    # Scan all plan artifacts for this epic to build feature list
-    _epic="${epic:-$slug}"
-    _features="[]"
+    plan)
+      # Scan all plan artifacts for this epic to build feature list
+      _epic="${epic:-$slug}"
+      _features="[]"
 
-    if [ -n "$_epic" ] && [ -d "$ARTIFACTS_DIR/plan" ]; then
-      _feat_json=""
-      for pf in "$ARTIFACTS_DIR/plan/"*"-${_epic}-"*.md; do
-        [ -f "$pf" ] || continue
-        has_frontmatter "$pf" || continue
-        _f_feature=$(fm_get "$pf" "feature")
-        [ -n "$_f_feature" ] || continue
-        _f_basename=$(basename "$pf" .md)
-        if [ -n "$_feat_json" ]; then
-          _feat_json="${_feat_json},"
-        fi
-        _feat_json="${_feat_json}
+      if [ -n "$_epic" ] && [ -d "$ARTIFACTS_DIR/plan" ]; then
+        _feat_json=""
+        for pf in "$ARTIFACTS_DIR/plan/"*"-${_epic}-"*.md; do
+          [ -f "$pf" ] || continue
+          has_frontmatter "$pf" || continue
+          _f_feature=$(fm_get "$pf" "feature")
+          [ -n "$_f_feature" ] || continue
+          _f_basename=$(basename "$pf" .md)
+          if [ -n "$_feat_json" ]; then
+            _feat_json="${_feat_json},"
+          fi
+          _feat_json="${_feat_json}
       {\"slug\": \"${_f_feature}\", \"plan\": \"${_f_basename}.md\"}"
-      done
-      if [ -n "$_feat_json" ]; then
-        _features="[${_feat_json}
+        done
+        if [ -n "$_feat_json" ]; then
+          _features="[${_feat_json}
     ]"
+        fi
       fi
-    fi
 
-    cat > "${output_file}.tmp" <<ENDJSON
+      cat > "${output_file}.tmp" <<ENDJSON
 {
   "status": "${status:-completed}",
   "artifacts": {
@@ -142,13 +122,12 @@ ENDJSON
   }
 }
 ENDJSON
-    ;;
+      ;;
 
-  implement)
-    # Implement: { status, artifacts: { features: [{ slug, status }], deviations? } }
-    _status="${status:-completed}"
-    _feature="${feature:-unknown}"
-    cat > "${output_file}.tmp" <<ENDJSON
+    implement)
+      _status="${status:-completed}"
+      _feature="${feature:-unknown}"
+      cat > "${output_file}.tmp" <<ENDJSON
 {
   "status": "$_status",
   "artifacts": {
@@ -158,50 +137,59 @@ ENDJSON
   }
 }
 ENDJSON
-    ;;
+      ;;
 
-  validate)
-    # Validate: { status, artifacts: { report: <path>, passed: bool } }
-    _status="${status:-passed}"
-    _passed="true"
-    if [ "$_status" = "failed" ]; then
-      _passed="false"
-      _status="error"
-    else
-      _status="completed"
-    fi
-    cat > "${output_file}.tmp" <<ENDJSON
+    validate)
+      _status="${status:-passed}"
+      _passed="true"
+      if [ "$_status" = "failed" ]; then
+        _passed="false"
+        _status="error"
+      else
+        _status="completed"
+      fi
+      cat > "${output_file}.tmp" <<ENDJSON
 {
   "status": "$_status",
   "artifacts": {
-    "report": "$latest_file",
+    "report": "$_artifact",
     "passed": $_passed
   }
 }
 ENDJSON
-    ;;
+      ;;
 
-  release)
-    # Release: { status, artifacts: { version: <bump>, changelog?: <path> } }
-    _bump="${bump:-patch}"
-    cat > "${output_file}.tmp" <<ENDJSON
+    release)
+      _bump="${bump:-patch}"
+      cat > "${output_file}.tmp" <<ENDJSON
 {
   "status": "${status:-completed}",
   "artifacts": {
     "version": "$_bump",
-    "changelog": "$latest_file"
+    "changelog": "$_artifact"
   }
 }
 ENDJSON
-    ;;
+      ;;
 
-  *)
-    # Unknown phase — skip
-    exit 0
-    ;;
-esac
+    *)
+      return 0
+      ;;
+  esac
 
-# Atomic write: tmp -> final
-mv "${output_file}.tmp" "$output_file"
+  # Atomic write: tmp -> final
+  mv "${output_file}.tmp" "$output_file"
+}
+
+# --- Scan all artifacts with frontmatter ---
+for phase_dir in "$ARTIFACTS_DIR"/design "$ARTIFACTS_DIR"/plan "$ARTIFACTS_DIR"/implement "$ARTIFACTS_DIR"/validate "$ARTIFACTS_DIR"/release; do
+  [ -d "$phase_dir" ] || continue
+
+  for f in "$phase_dir"/*.md; do
+    [ -f "$f" ] || continue
+    has_frontmatter "$f" || continue
+    generate_output "$f"
+  done
+done
 
 exit 0

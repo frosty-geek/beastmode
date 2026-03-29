@@ -48,8 +48,10 @@ git add -A
 git commit -m "implement(<feature>): checkpoint"
 ```
 
+Print:
+
 ```
-Next: /validate
+Next: beastmode validate <feature>
 ```
 
 STOP. No additional output.
