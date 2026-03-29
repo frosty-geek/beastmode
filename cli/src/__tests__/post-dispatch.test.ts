@@ -1,0 +1,239 @@
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from "fs";
+import { resolve } from "path";
+import { runPostDispatch } from "../post-dispatch";
+import type { PipelineManifest } from "../manifest";
+
+const TEST_ROOT = resolve(import.meta.dir, "../../.test-post-dispatch");
+const WORKTREE = resolve(TEST_ROOT, "worktree");
+const EPIC_SLUG = "test-epic";
+
+function setupTestRoot(): void {
+  if (existsSync(TEST_ROOT)) {
+    rmSync(TEST_ROOT, { recursive: true });
+  }
+  mkdirSync(TEST_ROOT, { recursive: true });
+  mkdirSync(WORKTREE, { recursive: true });
+
+  // Disable GitHub sync in tests
+  const configDir = resolve(TEST_ROOT, ".beastmode");
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(
+    resolve(configDir, "config.yaml"),
+    "github:\n  enabled: false\n",
+  );
+}
+
+function writeTestManifest(slug: string, manifest: object): void {
+  const dir = resolve(TEST_ROOT, ".beastmode", "pipeline", slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(resolve(dir, "manifest.json"), JSON.stringify(manifest, null, 2));
+}
+
+function readTestManifest(slug: string): PipelineManifest {
+  return JSON.parse(
+    readFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", slug, "manifest.json"),
+      "utf-8",
+    ),
+  );
+}
+
+function writePhaseOutput(
+  root: string,
+  phase: string,
+  slug: string,
+  output: object,
+): void {
+  const date = new Date().toISOString().slice(0, 10);
+  const dir = resolve(root, ".beastmode", "state", phase);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    resolve(dir, `${date}-${slug}.output.json`),
+    JSON.stringify(output, null, 2),
+  );
+}
+
+function makeManifest(overrides: Partial<PipelineManifest> = {}): PipelineManifest {
+  return {
+    slug: EPIC_SLUG,
+    phase: "design",
+    features: [],
+    artifacts: {},
+    lastUpdated: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+describe("runPostDispatch", () => {
+  beforeEach(() => {
+    setupTestRoot();
+  });
+
+  afterEach(() => {
+    if (existsSync(TEST_ROOT)) {
+      rmSync(TEST_ROOT, { recursive: true });
+    }
+  });
+
+  test("skips updates on failure", async () => {
+    const manifest = makeManifest({ phase: "plan" });
+    writeTestManifest(EPIC_SLUG, manifest);
+    const before = readFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", EPIC_SLUG, "manifest.json"),
+      "utf-8",
+    );
+
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "plan",
+      success: false,
+    });
+
+    const after = readFileSync(
+      resolve(TEST_ROOT, ".beastmode", "pipeline", EPIC_SLUG, "manifest.json"),
+      "utf-8",
+    );
+    expect(after).toBe(before);
+  });
+
+  test("runs without error when no output file exists", async () => {
+    const manifest = makeManifest({ phase: "design" });
+    writeTestManifest(EPIC_SLUG, manifest);
+
+    // No output file in the worktree — should not throw
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "design",
+      success: true,
+    });
+
+    // Manifest should still exist and phase should advance (design -> plan, always)
+    const updated = readTestManifest(EPIC_SLUG);
+    expect(updated.slug).toBe(EPIC_SLUG);
+    expect(updated.phase).toBe("plan");
+  });
+
+  test("enriches manifest from phase output", async () => {
+    const manifest = makeManifest({ phase: "plan" });
+    writeTestManifest(EPIC_SLUG, manifest);
+
+    // Create a plan phase output with features in the worktree
+    writePhaseOutput(WORKTREE, "plan", EPIC_SLUG, {
+      status: "completed",
+      artifacts: {
+        features: [
+          { slug: "feat-a", plan: "feat-a.md" },
+          { slug: "feat-b", plan: "feat-b.md" },
+        ],
+      },
+    });
+
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "plan",
+      success: true,
+    });
+
+    const updated = readTestManifest(EPIC_SLUG);
+    // Enrichment should have added features from the output
+    expect(updated.features.length).toBe(2);
+    expect(updated.features[0].slug).toBe("feat-a");
+    expect(updated.features[1].slug).toBe("feat-b");
+    // Plan phase with features should advance to implement
+    expect(updated.phase).toBe("implement");
+  });
+
+  test("marks feature completed for implement fan-out", async () => {
+    const manifest = makeManifest({
+      phase: "implement",
+      features: [
+        { slug: "my-feature", plan: "my-feature.md", status: "pending" },
+        { slug: "other-feature", plan: "other-feature.md", status: "pending" },
+      ],
+    });
+    writeTestManifest(EPIC_SLUG, manifest);
+
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "implement",
+      featureSlug: "my-feature",
+      success: true,
+    });
+
+    const updated = readTestManifest(EPIC_SLUG);
+    const myFeature = updated.features.find((f) => f.slug === "my-feature");
+    const otherFeature = updated.features.find((f) => f.slug === "other-feature");
+    expect(myFeature?.status).toBe("completed");
+    expect(otherFeature?.status).toBe("pending");
+    // Should NOT advance because other-feature is still pending
+    expect(updated.phase).toBe("implement");
+  });
+
+  test("advances phase when all features completed", async () => {
+    // One feature already completed in the manifest
+    const manifest = makeManifest({
+      phase: "implement",
+      features: [
+        { slug: "only-feature", plan: "only-feature.md", status: "completed" },
+      ],
+    });
+    writeTestManifest(EPIC_SLUG, manifest);
+
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "implement",
+      success: true,
+    });
+
+    const updated = readTestManifest(EPIC_SLUG);
+    expect(updated.phase).toBe("validate");
+  });
+
+  test("does not advance phase when features still pending", async () => {
+    const manifest = makeManifest({
+      phase: "implement",
+      features: [
+        { slug: "done-feat", plan: "done-feat.md", status: "completed" },
+        { slug: "todo-feat", plan: "todo-feat.md", status: "pending" },
+      ],
+    });
+    writeTestManifest(EPIC_SLUG, manifest);
+
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "implement",
+      success: true,
+    });
+
+    const updated = readTestManifest(EPIC_SLUG);
+    expect(updated.phase).toBe("implement");
+  });
+
+  test("never throws even on errors", async () => {
+    // Use a nonexistent projectRoot — loadManifest will return undefined,
+    // but the outer try-catch should swallow all errors
+    await runPostDispatch({
+      worktreePath: "/nonexistent/worktree",
+      projectRoot: "/nonexistent/project",
+      epicSlug: "ghost-epic",
+      phase: "design",
+      success: true,
+    });
+
+    // If we got here without throwing, the test passes
+    expect(true).toBe(true);
+  });
+});

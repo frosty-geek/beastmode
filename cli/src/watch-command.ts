@@ -10,9 +10,11 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, copyFi
 import { loadConfig } from "./config.js";
 import { WatchLoop } from "./watch.js";
 import type { WatchDeps } from "./watch.js";
-import type { EpicState, SessionResult, NextAction, FeatureProgress } from "./watch-types.js";
+import type { EpicState, SessionResult } from "./watch-types.js";
 import { SdkSessionFactory } from "./session.js";
 import * as worktree from "./worktree.js";
+import type { Phase } from "./types";
+import { runPostDispatch } from "./post-dispatch";
 
 /** Discover the project root (walks up to find .beastmode/). */
 function findProjectRoot(from: string = process.cwd()): string {
@@ -24,16 +26,10 @@ function findProjectRoot(from: string = process.cwd()): string {
   throw new Error("Not inside a beastmode project (no .beastmode/ found)");
 }
 
-/** Scan manifests to determine epic states. Minimal inline scanner. */
+/** Scan manifests to determine epic states via the canonical state scanner. */
 async function scanEpics(projectRoot: string): Promise<EpicState[]> {
-  // Dynamically import state-scanner if available, otherwise use inline logic
-  try {
-    const scanner = await import("./state-scanner.js");
-    return scanner.scanEpics(projectRoot);
-  } catch {
-    // Fallback: inline manifest scanner
-    return scanEpicsInline(projectRoot);
-  }
+  const scanner = await import("./state-scanner.js");
+  return scanner.scanEpics(projectRoot);
 }
 
 /**
@@ -322,150 +318,6 @@ function readProgress(
   }
 }
 
-/** Inline epic scanner — reads manifests from pipeline dir (fallback to state/plan/). */
-function scanEpicsInline(projectRoot: string): EpicState[] {
-  const pipeDir = pipelineDir(projectRoot);
-  const planDir = resolve(projectRoot, ".beastmode", "state", "plan");
-
-  // Scan new nested locations first: .beastmode/pipeline/<slug>/manifest.json
-  interface ManifestEntry { slug: string; path: string }
-  const entries: ManifestEntry[] = [];
-
-  if (existsSync(pipeDir)) {
-    // Check for nested slug dirs
-    for (const entry of readdirSync(pipeDir)) {
-      const nestedManifest = resolve(pipeDir, entry, "manifest.json");
-      if (existsSync(nestedManifest)) {
-        entries.push({ slug: entry, path: nestedManifest });
-      }
-    }
-
-    // Also check flat files for legacy
-    for (const f of readdirSync(pipeDir)) {
-      if (f.endsWith(".manifest.json")) {
-        const slug = f.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(".manifest.json", "");
-        // Don't duplicate if already found in nested dir
-        if (!entries.some((e) => e.slug === slug)) {
-          entries.push({ slug, path: resolve(pipeDir, f) });
-        }
-      }
-    }
-  }
-
-  // Fall back to plan dir if no pipeline manifests found
-  if (entries.length === 0 && existsSync(planDir)) {
-    for (const f of readdirSync(planDir)) {
-      if (f.endsWith(".manifest.json")) {
-        const slug = f.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(".manifest.json", "");
-        entries.push({ slug, path: resolve(planDir, f) });
-      }
-    }
-  }
-
-  const epics: EpicState[] = [];
-
-  for (const entry of entries) {
-    try {
-      const content = readFileSync(entry.path, "utf-8");
-      const manifest = JSON.parse(content);
-
-      const slug = entry.slug;
-
-      const features: FeatureProgress[] = (manifest.features ?? []).map(
-        (f: { slug: string; status: string }) => ({
-          slug: f.slug,
-          status: f.status as FeatureProgress["status"],
-        }),
-      );
-
-      const allCompleted = features.length > 0 && features.every((f) => f.status === "completed");
-      const pendingFeatures = features.filter((f) => f.status === "pending");
-      const hasDesign = existsSync(resolve(projectRoot, manifest.design ?? ""));
-      const phases: Record<string, string> = manifest.phases ?? {};
-
-      let phase: string;
-      let nextAction: NextAction | null = null;
-      let gateBlocked = false;
-
-      if (phases.release === "completed") {
-        // Epic is done
-        phase = "release";
-        nextAction = null;
-      } else if (phases.validate === "completed") {
-        // Validated — ready for release
-        phase = "validate";
-        nextAction = { phase: "release", args: [slug], type: "single" };
-      } else if (allCompleted) {
-        // All features done — needs validate
-        phase = "implement";
-        nextAction = { phase: "validate", args: [slug], type: "single" };
-      } else if (features.length === 0 && hasDesign) {
-        // Design exists but no features planned yet
-        phase = "design";
-        nextAction = { phase: "plan", args: [slug], type: "single" };
-      } else if (pendingFeatures.length > 0) {
-        // Has pending features — implement fan-out
-        phase = "implement";
-        nextAction = {
-          phase: "implement",
-          args: [slug],
-          type: "fan-out",
-          features: pendingFeatures.map((f) => f.slug),
-        };
-      } else {
-        // In progress or blocked
-        phase = "implement";
-        nextAction = null;
-      }
-
-      // Check for human gates in config
-      const config = loadConfig(projectRoot);
-      const gateConfig = config.gates?.implement;
-      if (gateConfig) {
-        for (const [_gate, mode] of Object.entries(gateConfig)) {
-          if (mode === "human") {
-            // Check if any feature has a blocked status indicating gate hit
-            const blocked = features.some((f) => f.status === "blocked" as string);
-            if (blocked) {
-              gateBlocked = true;
-              break;
-            }
-          }
-        }
-      }
-
-      // Aggregate cost from .beastmode-runs.json
-      let costUsd = 0;
-      const runsPath = resolve(projectRoot, ".beastmode-runs.json");
-      if (existsSync(runsPath)) {
-        try {
-          const runs = JSON.parse(readFileSync(runsPath, "utf-8")) as Array<{
-            epic: string;
-            cost_usd: number;
-          }>;
-          costUsd = runs
-            .filter((r) => r.epic === slug)
-            .reduce((sum, r) => sum + (r.cost_usd ?? 0), 0);
-        } catch {
-          // Corrupted runs file — ignore
-        }
-      }
-
-      epics.push({
-        slug,
-        phase,
-        nextAction,
-        features,
-        gateBlocked,
-        costUsd,
-      });
-    } catch {
-      // Skip unparseable manifests
-    }
-  }
-
-  return epics;
-}
 
 /** Dispatch a phase using the Claude Agent SDK. */
 async function dispatchPhase(opts: {
@@ -581,7 +433,7 @@ async function dispatchPhase(opts: {
   })();
 
   // After the agent exits, reconcile state on the project root
-  const syncedPromise = promise.then((result) => {
+  const syncedPromise = promise.then(async (result) => {
     const progress = reconcileState({
       worktreePath: wt.path,
       projectRoot: opts.projectRoot,
@@ -590,6 +442,17 @@ async function dispatchPhase(opts: {
       featureSlug: opts.featureSlug,
       success: result.success,
     });
+
+    // Post-dispatch: read phase output, enrich manifest, sync GitHub
+    await runPostDispatch({
+      worktreePath: wt.path,
+      projectRoot: opts.projectRoot,
+      epicSlug: opts.epicSlug,
+      phase: opts.phase as Phase,
+      featureSlug: opts.featureSlug,
+      success: result.success,
+    });
+
     return { ...result, progress };
   });
 
