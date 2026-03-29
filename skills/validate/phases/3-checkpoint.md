@@ -4,11 +4,49 @@
 
 Save to `.beastmode/state/validate/YYYY-MM-DD-<feature>.md` where `<feature>` is the epic slug.
 
-## 2. Phase Retro
+## 1.5. Write Phase Output
+
+Write the phase output contract file to `.beastmode/state/validate/YYYY-MM-DD-<feature>.output.json`:
+
+```json
+{
+  "status": "completed",
+  "artifacts": {
+    "report": ".beastmode/state/validate/YYYY-MM-DD-<feature>.md",
+    "passed": true
+  }
+}
+```
+
+- Set `status` to `"completed"` if validation passed, `"error"` if it failed
+- Set `passed` to `true` or `false` matching the validation result
+- The `report` path matches the report written in Step 1
+
+## 2. Sync GitHub
+
+Read `.beastmode/config.yaml`. If `github.enabled` is `false` or missing, or the manifest has no `github` block, **skip this step entirely**.
+
+When `github.enabled` is `true` and the manifest has `github.epic`:
+
+@../_shared/github.md
+
+Use warn-and-continue for all GitHub calls (see Error Handling Convention in github.md).
+
+1. **Advance Epic Phase** — set the Epic's phase label to `phase/validate` (safety net — implement may have already done this):
+
+```bash
+gh issue edit <epic-number> --remove-label "phase/implement" --add-label "phase/validate"
+```
+
+2. **Add Epic to Project** — call the "Add to Project + Set Status" operation from github.md with the epic URL and status `"Validate"`.
+
+If the label is already set, this is a no-op. If GitHub sync fails, continue — the validate report is the authority.
+
+## 3. Phase Retro
 
 @../_shared/retro.md
 
-## 3. Commit and Handoff
+## 4. Commit and Handoff
 
 If FAIL:
 ```

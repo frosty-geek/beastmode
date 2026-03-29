@@ -28,6 +28,47 @@ export interface PhaseResult {
   session_id: string | null;
 }
 
+/** Phase-specific artifact shapes for output files */
+export interface DesignArtifacts {
+  design: string; // path to PRD
+}
+
+export interface PlanArtifacts {
+  features: Array<{ slug: string; plan: string }>;
+}
+
+export interface ImplementArtifacts {
+  features: Array<{ slug: string; status: "completed" | "blocked" }>;
+  deviations?: string; // path to deviations log
+}
+
+export interface ValidateArtifacts {
+  report: string; // path to validation report
+  passed: boolean;
+}
+
+export interface ReleaseArtifacts {
+  version: string;
+  changelog?: string; // path to changelog
+}
+
+/** Union of all phase artifact shapes */
+export type PhaseArtifacts =
+  | DesignArtifacts
+  | PlanArtifacts
+  | ImplementArtifacts
+  | ValidateArtifacts
+  | ReleaseArtifacts;
+
+/** Universal phase output contract.
+ * Written by skill checkpoints to state/<phase>/YYYY-MM-DD-<slug>.output.json
+ * Read by CLI to enrich manifests.
+ */
+export interface PhaseOutput {
+  status: "completed" | "error" | "cancelled";
+  artifacts: PhaseArtifacts;
+}
+
 export const VALID_PHASES: readonly Phase[] = [
   "design",
   "plan",
