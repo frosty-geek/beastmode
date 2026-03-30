@@ -14,6 +14,7 @@ import * as store from "./manifest-store";
 import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase } from "./manifest";
 import { loadPhaseOutput, extractFeatureStatuses, extractArtifactPaths, loadWorktreePhaseOutput } from "./phase-output";
 import { syncGitHub } from "./github-sync";
+import { discoverGitHub } from "./github-discovery";
 import { loadConfig } from "./config";
 
 /** Options for the post-dispatch hook. */
@@ -113,8 +114,15 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     // Sync to GitHub — warn-and-continue
     try {
       const config = loadConfig(opts.projectRoot);
-      await syncGitHub(manifest, config);
-      console.log("[post-dispatch] GitHub sync complete");
+      if (config.github.enabled) {
+        const resolved = await discoverGitHub(opts.projectRoot, config.github["project-name"]);
+        if (resolved) {
+          await syncGitHub(manifest, config, resolved);
+          console.log("[post-dispatch] GitHub sync complete");
+        } else {
+          console.log("[post-dispatch] GitHub discovery failed — skipping sync");
+        }
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.log(`[post-dispatch] GitHub sync failed (non-blocking): ${message}`);
