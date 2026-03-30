@@ -1,13 +1,18 @@
 {
-  "phase": "implement",
-  "epic": "status-watch",
-  "feature": "render-extract",
   "status": "completed",
-  "tasks": [
-    {"id": 0, "subject": "Wire statusCommand to use renderStatusTable", "status": "completed"},
-    {"id": 1, "subject": "Add renderStatusTable import to test and verify coverage", "status": "completed"},
-    {"id": 2, "subject": "Run full test suite and validate", "status": "completed"}
-  ],
-  "deviations": [],
-  "lastUpdated": "2026-03-30T00:00:00Z"
+  "tasks": {
+    "total": 2,
+    "completed": 2,
+    "blocked": 0
+  },
+  "deviations": {
+    "total": 0,
+    "autoFixed": 0,
+    "blocking": 0,
+    "architectural": 0
+  },
+  "validation": {
+    "tests": "pass",
+    "testCount": 49
+  }
 }
