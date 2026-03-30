@@ -21,7 +21,7 @@ import * as store from "./manifest-store.js";
 import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase, setGitHubEpic, setFeatureGitHubIssue } from "./manifest.js";
 import type { PipelineManifest, ManifestFeature } from "./manifest-store.js";
 import { syncGitHub } from "./github-sync.js";
-import { discoverGitHub } from "./github-discovery.js";
+import { discoverGitHub, type ResolvedGitHub } from "./github-discovery.js";
 import type { Phase } from "./types.js";
 import { loadWorktreePhaseOutput, loadWorktreeFeatureOutput, extractFeatureStatuses, extractArtifactPaths, filenameMatchesEpic } from "./phase-output.js";
 
@@ -367,56 +367,52 @@ async function logRun(opts: {
 }
 
 /**
- * Reconcile all active manifests to GitHub on startup.
- * Ensures GitHub mirrors the current manifest state before dispatching.
+ * Reconcile a single epic's manifest state to GitHub.
+ * Called per-epic during each tick — keeps GitHub in sync without blocking startup.
  */
-async function reconcileGitHub(projectRoot: string, config: BeastmodeConfig): Promise<void> {
-  if (!config.github.enabled) return;
+async function reconcileEpic(
+  manifest: PipelineManifest,
+  projectRoot: string,
+  config: BeastmodeConfig,
+  resolved: ResolvedGitHub,
+): Promise<void> {
+  if (!manifest.github) return;
 
-  const manifests = store.list(projectRoot).filter(
-    (m) => m.phase !== "done" && m.phase !== "cancelled",
-  );
-  if (manifests.length === 0) return;
+  try {
+    let current = manifest;
+    watchLog(`[watch] ${current.slug}: reconciling GitHub (phase: ${current.phase})`);
+    const result = await syncGitHub(current, config, resolved);
 
-  const resolved = await discoverGitHub(projectRoot, config.github["project-name"]);
-  if (!resolved) {
-    watchLog("[watch] GitHub discovery failed — skipping startup reconcile");
-    return;
-  }
-
-  for (const manifest of manifests) {
-    try {
-      let current = manifest;
-      const result = await syncGitHub(current, config, resolved);
-
-      for (const mutation of result.mutations) {
-        if (mutation.type === "setEpic") {
-          current = setGitHubEpic(current, mutation.epicNumber, mutation.repo);
-        } else if (mutation.type === "setFeatureIssue") {
-          current = setFeatureGitHubIssue(current, mutation.featureSlug, mutation.issueNumber);
-        }
+    for (const mutation of result.mutations) {
+      if (mutation.type === "setEpic") {
+        current = setGitHubEpic(current, mutation.epicNumber, mutation.repo);
+      } else if (mutation.type === "setFeatureIssue") {
+        current = setFeatureGitHubIssue(current, mutation.featureSlug, mutation.issueNumber);
       }
-
-      if (result.mutations.length > 0) {
-        store.save(projectRoot, current.slug, current);
-      }
-
-      const actions: string[] = [];
-      if (result.featuresReopened > 0) actions.push(`${result.featuresReopened} reopened`);
-      if (result.featuresClosed > 0) actions.push(`${result.featuresClosed} closed`);
-      if (result.labelsUpdated > 0) actions.push(`${result.labelsUpdated} labels`);
-      if (result.featuresCreated > 0) actions.push(`${result.featuresCreated} created`);
-
-      if (actions.length > 0) {
-        watchLog(`[watch] ${current.slug}: GitHub reconciled (${actions.join(", ")})`);
-      }
-
-      for (const warning of result.warnings) {
-        watchLog(`[watch] ${current.slug}: sync warning: ${warning}`);
-      }
-    } catch (err) {
-      watchErr(`[watch] ${manifest.slug}: GitHub reconcile failed:`, err);
     }
+
+    if (result.mutations.length > 0) {
+      store.save(projectRoot, current.slug, current);
+    }
+
+    const actions: string[] = [];
+    if (result.featuresReopened > 0) actions.push(`${result.featuresReopened} reopened`);
+    if (result.featuresClosed > 0) actions.push(`${result.featuresClosed} closed`);
+    if (result.labelsUpdated > 0) actions.push(`${result.labelsUpdated} labels`);
+    if (result.featuresCreated > 0) actions.push(`${result.featuresCreated} created`);
+    if (result.projectUpdated) actions.push("board updated");
+
+    if (actions.length > 0) {
+      watchLog(`[watch] ${current.slug}: GitHub reconciled (${actions.join(", ")})`);
+    } else {
+      watchLog(`[watch] ${current.slug}: GitHub in sync`);
+    }
+
+    for (const warning of result.warnings) {
+      watchLog(`[watch] ${current.slug}: sync warning: ${warning}`);
+    }
+  } catch (err) {
+    watchErr(`[watch] ${manifest.slug}: GitHub reconcile failed:`, err);
   }
 }
 
@@ -424,9 +420,6 @@ async function reconcileGitHub(projectRoot: string, config: BeastmodeConfig): Pr
 export async function watchCommand(_args: string[]): Promise<void> {
   const projectRoot = findProjectRoot();
   const config = loadConfig(projectRoot);
-
-  // Reconcile all active manifests to GitHub before starting the loop
-  await reconcileGitHub(projectRoot, config);
 
   // Select dispatch strategy based on config
   const strategy = config.cli["dispatch-strategy"] ?? "sdk";
@@ -447,10 +440,34 @@ export async function watchCommand(_args: string[]): Promise<void> {
     innerFactory = new SdkSessionFactory(dispatchPhase);
   }
 
+  // Discover GitHub metadata once (cached internally)
+  let resolvedGitHub: ResolvedGitHub | undefined;
+  if (config.github.enabled) {
+    resolvedGitHub = await discoverGitHub(projectRoot, config.github["project-name"]) ?? undefined;
+    if (!resolvedGitHub) {
+      watchLog("[watch] GitHub discovery failed — sync disabled for this session");
+    }
+  }
+
   const sessionFactory = new ReconcilingFactory(innerFactory, projectRoot);
 
   const deps: WatchDeps = {
-    scanEpics,
+    scanEpics: async (root: string) => {
+      const result = await scanEpics(root);
+      const epics = Array.isArray(result) ? result : result.epics;
+
+      // Reconcile each epic to GitHub during scan
+      if (resolvedGitHub) {
+        for (const epic of epics) {
+          const manifest = store.load(root, epic.slug);
+          if (manifest) {
+            await reconcileEpic(manifest, root, config, resolvedGitHub);
+          }
+        }
+      }
+
+      return result;
+    },
     sessionFactory,
     logRun,
   };
