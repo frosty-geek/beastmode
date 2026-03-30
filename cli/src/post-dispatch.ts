@@ -16,6 +16,7 @@ import { extractFeatureStatuses, extractArtifactPaths, loadWorktreePhaseOutput, 
 import { syncGitHub } from "./github-sync";
 import { discoverGitHub } from "./github-discovery";
 import { loadConfig } from "./config";
+import { renameEpicSlug } from "./rename-slug";
 
 /** Options for the post-dispatch hook. */
 export interface PostDispatchOptions {
@@ -92,6 +93,36 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       console.log(`[post-dispatch] Enriched manifest (artifacts: ${artifactPaths.length}, features: ${featureStatuses.length})`);
     }
 
+    // Design post-dispatch rename: rename hex slug to real slug from PRD
+    // Scope guard: only runs after design phase, only when output contains a slug
+    // that differs from the current epic slug.
+    let activeSlug = opts.epicSlug;
+    if (opts.phase === "design" && output) {
+      const designArtifacts = output.artifacts as Record<string, unknown>;
+      const realSlug = typeof designArtifacts.slug === "string" ? designArtifacts.slug : undefined;
+      if (realSlug && realSlug !== opts.epicSlug) {
+        try {
+          const renameResult = await renameEpicSlug({
+            hexSlug: opts.epicSlug,
+            realSlug,
+            projectRoot: opts.projectRoot,
+          });
+          if (renameResult.renamed) {
+            activeSlug = renameResult.finalSlug;
+            // Re-load the manifest under the new slug (rename-slug already updated it)
+            manifest = store.load(opts.projectRoot, activeSlug) ?? manifest;
+            console.log(`[post-dispatch] Renamed epic: ${opts.epicSlug} -> ${activeSlug}`);
+          } else if (renameResult.error) {
+            console.log(`[post-dispatch] Rename failed (non-blocking): ${renameResult.error}`);
+            console.log(`[post-dispatch] Continuing under hex name: ${opts.epicSlug}`);
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(`[post-dispatch] Rename error (non-blocking): ${msg}`);
+        }
+      }
+    }
+
     // Handle implement fan-out: mark individual feature as completed
     // Only mark completed if the feature produced its own output.json — a session
     // that exits 0 without writing an artifact did not actually implement anything.
@@ -99,7 +130,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       const featureOutput = loadWorktreeFeatureOutput(opts.worktreePath, opts.phase, opts.epicSlug, opts.featureSlug);
       if (featureOutput?.status === "completed") {
         manifest = markFeature(manifest, opts.featureSlug, "completed");
-        store.save(opts.projectRoot, opts.epicSlug, manifest);
+        store.save(opts.projectRoot, activeSlug, manifest);
         console.log(`[post-dispatch] Marked feature ${opts.featureSlug} as completed (output verified)`);
       } else {
         console.log(`[post-dispatch] Feature ${opts.featureSlug} session exited 0 but no output.json — not marking completed`);
@@ -110,7 +141,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     // Missing output with a successful session is not a failure — the skill just didn't write one.
     if (opts.phase === "validate" && output && output.status !== "completed") {
       manifest = regressPhase(manifest, "implement");
-      store.save(opts.projectRoot, opts.epicSlug, manifest);
+      store.save(opts.projectRoot, activeSlug, manifest);
       console.log(`[post-dispatch] Regressed phase: validate -> implement (features reset to pending)`);
     }
 
@@ -123,7 +154,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     const nextPhase = shouldAdvance(manifest, effectiveOutput);
     if (nextPhase) {
       manifest = advancePhase(manifest, nextPhase);
-      store.save(opts.projectRoot, opts.epicSlug, manifest);
+      store.save(opts.projectRoot, activeSlug, manifest);
       console.log(`[post-dispatch] Advanced phase: ${opts.phase} -> ${nextPhase}`);
     } else {
       console.log(`[post-dispatch] No phase advancement for ${opts.phase}`);
@@ -147,7 +178,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
           }
 
           if (syncResult.mutations.length > 0) {
-            store.save(opts.projectRoot, opts.epicSlug, manifest);
+            store.save(opts.projectRoot, activeSlug, manifest);
             console.log(`[post-dispatch] Applied ${syncResult.mutations.length} GitHub mutation(s)`);
           }
 
