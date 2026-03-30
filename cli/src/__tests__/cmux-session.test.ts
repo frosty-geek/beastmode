@@ -67,11 +67,14 @@ function makeOpts(overrides?: Partial<SessionCreateOpts>): SessionCreateOpts {
   };
 }
 
-/** Write an output.json artifact file for a given worktree slug and phase. */
+/** Write an output.json artifact file for a given worktree slug and phase.
+ *  The slug should be the epic slug for single phases, or epic-feature for fan-out.
+ */
 function writeOutputJson(
   worktreeSlug: string,
   phase: string,
   output: { status: string; artifacts: Record<string, unknown> },
+  outputSlug?: string,
 ): void {
   const dir = resolve(
     TEST_ROOT,
@@ -83,7 +86,8 @@ function writeOutputJson(
     phase,
   );
   mkdirSync(dir, { recursive: true });
-  const filename = `2026-03-29-test.output.json`;
+  const slug = outputSlug ?? worktreeSlug;
+  const filename = `2026-03-29-${slug}.output.json`;
   writeFileSync(resolve(dir, filename), JSON.stringify(output));
 }
 
@@ -155,7 +159,7 @@ describe("CmuxSessionFactory", () => {
       args: ["my-epic", "feat-a"],
     }));
     await tick();
-    writeOutputJson("my-epic-feat-a", "implement", { status: "completed", artifacts: {} });
+    writeOutputJson("my-epic", "implement", { status: "completed", artifacts: {} }, "my-epic-feat-a");
     await handle.promise;
 
     const createSurf = mockClient.calls.find(c => c.method === "createSurface");
@@ -288,7 +292,7 @@ describe("CmuxSessionFactory", () => {
     }));
     expect(handle.worktreeSlug).toBe("my-epic");
     await tick();
-    writeOutputJson("my-epic", "implement", { status: "completed", artifacts: {} });
+    writeOutputJson("my-epic", "implement", { status: "completed", artifacts: {} }, "my-epic-feat-a");
     await handle.promise;
   });
 });
