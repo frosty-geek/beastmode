@@ -7,7 +7,7 @@
 
 import { resolve } from "node:path";
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
-import { loadConfig } from "./config.js";
+import { loadConfig, type BeastmodeConfig } from "./config.js";
 import { WatchLoop, watchLog, watchErr } from "./watch.js";
 import type { WatchDeps } from "./watch.js";
 import type { SessionResult } from "./watch-types.js";
@@ -18,8 +18,10 @@ import { CmuxClient, cmuxAvailable } from "./cmux-client.js";
 import * as worktree from "./worktree.js";
 import { scanEpics } from "./state-scanner.js";
 import * as store from "./manifest-store.js";
-import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase } from "./manifest.js";
+import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase, setGitHubEpic, setFeatureGitHubIssue } from "./manifest.js";
 import type { PipelineManifest, ManifestFeature } from "./manifest-store.js";
+import { syncGitHub } from "./github-sync.js";
+import { discoverGitHub } from "./github-discovery.js";
 import type { Phase } from "./types.js";
 import { loadWorktreePhaseOutput, loadWorktreeFeatureOutput, extractFeatureStatuses, extractArtifactPaths, filenameMatchesEpic } from "./phase-output.js";
 
@@ -364,10 +366,67 @@ async function logRun(opts: {
   writeFileSync(runsPath, JSON.stringify(runs, null, 2));
 }
 
+/**
+ * Reconcile all active manifests to GitHub on startup.
+ * Ensures GitHub mirrors the current manifest state before dispatching.
+ */
+async function reconcileGitHub(projectRoot: string, config: BeastmodeConfig): Promise<void> {
+  if (!config.github.enabled) return;
+
+  const manifests = store.list(projectRoot).filter(
+    (m) => m.phase !== "done" && m.phase !== "cancelled",
+  );
+  if (manifests.length === 0) return;
+
+  const resolved = await discoverGitHub(projectRoot, config.github["project-name"]);
+  if (!resolved) {
+    watchLog("[watch] GitHub discovery failed — skipping startup reconcile");
+    return;
+  }
+
+  for (const manifest of manifests) {
+    try {
+      let current = manifest;
+      const result = await syncGitHub(current, config, resolved);
+
+      for (const mutation of result.mutations) {
+        if (mutation.type === "setEpic") {
+          current = setGitHubEpic(current, mutation.epicNumber, mutation.repo);
+        } else if (mutation.type === "setFeatureIssue") {
+          current = setFeatureGitHubIssue(current, mutation.featureSlug, mutation.issueNumber);
+        }
+      }
+
+      if (result.mutations.length > 0) {
+        store.save(projectRoot, current.slug, current);
+      }
+
+      const actions: string[] = [];
+      if (result.featuresReopened > 0) actions.push(`${result.featuresReopened} reopened`);
+      if (result.featuresClosed > 0) actions.push(`${result.featuresClosed} closed`);
+      if (result.labelsUpdated > 0) actions.push(`${result.labelsUpdated} labels`);
+      if (result.featuresCreated > 0) actions.push(`${result.featuresCreated} created`);
+
+      if (actions.length > 0) {
+        watchLog(`[watch] ${current.slug}: GitHub reconciled (${actions.join(", ")})`);
+      }
+
+      for (const warning of result.warnings) {
+        watchLog(`[watch] ${current.slug}: sync warning: ${warning}`);
+      }
+    } catch (err) {
+      watchErr(`[watch] ${manifest.slug}: GitHub reconcile failed:`, err);
+    }
+  }
+}
+
 /** Main entry point for `beastmode watch`. */
 export async function watchCommand(_args: string[]): Promise<void> {
   const projectRoot = findProjectRoot();
   const config = loadConfig(projectRoot);
+
+  // Reconcile all active manifests to GitHub before starting the loop
+  await reconcileGitHub(projectRoot, config);
 
   // Select dispatch strategy based on config
   const strategy = config.cli["dispatch-strategy"] ?? "sdk";
