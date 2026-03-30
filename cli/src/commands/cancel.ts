@@ -22,6 +22,7 @@ import { cancel } from "../manifest";
 export async function cancelCommand(
   args: string[],
   config: BeastmodeConfig,
+  _verbosity: number = 0,
 ): Promise<void> {
   const slug = args[0];
   if (!slug) {
