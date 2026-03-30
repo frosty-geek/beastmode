@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.47.0 — iTerm2 Dispatch Strategy (Mar 2026)
+
+- **iTerm2 dispatch strategy** — New `dispatch-strategy: iterm2` uses the `it2` CLI for native tab-per-epic and split-pane-per-phase pipeline visibility in iTerm2
+- **It2Client wrapper** — Typed wrapper for `it2` CLI commands (create-tab, split-pane, close-pane, list-sessions) with full pane lifecycle management
+- **ITermSessionFactory** — Implements `SessionFactory` interface for iTerm2 tab/pane creation, cleanup, and reconciliation
+- **Auto-detection chain** — `dispatch-strategy: auto` now prioritizes iTerm2 (if detected + it2 available) before cmux and SDK
+- **Environment detection** — Detects iTerm2 via `ITERM_SESSION_ID` and `TERM_PROGRAM` env vars
+- **Startup reconciliation** — Reconciles existing `bm-*` tabs/panes from previous runs on watch startup
+- **Badge notifications** — iTerm2 badge notifications for errors and blocked gates
+- **GitHub sync fix** — Runtime discovery replaces manual config IDs
+
 ### v0.46.1 — Design Retro Always (Mar 2026)
 
 - **Always-run design retro** — Design checkpoint now includes a `SKIP SECTION` directive that bypasses the Quick-Exit Check, ensuring every design session produces L2/L3 knowledge records regardless of session size

@@ -11,8 +11,8 @@
 import type { Phase } from "./types";
 import type { PipelineManifest } from "./manifest-store";
 import * as store from "./manifest-store";
-import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase, setGitHubEpic, setFeatureGitHubIssue } from "./manifest";
-import { extractFeatureStatuses, extractArtifactPaths, loadWorktreePhaseOutput, loadWorktreeFeatureOutput } from "./phase-output";
+import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase } from "./manifest";
+import { extractFeatureStatuses, extractArtifactPaths, loadWorktreePhaseOutput } from "./phase-output";
 import { syncGitHub } from "./github-sync";
 import { discoverGitHub } from "./github-discovery";
 import { loadConfig } from "./config";
@@ -48,13 +48,8 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       return;
     }
 
-    // Load phase output from the worktree artifacts dir.
-    // For implement fan-out (featureSlug present), load the feature-specific output
-    // instead of the epic-level one — prevents one feature's output from marking
-    // other features completed via enrich.
-    const output = opts.featureSlug
-      ? loadWorktreeFeatureOutput(opts.worktreePath, opts.phase, opts.epicSlug, opts.featureSlug)
-      : loadWorktreePhaseOutput(opts.worktreePath, opts.phase, opts.epicSlug);
+    // Load phase output from the worktree artifacts dir (where the stop hook writes)
+    const output = loadWorktreePhaseOutput(opts.worktreePath, opts.phase);
     if (output) {
       console.log(`[post-dispatch] Loaded phase output for ${opts.phase}/${opts.epicSlug} (status: ${output.status})`);
     } else {
@@ -93,34 +88,21 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     }
 
     // Handle implement fan-out: mark individual feature as completed
-    // Only mark completed if the feature produced its own output.json — a session
-    // that exits 0 without writing an artifact did not actually implement anything.
     if (opts.phase === "implement" && opts.featureSlug) {
-      const featureOutput = loadWorktreeFeatureOutput(opts.worktreePath, opts.phase, opts.epicSlug, opts.featureSlug);
-      if (featureOutput?.status === "completed") {
-        manifest = markFeature(manifest, opts.featureSlug, "completed");
-        store.save(opts.projectRoot, opts.epicSlug, manifest);
-        console.log(`[post-dispatch] Marked feature ${opts.featureSlug} as completed (output verified)`);
-      } else {
-        console.log(`[post-dispatch] Feature ${opts.featureSlug} session exited 0 but no output.json — not marking completed`);
-      }
+      manifest = markFeature(manifest, opts.featureSlug, "completed");
+      store.save(opts.projectRoot, opts.epicSlug, manifest);
+      console.log(`[post-dispatch] Marked feature ${opts.featureSlug} as completed`);
     }
 
-    // Handle validate regression: only regress when output explicitly reports failure.
-    // Missing output with a successful session is not a failure — the skill just didn't write one.
-    if (opts.phase === "validate" && output && output.status !== "completed") {
+    // Handle validate regression: if validate didn't complete, regress to implement
+    if (opts.phase === "validate" && output?.status !== "completed") {
       manifest = regressPhase(manifest, "implement");
       store.save(opts.projectRoot, opts.epicSlug, manifest);
       console.log(`[post-dispatch] Regressed phase: validate -> implement (features reset to pending)`);
     }
 
-    // For validate advancement: if session succeeded but no output, synthesize completed
-    const effectiveOutput = (!output && opts.phase === "validate")
-      ? { status: "completed" as const, artifacts: { report: "", passed: true } as const }
-      : output;
-
     // Determine whether to advance the phase
-    const nextPhase = shouldAdvance(manifest, effectiveOutput);
+    const nextPhase = shouldAdvance(manifest, output);
     if (nextPhase) {
       manifest = advancePhase(manifest, nextPhase);
       store.save(opts.projectRoot, opts.epicSlug, manifest);
@@ -135,26 +117,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       if (config.github.enabled) {
         const resolved = await discoverGitHub(opts.projectRoot, config.github["project-name"]);
         if (resolved) {
-          const syncResult = await syncGitHub(manifest, config, resolved);
-
-          // Apply mutations back to manifest
-          for (const mutation of syncResult.mutations) {
-            if (mutation.type === "setEpic") {
-              manifest = setGitHubEpic(manifest, mutation.epicNumber, mutation.repo);
-            } else if (mutation.type === "setFeatureIssue") {
-              manifest = setFeatureGitHubIssue(manifest, mutation.featureSlug, mutation.issueNumber);
-            }
-          }
-
-          if (syncResult.mutations.length > 0) {
-            store.save(opts.projectRoot, opts.epicSlug, manifest);
-            console.log(`[post-dispatch] Applied ${syncResult.mutations.length} GitHub mutation(s)`);
-          }
-
-          for (const warning of syncResult.warnings) {
-            console.log(`[post-dispatch] GitHub sync warning: ${warning}`);
-          }
-
+          await syncGitHub(manifest, config, resolved);
           console.log("[post-dispatch] GitHub sync complete");
         } else {
           console.log("[post-dispatch] GitHub discovery failed — skipping sync");

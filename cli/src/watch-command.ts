@@ -6,45 +6,25 @@
  */
 
 import { resolve } from "node:path";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
-import { loadConfig, type BeastmodeConfig } from "./config.js";
-import { WatchLoop, watchLog, watchErr } from "./watch.js";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { loadConfig } from "./config.js";
+import { WatchLoop } from "./watch.js";
 import type { WatchDeps } from "./watch.js";
 import type { SessionResult } from "./watch-types.js";
 import type { SessionFactory, SessionCreateOpts, SessionHandle } from "./session.js";
 import { SdkSessionFactory } from "./session.js";
 import { CmuxSessionFactory } from "./cmux-session.js";
 import { CmuxClient, cmuxAvailable } from "./cmux-client.js";
+import { ITermSessionFactory } from "./it2-session.js";
+import { It2Client } from "./it2-client.js";
+import { iterm2Available, IT2_SETUP_INSTRUCTIONS } from "./iterm2-detect.js";
 import * as worktree from "./worktree.js";
 import { scanEpics } from "./state-scanner.js";
 import * as store from "./manifest-store.js";
-import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase, setGitHubEpic, setFeatureGitHubIssue } from "./manifest.js";
+import { enrich, advancePhase, markFeature, shouldAdvance, regressPhase } from "./manifest.js";
 import type { PipelineManifest, ManifestFeature } from "./manifest-store.js";
-import { syncGitHub } from "./github-sync.js";
-import { discoverGitHub, type ResolvedGitHub } from "./github-discovery.js";
 import type { Phase } from "./types.js";
-import { loadWorktreePhaseOutput, loadWorktreeFeatureOutput, extractFeatureStatuses, extractArtifactPaths, filenameMatchesEpic } from "./phase-output.js";
-
-/**
- * Remove stale output.json files from a worktree's artifacts directory
- * that don't belong to the current epic. Prevents the stop hook or
- * reconciliation from picking up outputs from prior epics.
- */
-function cleanStaleOutputs(worktreePath: string, phase: string, epicSlug: string): void {
-  const dir = resolve(worktreePath, ".beastmode", "artifacts", phase);
-  if (!existsSync(dir)) return;
-
-  for (const f of readdirSync(dir)) {
-    if (!f.endsWith(".output.json")) continue;
-    if (filenameMatchesEpic(f, epicSlug)) continue;
-    try {
-      unlinkSync(resolve(dir, f));
-      watchLog(`[watch] Cleaned stale output: ${phase}/${f}`);
-    } catch {
-      // Best-effort cleanup
-    }
-  }
-}
+import { loadWorktreePhaseOutput, extractFeatureStatuses, extractArtifactPaths } from "./phase-output.js";
 
 /** Discover the project root (walks up to find .beastmode/). */
 function findProjectRoot(from: string = process.cwd()): string {
@@ -61,8 +41,7 @@ function findProjectRoot(from: string = process.cwd()): string {
  * and uses it to enrich/advance the manifest. Same logic as post-dispatch,
  * reading from the correct location (.beastmode/artifacts/<phase>/).
  */
-/** @internal Exported for testing. */
-export function reconcileState(opts: {
+function reconcileState(opts: {
   worktreePath: string;
   projectRoot: string;
   epicSlug: string;
@@ -76,13 +55,8 @@ export function reconcileState(opts: {
   let manifest: PipelineManifest | undefined = store.load(opts.projectRoot, opts.epicSlug);
   if (!manifest) return undefined;
 
-  // 2. Load output.json from worktree artifacts dir.
-  // For implement fan-out (featureSlug present), load the feature-specific output
-  // instead of the epic-level one — prevents one feature's output from marking
-  // other features completed via enrich.
-  const output = opts.featureSlug
-    ? loadWorktreeFeatureOutput(opts.worktreePath, opts.phase as Phase, opts.epicSlug, opts.featureSlug)
-    : loadWorktreePhaseOutput(opts.worktreePath, opts.phase as Phase, opts.epicSlug);
+  // 2. Load output.json from worktree artifacts dir
+  const output = loadWorktreePhaseOutput(opts.worktreePath, opts.phase as Phase);
 
   // 3. Enrich from output.json (features, artifact paths)
   if (output) {
@@ -117,13 +91,8 @@ export function reconcileState(opts: {
   }
 
   // 4. Handle implement fan-out: mark specific feature completed
-  // Only mark completed if the feature produced its own output.json with status "completed" —
-  // a session that exits 0 without writing an artifact did not actually implement anything.
   if (opts.phase === "implement" && opts.featureSlug) {
-    const featureOutput = loadWorktreeFeatureOutput(opts.worktreePath, opts.phase as Phase, opts.epicSlug, opts.featureSlug);
-    if (featureOutput?.status === "completed") {
-      manifest = markFeature(manifest, opts.featureSlug, "completed");
-    }
+    manifest = markFeature(manifest, opts.featureSlug, "completed");
   }
 
   // 5. Handle validate regression
@@ -172,20 +141,15 @@ class ReconcilingFactory implements SessionFactory {
   }
 
   async create(opts: SessionCreateOpts): Promise<SessionHandle> {
+    const handle = await this.inner.create(opts);
     const { projectRoot } = this;
 
-    // Worktree path is deterministic from epic slug — compute before dispatch
     const worktreePath = resolve(
       projectRoot,
       ".claude",
       "worktrees",
-      opts.epicSlug,
+      handle.worktreeSlug,
     );
-
-    // Clean stale output.json from prior epics before dispatching
-    cleanStaleOutputs(worktreePath, opts.phase, opts.epicSlug);
-
-    const handle = await this.inner.create(opts);
 
     const wrappedPromise = handle.promise.then(async (result) => {
       let sessionResult = result;
@@ -193,22 +157,22 @@ class ReconcilingFactory implements SessionFactory {
       // Release teardown: archive, remove on success
       if (opts.phase === "release" && sessionResult.success) {
         try {
-          watchLog(`[watch] ${opts.epicSlug}: release teardown — archiving branch...`);
+          console.log(`[watch] ${opts.epicSlug}: release teardown — archiving branch...`);
           const tagName = await worktree.archive(handle.worktreeSlug, { cwd: projectRoot });
-          watchLog(`[watch] ${opts.epicSlug}: archived as ${tagName}`);
+          console.log(`[watch] ${opts.epicSlug}: archived as ${tagName}`);
 
           await worktree.remove(handle.worktreeSlug, { cwd: projectRoot });
-          watchLog(`[watch] ${opts.epicSlug}: worktree removed`);
+          console.log(`[watch] ${opts.epicSlug}: worktree removed`);
 
           // Mark manifest as done so scanner skips it
           const doneManifest = store.load(projectRoot, opts.epicSlug);
           if (doneManifest) {
             store.save(projectRoot, opts.epicSlug, { ...doneManifest, phase: "done", lastUpdated: new Date().toISOString() });
           }
-          watchLog(`[watch] ${opts.epicSlug}: manifest marked done`);
+          console.log(`[watch] ${opts.epicSlug}: manifest marked done`);
         } catch (err) {
-          watchErr(`[watch] ${opts.epicSlug}: release teardown failed:`, err);
-          watchErr(`[watch] ${opts.epicSlug}: worktree preserved for manual cleanup`);
+          console.error(`[watch] ${opts.epicSlug}: release teardown failed:`, err);
+          console.error(`[watch] ${opts.epicSlug}: worktree preserved for manual cleanup`);
           sessionResult = { ...sessionResult, success: false };
         }
       }
@@ -366,60 +330,62 @@ async function logRun(opts: {
   writeFileSync(runsPath, JSON.stringify(runs, null, 2));
 }
 
+/** Result of strategy selection — which strategy was chosen and why. */
+export interface StrategySelection {
+  strategy: "iterm2" | "cmux" | "sdk";
+  sessionId?: string;
+}
+
 /**
- * Reconcile a single epic's manifest state to GitHub.
- * Called per-epic during each tick — keeps GitHub in sync without blocking startup.
+ * Select the dispatch strategy based on config, checking availability
+ * of iTerm2 and cmux in priority order.
+ *
+ * Exported for testability — watchCommand wires the result to a factory.
  */
-async function reconcileEpic(
-  manifest: PipelineManifest,
-  projectRoot: string,
-  config: BeastmodeConfig,
-  resolved: ResolvedGitHub,
-): Promise<void> {
-  if (!manifest.github) return;
-
-  try {
-    watchLog(`[watch] ${manifest.slug}: reconciling GitHub (phase: ${manifest.phase})`);
-    const result = await syncGitHub(manifest, config, resolved);
-
-    // Re-read the manifest FRESH from disk before applying mutations.
-    // syncGitHub takes a long time (many API calls). During that window,
-    // reconcileState may have updated feature statuses on disk.
-    // Applying mutations to the stale scan-time manifest would clobber those updates.
-    if (result.mutations.length > 0) {
-      let current = store.load(projectRoot, manifest.slug);
-      if (!current) return; // manifest removed during sync — bail
-
-      for (const mutation of result.mutations) {
-        if (mutation.type === "setEpic") {
-          current = setGitHubEpic(current, mutation.epicNumber, mutation.repo);
-        } else if (mutation.type === "setFeatureIssue") {
-          current = setFeatureGitHubIssue(current, mutation.featureSlug, mutation.issueNumber);
-        }
-      }
-
-      store.save(projectRoot, current.slug, current);
+export async function selectStrategy(
+  configured: string,
+  deps: {
+    checkIterm2: typeof iterm2Available;
+    checkCmux: typeof cmuxAvailable;
+  } = { checkIterm2: iterm2Available, checkCmux: cmuxAvailable },
+): Promise<StrategySelection> {
+  if (configured === "iterm2") {
+    const result = await deps.checkIterm2();
+    if (!result.available) {
+      console.error(`[watch] iTerm2 dispatch strategy requested but not available: ${result.reason}`);
+      console.error(IT2_SETUP_INSTRUCTIONS);
+      throw new Error("iTerm2 dispatch strategy unavailable");
     }
-
-    const actions: string[] = [];
-    if (result.featuresReopened > 0) actions.push(`${result.featuresReopened} reopened`);
-    if (result.featuresClosed > 0) actions.push(`${result.featuresClosed} closed`);
-    if (result.labelsUpdated > 0) actions.push(`${result.labelsUpdated} labels`);
-    if (result.featuresCreated > 0) actions.push(`${result.featuresCreated} created`);
-    if (result.projectUpdated) actions.push("board updated");
-
-    if (actions.length > 0) {
-      watchLog(`[watch] ${manifest.slug}: GitHub reconciled (${actions.join(", ")})`);
-    } else {
-      watchLog(`[watch] ${manifest.slug}: GitHub in sync`);
-    }
-
-    for (const warning of result.warnings) {
-      watchLog(`[watch] ${manifest.slug}: sync warning: ${warning}`);
-    }
-  } catch (err) {
-    watchErr(`[watch] ${manifest.slug}: GitHub reconcile failed:`, err);
+    console.log(`[watch] Using iTerm2 dispatch strategy (session: ${result.sessionId})`);
+    return { strategy: "iterm2", sessionId: result.sessionId };
   }
+
+  if (configured === "auto") {
+    const iterm2Result = await deps.checkIterm2();
+    if (iterm2Result.available) {
+      console.log(`[watch] Auto-detected iTerm2 (session: ${iterm2Result.sessionId})`);
+      return { strategy: "iterm2", sessionId: iterm2Result.sessionId };
+    }
+    const cmuxOk = await deps.checkCmux();
+    if (cmuxOk) {
+      console.log("[watch] Using cmux dispatch strategy");
+      return { strategy: "cmux" };
+    }
+    console.log("[watch] Using SDK dispatch strategy");
+    return { strategy: "sdk" };
+  }
+
+  if (configured === "cmux") {
+    const available = await deps.checkCmux();
+    if (available) {
+      console.log("[watch] Using cmux dispatch strategy");
+      return { strategy: "cmux" };
+    }
+    console.error("[watch] cmux not available but dispatch-strategy is 'cmux'. Falling back to SDK.");
+    return { strategy: "sdk" };
+  }
+
+  return { strategy: "sdk" };
 }
 
 /** Main entry point for `beastmode watch`. */
@@ -427,53 +393,21 @@ export async function watchCommand(_args: string[]): Promise<void> {
   const projectRoot = findProjectRoot();
   const config = loadConfig(projectRoot);
 
-  // Select dispatch strategy based on config
-  const strategy = config.cli["dispatch-strategy"] ?? "sdk";
+  const selected = await selectStrategy(config.cli["dispatch-strategy"] ?? "sdk");
   let innerFactory: SessionFactory;
 
-  if (strategy === "cmux" || strategy === "auto") {
-    const available = await cmuxAvailable();
-    if (available) {
-      watchLog("[watch] Using cmux dispatch strategy");
-      innerFactory = new CmuxSessionFactory(new CmuxClient());
-    } else if (strategy === "cmux") {
-      watchErr("[watch] cmux not available but dispatch-strategy is 'cmux'. Falling back to SDK.");
-      innerFactory = new SdkSessionFactory(dispatchPhase);
-    } else {
-      innerFactory = new SdkSessionFactory(dispatchPhase);
-    }
+  if (selected.strategy === "cmux") {
+    innerFactory = new CmuxSessionFactory(new CmuxClient());
+  } else if (selected.strategy === "iterm2") {
+    innerFactory = new ITermSessionFactory(new It2Client());
   } else {
     innerFactory = new SdkSessionFactory(dispatchPhase);
-  }
-
-  // Discover GitHub metadata once (cached internally)
-  let resolvedGitHub: ResolvedGitHub | undefined;
-  if (config.github.enabled) {
-    resolvedGitHub = await discoverGitHub(projectRoot, config.github["project-name"]) ?? undefined;
-    if (!resolvedGitHub) {
-      watchLog("[watch] GitHub discovery failed — sync disabled for this session");
-    }
   }
 
   const sessionFactory = new ReconcilingFactory(innerFactory, projectRoot);
 
   const deps: WatchDeps = {
-    scanEpics: async (root: string) => {
-      const result = await scanEpics(root);
-      const epics = Array.isArray(result) ? result : result.epics;
-
-      // Reconcile each epic to GitHub during scan
-      if (resolvedGitHub) {
-        for (const epic of epics) {
-          const manifest = store.load(root, epic.slug);
-          if (manifest) {
-            await reconcileEpic(manifest, root, config, resolvedGitHub);
-          }
-        }
-      }
-
-      return result;
-    },
+    scanEpics,
     sessionFactory,
     logRun,
   };
