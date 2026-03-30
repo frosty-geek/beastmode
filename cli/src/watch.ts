@@ -17,21 +17,20 @@ import { acquireLock, releaseLock } from "./lockfile.js";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execSync } from "node:child_process";
+import { createLogger } from "./logger.js";
 
-// --- Timestamped logging ---
+// --- Timestamped logging (deprecated — use createLogger directly) ---
 
-function ts(): string {
-  return new Date().toISOString().slice(11, 19);
-}
+const _watchLogger = createLogger(0, "watch");
 
-/** Log with timestamp. */
+/** @deprecated Use createLogger() directly. Removed in call-site-migration. */
 export function watchLog(msg: string): void {
-  console.log(`${ts()} ${msg}`);
+  _watchLogger.log(msg);
 }
 
-/** Error log with timestamp. */
-export function watchErr(msg: string, ...args: unknown[]): void {
-  console.error(`${ts()} ${msg}`, ...args);
+/** @deprecated Use createLogger() directly. Removed in call-site-migration. */
+export function watchErr(msg: string, ..._args: unknown[]): void {
+  _watchLogger.error(msg);
 }
 
 // --- Version banner ---
