@@ -76,12 +76,19 @@ export class CmuxSessionFactory implements SessionFactory {
     // Derive artifact directory where output.json will appear
     const artifactDir = resolve(wt.path, ".beastmode", "artifacts", opts.phase);
 
+    // Build the expected output.json suffix for this specific session.
+    // Feature fan-out: match *-<epic>-<feature>.output.json
+    // Single phase:    match *-<epic>.output.json
+    const outputSuffix = featureSlug
+      ? `-${epicSlug}-${featureSlug}.output.json`
+      : `-${epicSlug}.output.json`;
+
     // Clean stale output.json files — git checkout sets mtime to now,
     // which defeats the startTime filter and causes instant false matches.
     this.cleanStaleOutputFiles(artifactDir);
 
     // Set up promise that resolves when output.json appears
-    const promise = this.watchForMarker(id, artifactDir, startTime, opts.signal);
+    const promise = this.watchForMarker(id, artifactDir, startTime, opts.signal, outputSuffix);
 
     // Handle abort — close surface
     const onAbort = async () => {
@@ -135,17 +142,18 @@ export class CmuxSessionFactory implements SessionFactory {
     this.workspaces.delete(epicSlug);
   }
 
-  /** Watch for *.output.json files in the artifact directory. */
+  /** Watch for a specific output.json file in the artifact directory. */
   private watchForMarker(
     sessionId: string,
     artifactDir: string,
     startTime: number,
     signal: AbortSignal,
+    outputSuffix: string,
   ): Promise<SessionResult> {
     return new Promise<SessionResult>((resolvePromise, rejectPromise) => {
       // Check if an output.json already exists that is newer than dispatch time.
       // Stale output.json files from previous runs must be ignored.
-      const existing = this.findOutputJson(artifactDir, startTime);
+      const existing = this.findOutputJson(artifactDir, startTime, outputSuffix);
       if (existing) {
         const result = this.readOutputJson(existing, startTime);
         if (result) {
@@ -166,7 +174,7 @@ export class CmuxSessionFactory implements SessionFactory {
         mkdirSync(artifactDir, { recursive: true });
 
         watcher = watch(artifactDir, (_eventType, filename) => {
-          if (filename && filename.endsWith(".output.json")) {
+          if (filename && filename.endsWith(outputSuffix)) {
             const filePath = resolve(artifactDir, filename);
             // Verify the file was written after dispatch, not a stale leftover
             try {
@@ -185,7 +193,7 @@ export class CmuxSessionFactory implements SessionFactory {
       } catch {
         // Fall back to polling
         const pollInterval = setInterval(() => {
-          const found = this.findOutputJson(artifactDir, startTime);
+          const found = this.findOutputJson(artifactDir, startTime, outputSuffix);
           if (found) {
             clearInterval(pollInterval);
             clearTimeout(timeout);
@@ -247,12 +255,13 @@ export class CmuxSessionFactory implements SessionFactory {
     });
   }
 
-  /** Find an output.json file in the artifact directory, optionally filtering by mtime. */
-  private findOutputJson(dir: string, newerThanMs?: number): string | null {
+  /** Find an output.json file in the artifact directory matching the suffix. */
+  private findOutputJson(dir: string, newerThanMs?: number, suffix?: string): string | null {
     try {
       const files = readdirSync(dir) as string[];
+      const matchSuffix = suffix ?? ".output.json";
       const candidates = files
-        .filter((f: string) => f.endsWith(".output.json"))
+        .filter((f: string) => f.endsWith(matchSuffix))
         .map((f: string) => resolve(dir, f))
         .filter((fullPath: string) => {
           if (newerThanMs === undefined) return true;
