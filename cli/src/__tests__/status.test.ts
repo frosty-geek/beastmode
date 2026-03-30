@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { buildStatusRows, formatTable, formatFeatures, formatStatus, renderStatusTable } from "../commands/status";
+import { buildStatusRows, formatTable, formatFeatures, formatStatus, renderStatusTable, formatWatchHeader } from "../commands/status";
+import type { WatchMeta } from "../commands/status";
 import type { EnrichedManifest } from "../state-scanner";
 
 /**
