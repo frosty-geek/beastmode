@@ -83,6 +83,7 @@ export async function phaseCommand(
       epicSlug,
       phase,
       success: result.exit_status === "success",
+      logger,
     });
   }
 
