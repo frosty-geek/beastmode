@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { buildStatusRows, formatTable, formatFeatures, formatStatus } from "../commands/status";
+import { buildStatusRows, formatTable, formatFeatures, formatStatus, renderStatusTable } from "../commands/status";
 import type { EnrichedManifest } from "../state-scanner";
 
 /**
@@ -318,5 +318,49 @@ describe("buildStatusRows", () => {
     expect(rows[0].name).toBe("finished");  // done: 5 (highest, sorted first)
     expect(rows[1].name).toBe("active");    // implement: 2
     expect(rows[2].name).toBe("dead");      // cancelled: -1 (lowest, sorted last)
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renderStatusTable (extracted pure function)
+// ---------------------------------------------------------------------------
+
+describe("renderStatusTable", () => {
+  test("returns formatted table string for enriched manifests", () => {
+    const epics = [
+      makeEpic({ slug: "alpha", phase: "implement" }),
+      makeEpic({ slug: "beta", phase: "design" }),
+    ];
+    const result = renderStatusTable(epics);
+    const plain = stripAnsi(result);
+    expect(plain).toContain("Epic");
+    expect(plain).toContain("alpha");
+    expect(plain).toContain("beta");
+    expect(plain).toContain("implement");
+    expect(plain).toContain("design");
+  });
+
+  test("returns 'No epics found.' for empty input", () => {
+    expect(renderStatusTable([])).toBe("No epics found.");
+  });
+
+  test("respects all flag to include done epics", () => {
+    const epics = [
+      makeEpic({ slug: "active", phase: "implement" }),
+      makeEpic({ slug: "finished", phase: "done", nextAction: null }),
+    ];
+    const withoutAll = stripAnsi(renderStatusTable(epics));
+    const withAll = stripAnsi(renderStatusTable(epics, { all: true }));
+    expect(withoutAll).not.toContain("finished");
+    expect(withAll).toContain("finished");
+  });
+
+  test("produces same output as buildStatusRows + formatTable", () => {
+    const epics = [
+      makeEpic({ slug: "x", phase: "validate" }),
+    ];
+    const direct = renderStatusTable(epics);
+    const manual = formatTable(buildStatusRows(epics));
+    expect(direct).toBe(manual);
   });
 });

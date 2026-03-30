@@ -4,6 +4,7 @@ import {
   formatTable,
   formatFeatures,
   formatStatus,
+  renderWatchIndicator,
   type StatusRow,
 } from "../src/commands/status";
 import type { EnrichedManifest } from "../src/state-scanner";
@@ -281,5 +282,23 @@ describe("formatTable", () => {
     expect(lines).toHaveLength(4);
     expect(stripAnsi(lines[2])).toContain("epic-a");
     expect(stripAnsi(lines[3])).toContain("epic-b");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// renderWatchIndicator
+// ---------------------------------------------------------------------------
+
+describe("renderWatchIndicator", () => {
+  test("running shows green 'watch: running'", () => {
+    const result = renderWatchIndicator(true);
+    expect(stripAnsi(result)).toBe("watch: running");
+    expect(result).toContain("\x1b[32m"); // green
+  });
+
+  test("stopped shows dim 'watch: stopped'", () => {
+    const result = renderWatchIndicator(false);
+    expect(stripAnsi(result)).toBe("watch: stopped");
+    expect(result).toContain("\x1b[2m"); // dim
   });
 });

@@ -2,12 +2,20 @@ import type { BeastmodeConfig } from "../config";
 import type { EnrichedManifest } from "../state-scanner";
 import { scanEpics } from "../state-scanner";
 import { findProjectRoot } from "../project-root";
+import { readLockfile } from "../lockfile";
 
 export interface StatusRow {
   name: string;
   phase: string;
   features: string;
   status: string;
+}
+
+export interface WatchMeta {
+  /** Human-readable last-updated time */
+  timestamp: string;
+  /** Whether the watch loop lockfile exists and PID is alive */
+  watchRunning: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -28,6 +36,29 @@ const ANSI = {
 
 function color(text: string, ...codes: string[]): string {
   return `${codes.join("")}${text}${ANSI.reset}`;
+}
+
+// ---------------------------------------------------------------------------
+// Watch indicator
+// ---------------------------------------------------------------------------
+
+/** Check if beastmode watch is running via lockfile + PID check. */
+export function isWatchRunning(projectRoot: string): boolean {
+  const lock = readLockfile(projectRoot);
+  if (!lock) return false;
+  try {
+    process.kill(lock.pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Render the watch status line for the dashboard header. */
+export function renderWatchIndicator(running: boolean): string {
+  return running
+    ? color("watch: running", ANSI.green)
+    : color("watch: stopped", ANSI.dim);
 }
 
 // ---------------------------------------------------------------------------
@@ -149,12 +180,98 @@ export function renderStatusTable(epics: EnrichedManifest[], opts: { all?: boole
 }
 
 // ---------------------------------------------------------------------------
+// Watch header + full screen render
+// ---------------------------------------------------------------------------
+
+/** Format the watch header line with timestamp and running/stopped indicator. */
+export function formatWatchHeader(meta: WatchMeta): string {
+  const status = meta.watchRunning
+    ? color("running", ANSI.green)
+    : color("stopped", ANSI.dim);
+  return `Last updated: ${meta.timestamp}  watch: ${status}`;
+}
+
+/**
+ * Render the complete status screen — optional header + table.
+ * When meta is provided, prepends the watch header above the table.
+ * When meta is undefined, returns just the table (backward compatible).
+ */
+export function renderStatusScreen(
+  epics: EnrichedManifest[],
+  opts: { all?: boolean } = {},
+  meta?: WatchMeta,
+): string {
+  const table = renderStatusTable(epics, opts);
+  if (meta) {
+    return formatWatchHeader(meta) + "\n\n" + table;
+  }
+  return table;
+}
+
+// ---------------------------------------------------------------------------
+// Watch loop (placeholder — implemented by Task 1)
+// ---------------------------------------------------------------------------
+
+export async function statusWatchLoop(projectRoot: string, all: boolean): Promise<void> {
+  const POLL_MS = 2000;
+
+  async function render(): Promise<void> {
+    // Clear screen: cursor home + erase display
+    process.stdout.write("\x1b[H\x1b[2J");
+
+    const { epics } = await scanEpics(projectRoot);
+
+    const now = new Date();
+    const ts = [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map(n => String(n).padStart(2, "0"))
+      .join(":");
+
+    const meta: WatchMeta = {
+      timestamp: ts,
+      watchRunning: isWatchRunning(projectRoot),
+    };
+
+    const screen = renderStatusScreen(epics, { all }, meta);
+    const footer = `\n${color("Ctrl+C to exit", ANSI.dim)}`;
+
+    process.stdout.write(`${screen}\n${footer}\n`);
+  }
+
+  // SIGINT handler — clean exit
+  process.on("SIGINT", () => {
+    clearInterval(timer);
+    process.stdout.write("\x1b[?25h"); // show cursor
+    process.exit(0);
+  });
+
+  // Initial render immediately
+  await render();
+
+  // Poll loop
+  const timer = setInterval(() => {
+    render().catch(() => {
+      // Swallow render errors to keep the loop alive
+    });
+  }, POLL_MS);
+
+  // Never resolves — runs until SIGINT
+  return new Promise<void>(() => {});
+}
+
+// ---------------------------------------------------------------------------
 // Command entry point
 // ---------------------------------------------------------------------------
 
 export async function statusCommand(_config: BeastmodeConfig, args: string[] = []): Promise<void> {
   const all = args.includes("--all");
+  const watch = args.includes("--watch") || args.includes("-w");
   const projectRoot = findProjectRoot();
+
+  if (watch) {
+    await statusWatchLoop(projectRoot, all);
+    return;
+  }
+
   const { epics } = await scanEpics(projectRoot);
-  console.log(renderStatusTable(epics, { all }));
+  console.log(renderStatusScreen(epics, { all }));
 }
