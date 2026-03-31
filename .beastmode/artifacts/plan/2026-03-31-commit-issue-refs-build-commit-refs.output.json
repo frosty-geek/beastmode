@@ -1,0 +1,15 @@
+{
+  "status": "completed",
+  "artifacts": {
+    "features": [
+      {
+        "slug": "build-commit-refs",
+        "plan": "2026-03-31-commit-issue-refs-build-commit-refs.md"
+      },
+      {
+        "slug": "consume-commit-refs",
+        "plan": "2026-03-31-commit-issue-refs-consume-commit-refs.md"
+      }
+    ]
+  }
+}

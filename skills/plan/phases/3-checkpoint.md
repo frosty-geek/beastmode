@@ -22,7 +22,18 @@ feature: <feature-slug>
 
 ## 3. Commit and Handoff
 
-Commit all work to the feature branch:
+Commit all work to the feature branch.
+
+If a `<commit-refs>` block is present in the prompt context, extract each line from it and append as additional `-m` arguments to the commit command:
+
+```bash
+git add -A
+git commit -m "plan(<feature>): checkpoint" \
+  -m "Refs #<epic>" \
+  -m "Refs #<feature>"
+```
+
+If no `<commit-refs>` block is present, commit without ref lines:
 
 ```bash
 git add -A

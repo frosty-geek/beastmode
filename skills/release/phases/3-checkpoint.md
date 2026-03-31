@@ -65,7 +65,18 @@ Print the compaction summary from the agent's output, then proceed to Step 1.
 
 ## 2. Commit to Feature Branch
 
-Before merging to main, commit all release artifacts to the feature branch:
+Before merging to main, commit all release artifacts to the feature branch.
+
+If a `<commit-refs>` block is present in the prompt context, extract each line from it and append as additional `-m` arguments to the commit command:
+
+```bash
+git add -A
+git commit -m "release(<feature>): checkpoint" \
+  -m "Refs #<epic>" \
+  -m "Refs #<feature>"
+```
+
+If no `<commit-refs>` block is present, commit without ref lines:
 
 ```bash
 git add -A
@@ -139,7 +150,9 @@ Update the release notes **on main** to include the actual computed version:
 
 ## 8. Commit Release
 
-Create the single commit with GitHub release style message:
+Create the single commit with GitHub release style message.
+
+If a `<commit-refs>` block is present in the prompt context, extract only the epic ref line (`Refs #<epic>`) and append it as an additional `-m` argument. Feature refs are omitted from the main branch commit — they live in the feature branch history.
 
 ```bash
 git add -A
@@ -156,8 +169,11 @@ git commit -m "Release vX.Y.Z — <Title from CHANGELOG>
 - Design: .beastmode/artifacts/design/YYYY-MM-DD-<feature>.md
 - Plan: .beastmode/artifacts/plan/YYYY-MM-DD-<feature>.md
 - Release: .beastmode/artifacts/release/YYYY-MM-DD-<feature>.md
-"
+" \
+  -m "Refs #<epic>"
 ```
+
+If no `<commit-refs>` block is present, commit without the ref line.
 
 Use the release notes generated in execute step 4 and categorized commits from execute step 3 as the commit body. Omit empty sections (no Fixes if none exist).
 
