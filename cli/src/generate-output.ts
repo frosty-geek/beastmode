@@ -209,14 +209,24 @@ export function processArtifact(artifactPath: string, artifactsDir: string): boo
 }
 
 /**
- * Scan all artifact directories and generate output.json files.
+ * Scan artifact directories and generate output.json files.
+ *
+ * When `scope` is "changed", only processes .md files that git reports as
+ * new or modified (staged or unstaged). This prevents stale artifacts
+ * inherited from main from generating phantom output.json files.
+ *
+ * Falls back to scanning everything if git diff fails.
+ *
  * Returns the number of files generated/updated.
  */
-export function generateAll(artifactsDir: string): number {
+export function generateAll(artifactsDir: string, scope?: "changed" | "all"): number {
   if (!existsSync(artifactsDir)) return 0;
 
-  let count = 0;
+  if (scope === "changed") {
+    return generateChanged(artifactsDir);
+  }
 
+  let count = 0;
   for (const phase of WORKFLOW_PHASES) {
     const phaseDir = join(artifactsDir, phase);
     if (!existsSync(phaseDir)) continue;
@@ -229,7 +239,51 @@ export function generateAll(artifactsDir: string): number {
       }
     }
   }
+  return count;
+}
 
+/**
+ * Only generate output.json for .md artifacts that git reports as new or
+ * modified. Uses `git diff HEAD --name-only` (committed changes on branch)
+ * plus `git diff --name-only` (uncommitted changes).
+ */
+function generateChanged(artifactsDir: string): number {
+  const repoRoot = resolve(artifactsDir, "..", "..");
+  const artifactsPrefix = ".beastmode/artifacts/";
+
+  let changedFiles: string[];
+  try {
+    // Committed changes on this branch vs merge-base with main
+    const committed = execSync("git diff main...HEAD --name-only --diff-filter=AM", {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    }).trim();
+    // Uncommitted changes (staged + unstaged)
+    const uncommitted = execSync("git diff HEAD --name-only --diff-filter=AM", {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    }).trim();
+
+    const all = new Set([
+      ...committed.split("\n").filter(Boolean),
+      ...uncommitted.split("\n").filter(Boolean),
+    ]);
+
+    changedFiles = [...all].filter(
+      (f) => f.startsWith(artifactsPrefix) && f.endsWith(".md"),
+    );
+  } catch {
+    // git diff failed — fall back to full scan
+    return generateAll(artifactsDir, "all");
+  }
+
+  let count = 0;
+  for (const relPath of changedFiles) {
+    const filePath = resolve(repoRoot, relPath);
+    if (existsSync(filePath)) {
+      if (processArtifact(filePath, artifactsDir)) count++;
+    }
+  }
   return count;
 }
 
@@ -239,7 +293,16 @@ if (import.meta.main) {
   try {
     const repoRoot = execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
     const artifactsDir = resolve(repoRoot, ".beastmode", "artifacts");
-    generateAll(artifactsDir);
+
+    // Worktree detection: .git is a file (not a directory) containing "gitdir: ..."
+    let isWorktree = false;
+    try {
+      const dotGit = resolve(repoRoot, ".git");
+      isWorktree = statSync(dotGit).isFile();
+    } catch {
+      // not a worktree
+    }
+    generateAll(artifactsDir, isWorktree ? "changed" : "all");
   } catch {
     // Silent exit — hook failure must never block Claude
   }

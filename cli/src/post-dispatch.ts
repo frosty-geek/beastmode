@@ -27,6 +27,7 @@ import { loadConfig } from "./config";
 import { createLogger } from "./logger";
 import { createEpicActor, epicMachine } from "./pipeline-machine";
 import { createActor } from "xstate";
+import { execSync } from "child_process";
 
 /** Options for the post-dispatch hook. */
 export interface PostDispatchOptions {
@@ -62,12 +63,19 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       return;
     }
 
-    // Load phase output from the worktree artifacts dir
-    const output = loadWorktreePhaseOutput(opts.worktreePath, opts.phase);
+    // Resolve the output slug — for design phase the epicSlug is a temp hex,
+    // so we extract the real slug from the checkpoint commit message.
+    // All other phases use the epicSlug directly.
+    const outputSlug = opts.phase === "design"
+      ? resolveDesignSlug(opts.worktreePath, logger) ?? undefined
+      : opts.epicSlug;
+
+    // Load phase output from the worktree artifacts dir, filtered by slug
+    const output = loadWorktreePhaseOutput(opts.worktreePath, opts.phase, outputSlug);
     if (output) {
-      logger.debug(`Loaded phase output for ${opts.phase}/${opts.epicSlug} (status: ${output.status})`);
+      logger.detail(`Loaded phase output for ${opts.phase}/${outputSlug ?? opts.epicSlug} (status: ${output.status})`);
     } else {
-      logger.debug(`No phase output found for ${opts.phase}/${opts.epicSlug} — continuing without enrichment`);
+      logger.detail(`No phase output found for ${opts.phase}/${outputSlug ?? opts.epicSlug} — continuing without enrichment`);
     }
 
     // Load the manifest
@@ -76,7 +84,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       logger.debug(`No manifest found for ${opts.epicSlug} — cannot update`);
       return;
     }
-    logger.debug(`Loaded manifest for ${opts.epicSlug} (phase: ${manifest.phase})`);
+    logger.detail(`Loaded manifest for ${opts.epicSlug} (phase: ${manifest.phase})`);
 
     // Build the epic actor hydrated at the manifest's current phase.
     // The persist action captures `actor` by reference (assigned before any
@@ -104,7 +112,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     // Map phase + output → machine events and send them
     const events = mapToEvents(opts, output, manifest, logger);
     for (const event of events) {
-      logger.debug(`Sending event: ${event.type}`);
+      logger.log(`Event: ${event.type}`);
       actor.send(event);
     }
 
@@ -154,10 +162,10 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
               store.save(opts.projectRoot, opts.epicSlug, mutated);
             }
 
-            logger.debug("GitHub sync complete");
+            logger.log("GitHub sync complete");
           }
         } else {
-          logger.debug("GitHub discovery failed — skipping sync");
+          logger.detail("GitHub discovery failed — skipping sync");
         }
       }
     } catch (err: unknown) {
@@ -167,6 +175,31 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     logger.warn(`Unexpected error (non-blocking): ${message}`);
+  }
+}
+
+// ── Design slug resolution ──────────────────────────────────────
+
+/**
+ * Extract the real epic slug from the worktree's latest commit message.
+ * The design checkpoint always commits as `design(<slug>): checkpoint`.
+ * Returns null if the commit message doesn't match.
+ */
+function resolveDesignSlug(worktreePath: string, logger: Logger): string | null {
+  try {
+    const msg = execSync("git log -1 --format=%s", {
+      cwd: worktreePath,
+      encoding: "utf-8",
+    }).trim();
+    const match = msg.match(/^design\((.+?)\):/);
+    if (match) {
+      logger.detail(`Resolved design slug from commit: ${match[1]}`);
+      return match[1];
+    }
+    logger.detail(`Could not extract slug from commit message: ${msg}`);
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -216,9 +249,9 @@ function mapToEvents(
         );
         if (featureOutput?.status === "completed") {
           events.push({ type: "FEATURE_COMPLETED", featureSlug: opts.featureSlug });
-          logger.debug(`Feature ${opts.featureSlug} output verified — sending FEATURE_COMPLETED`);
+          logger.log(`Feature ${opts.featureSlug} completed`);
         } else {
-          logger.debug(`Feature ${opts.featureSlug} session exited 0 but no output.json — not marking completed`);
+          logger.detail(`Feature ${opts.featureSlug} session exited 0 but no output.json — not marking completed`);
         }
       }
       // Always attempt IMPLEMENT_COMPLETED — the guard checks allFeaturesCompleted

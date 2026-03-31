@@ -188,10 +188,12 @@ export function save(
     if (!manifestPath(projectRoot, manifest.slug)) {
       renameSync(existingPath, newPath);
       targetPath = newPath;
+      process.stdout.write(`Manifest renamed: ${slug} → ${manifest.slug}\n`);
     } else {
       // A file for the new slug already exists — write there and remove the old one
       targetPath = manifestPath(projectRoot, manifest.slug)!;
       unlinkSync(existingPath);
+      process.stdout.write(`Manifest merged: ${slug} → ${manifest.slug} (existing)\n`);
     }
   }
 

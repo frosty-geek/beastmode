@@ -14,7 +14,6 @@ Greet in persona voice. One sentence. Set expectations for what this phase does 
 
 Read (if they exist):
 - `.beastmode/context/PLAN.md`
-- `.beastmode/meta/PLAN.md`
 
 Follow L2 convention paths (`context/plan/{domain}.md`) when relevant to the current topic.
 Prior decisions, conventions, and learnings inform this phase — don't re-decide what's already been decided.

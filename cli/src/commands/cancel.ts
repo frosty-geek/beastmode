@@ -112,7 +112,7 @@ async function closeGitHubEpic(
 
   try {
     const proc = Bun.spawn(
-      ["gh", "issue", "close", String(epicNumber), "--reason", "not_planned"],
+      ["gh", "issue", "close", String(epicNumber), "--reason", "not planned"],
       {
         cwd: projectRoot,
         stdout: "pipe",

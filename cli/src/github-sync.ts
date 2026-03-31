@@ -11,6 +11,9 @@
 import type { PipelineManifest, ManifestFeature } from "./manifest";
 import type { BeastmodeConfig } from "./config";
 import type { ResolvedGitHub } from "./github-discovery";
+import type { Logger } from "./logger";
+import { loadConfig } from "./config";
+import * as store from "./manifest-store";
 import { formatEpicBody, formatFeatureBody } from "./body-format";
 import {
   ghIssueCreate,
@@ -417,5 +420,54 @@ async function syncProjectStatus(
     result.projectUpdated = true;
   } else {
     result.warnings.push(`Failed to set project status for #${issueNumber}`);
+  }
+}
+
+/**
+ * Convenience wrapper: load manifest + config, run syncGitHub, apply mutations.
+ * Used by watch-command for post-reconciliation sync. Warn-and-continue.
+ */
+export async function syncGitHubForEpic(opts: {
+  projectRoot: string;
+  epicSlug: string;
+  resolved: ResolvedGitHub;
+  logger: Logger;
+}): Promise<void> {
+  try {
+    const config = loadConfig(opts.projectRoot);
+    if (!config.github.enabled) return;
+
+    const manifest = store.load(opts.projectRoot, opts.epicSlug);
+    if (!manifest) {
+      opts.logger.debug(`No manifest for ${opts.epicSlug} — skipping GitHub sync`);
+      return;
+    }
+
+    const result = await syncGitHub(manifest, config, opts.resolved);
+    for (const w of result.warnings) {
+      opts.logger.warn(`GitHub sync: ${w}`);
+    }
+
+    if (result.mutations.length > 0) {
+      const updated = { ...manifest };
+      for (const m of result.mutations) {
+        if (m.type === "setEpic") {
+          updated.github = { ...updated.github, epic: m.epicNumber, repo: m.repo };
+        } else if (m.type === "setFeatureIssue") {
+          const feat = updated.features.find((f) => f.slug === m.featureSlug);
+          if (feat) feat.github = { ...feat.github, issue: m.issueNumber };
+        } else if (m.type === "setEpicBodyHash" && updated.github) {
+          updated.github.bodyHash = m.bodyHash;
+        } else if (m.type === "setFeatureBodyHash") {
+          const feat = updated.features.find((f) => f.slug === m.featureSlug);
+          if (feat?.github) feat.github.bodyHash = m.bodyHash;
+        }
+      }
+      updated.lastUpdated = new Date().toISOString();
+      store.save(opts.projectRoot, opts.epicSlug, updated);
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    opts.logger.warn(`GitHub sync failed (non-blocking): ${message}`);
   }
 }

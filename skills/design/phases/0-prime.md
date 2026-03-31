@@ -28,7 +28,6 @@ Wait for the user's response. Their framing drives the entire design — do not 
 
 Read (if they exist):
 - `.beastmode/context/DESIGN.md`
-- `.beastmode/meta/DESIGN.md`
 
 Follow L2 convention paths (`context/design/{domain}.md`) when relevant to the current topic.
 
