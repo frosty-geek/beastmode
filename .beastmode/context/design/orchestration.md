@@ -11,6 +11,8 @@
 
 ## Agent Dispatching
 - ALWAYS dispatch one session per phase per epic via `SessionStrategy` interface, except implement which fans out one session per feature — parallelism at every level
+- ALWAYS dispatch features wave-by-wave in `dispatchFanOut()` — find the lowest wave number with any pending/in-progress features, dispatch only from that wave. Wave N+1 only starts when all wave N features complete. Strict blocking: a stuck feature in wave N requires human intervention before later waves proceed
+- ALWAYS default to wave 1 when manifest features have no wave field — backwards compatibility with pre-wave manifests
 - ALWAYS use CLI-owned worktrees for agent isolation — CLI creates worktree, points session at it via `cwd`, merges after completion, removes when done
 - `SdkStrategy` invokes via SDK `query()` with prompt invoking the skill, `permissionMode: 'bypassPermissions'` — typed session management with streaming
 - `CmuxStrategy` creates a cmux terminal surface and sends `beastmode <phase> <slug>` via `cmux send-surface` — CLI-in-surface execution model

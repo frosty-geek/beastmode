@@ -4,7 +4,7 @@
 - CLI name: `beastmode` with phase commands as direct arguments: `<phase> <slug>`, plus `watch` and `status` — all commands accept `-v`/`-vv`/`-vvv` flags for verbosity control
 - `beastmode <phase> <slug>` executes a single phase in a CLI-owned worktree with streaming output — `run` subcommand is dropped
 - `beastmode watch` runs the autonomous pipeline loop as a foreground process
-- `beastmode status` shows compact table (Epic | Phase | Features | Status) without running Claude — `--verbose` flag shows skipped/malformed manifests and validation errors; `--watch`/`-w` flag enables live dashboard mode with 2-second polling, full-screen ANSI redraw, one-cycle change highlighting, blocked gate details, and watch loop running indicator via lockfile detection — no --verbose in watch mode, Ctrl+C for clean exit, no new dependencies
+- `beastmode status` shows compact table (Epic | Phase | Features | Status) with wave progress indicator (e.g., `W1/3` meaning wave 1 of 3) without running Claude — `--verbose` flag shows skipped/malformed manifests, validation errors, and per-wave rows with feature counts and statuses per wave; `--watch`/`-w` flag enables live dashboard mode with 2-second polling, full-screen ANSI redraw, one-cycle change highlighting, blocked gate details, and watch loop running indicator via lockfile detection — no --verbose in watch mode, Ctrl+C for clean exit, no new dependencies
 - Design phase exception: `beastmode design <topic>` spawns interactive Claude via `Bun.spawn` with inherited stdio — not the SDK
 
 ## Dispatch Abstraction
@@ -42,6 +42,7 @@
 - CLI creates manifest at first phase dispatch (design) via store.create(slug) before dispatching — manifest exists throughout the entire skill session
 - ALWAYS enrich manifest from output.json after each dispatch — Stop hook auto-generates `artifacts/<phase>/YYYY-MM-DD-<slug>.output.json` from artifact frontmatter
 - CLI is the sole manifest mutator via two modules: manifest-store.ts (get, list, save, create, validate) and manifest.ts (enrich, advancePhase, regressPhase, markFeature, cancel, deriveNextAction, checkBlocked, shouldAdvance) — all pure functions return new manifests, caller calls store.save()
+- `ManifestFeature` includes `wave: number` field stamped by plan validate from feature plan frontmatter — defaults to 1 for backwards compatibility, flows through existing frontmatter -> output.json -> manifest enrichment pipeline
 - Manifest location: `.beastmode/state/YYYY-MM-DD-<slug>.manifest.json` — flat-file convention, local-only, gitignored
 - ALWAYS rebuild manifest from worktree branch scanning on cold start — no persistent dependency on manifest file
 
@@ -55,7 +56,7 @@
 - Skills write artifacts with YAML frontmatter to `artifacts/<phase>/` — skills never write output.json or manifests
 - A Stop hook (configured in `.claude/settings.json`) fires when Claude finishes, scans `artifacts/<phase>/` for files matching the slug convention, reads YAML frontmatter, and generates `artifacts/<phase>/YYYY-MM-DD-<slug>.output.json`
 - output.json is the sole completion signal for all dispatch strategies — replaces `.dispatch-done.json`
-- Artifact frontmatter schema per phase: design (phase, slug), plan (phase, epic, feature), implement (phase, epic, feature, status), validate (phase, slug, status), release (phase, slug, bump)
+- Artifact frontmatter schema per phase: design (phase, slug), plan (phase, epic, feature, wave), implement (phase, epic, feature, status), validate (phase, slug, status), release (phase, slug, bump)
 - CLI reads output.json from the worktree's `artifacts/<phase>/` directory after dispatch
 
 ## Logger

@@ -13,6 +13,7 @@
 - Each capability documented in its own phase's context domain — discoverability
 - Collaborative design with HITL gates — human stays in the loop
 - Bite-sized planning with wave-ordered file-isolated tasks — enables parallelism
+- Wave-sequenced feature dispatch — plan phase groups features into ordered waves (`wave: N` in frontmatter), watch loop dispatches one wave at a time with strict blocking, backwards compatible (default wave 1)
 - Git worktree isolation — prevents main branch contamination
 - Progressive knowledge hierarchy from L0 through L3 — right context at right time
 - Self-improving retro loop — knowledge compounds

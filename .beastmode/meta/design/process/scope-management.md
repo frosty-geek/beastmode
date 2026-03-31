@@ -191,3 +191,27 @@ Confirms the prerequisite-absorption pattern from Obs 12. When a prerequisite (d
 .beastmode/artifacts/design/2026-03-29-manifest-file-management.md
 ### Confidence
 [LOW] -- second observation of prerequisite-absorption (see Obs 12), but in a closely related problem space (same codebase subsystem)
+
+## Observation 17
+### Context
+During plan-wave-sequencing design, 2026-03-31
+### Observation
+The design chose wave numbers (a flat ordered list) over explicit dependency graphs (a DAG) as the ordering primitive for feature sequencing. The rationale was explicit: "Wave number is the sole ordering primitive. This keeps the model simple -- if explicit dependency tracking is needed later, it can be added without breaking the wave model." The upgrade path was documented in Deferred Ideas and Out of Scope, making the simplification deliberate rather than accidental.
+### Rationale
+When multiple modeling approaches satisfy requirements, choosing the simplest primitive with an explicit upgrade path reduces implementation complexity and preserves future extensibility. The key indicator is: does the simpler model satisfy all current user stories? If yes, defer the complex model. The upgrade path must be documented (Out of Scope + Deferred Ideas) to prevent future designers from reinventing the analysis.
+### Source
+.beastmode/artifacts/design/2026-03-31-plan-wave-sequencing.md
+### Confidence
+[LOW] -- first-time observation; related to Obs 11 (over-include with prune) and Obs 3 (challenge deferrals) as another scope-simplification strategy, but distinct: this is about choosing the simplest modeling primitive, not about what to include or defer
+
+## Observation 18
+### Context
+During plan-wave-sequencing design, 2026-03-31
+### Observation
+Backwards compatibility was applied as a cross-cutting constraint across multiple design decisions: manifest schema defaults wave to 1, single-feature plans get wave 1 automatically, existing manifests without wave fields behave identically to current behavior. Rather than a single compatibility decision, this was a systematic check applied to each decision point: "what happens to existing data that lacks this new field?"
+### Rationale
+When extending a schema or behavior model, applying a "what happens to existing instances?" check at each decision point prevents breakage from accumulating across decisions. The default-to-existing-behavior pattern (new field defaults to value that preserves current behavior) is the standard approach. The design explicitly called out backwards compatibility in user stories (Story 5), implementation decisions, and testing decisions, making it a first-class constraint rather than an afterthought.
+### Source
+.beastmode/artifacts/design/2026-03-31-plan-wave-sequencing.md
+### Confidence
+[LOW] -- first-time observation; distinct from locked-decision-drift (miscellaneous Obs 3) which is about implementation diverging from design, and from constraint-override (scope-management Obs 14) which is about intentionally breaking a constraint. This is about proactively preserving compatibility when adding new capabilities.
