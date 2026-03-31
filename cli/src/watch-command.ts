@@ -24,6 +24,7 @@ import * as worktree from "./worktree.js";
 import { scanEpics } from "./state-scanner.js";
 import * as store from "./manifest-store.js";
 import type { PipelineManifest } from "./manifest-store.js";
+import { buildCommitRefs } from "./commit-refs.js";
 import type { Phase } from "./types.js";
 import { loadWorktreePhaseOutput, loadWorktreeFeatureOutput } from "./phase-output.js";
 import { epicMachine } from "./pipeline-machine/index.js";
@@ -268,6 +269,12 @@ async function dispatchPhase(opts: {
   const id = `${worktreeSlug}-${Date.now()}`;
   const startTime = Date.now();
 
+  // Build commit-refs suffix from manifest (empty string when no github field)
+  const manifest = store.load(opts.projectRoot, opts.epicSlug);
+  const commitRefs = manifest
+    ? buildCommitRefs(manifest, opts.featureSlug)
+    : "";
+
   const promise = (async (): Promise<SessionResult> => {
     let sessionResult: SessionResult;
 
@@ -276,7 +283,7 @@ async function dispatchPhase(opts: {
       const sdk = await import("@anthropic-ai/claude-agent-sdk");
       const AgentClass = (sdk as Record<string, unknown>).ClaudeAgent ?? (sdk as Record<string, unknown>).default;
       if (typeof AgentClass !== "function") throw new Error("SDK not available");
-      const prompt = `/beastmode:${opts.phase} ${opts.args.join(" ")}`;
+      const prompt = `/beastmode:${opts.phase} ${opts.args.join(" ")}${commitRefs}`;
 
       const agent = new (AgentClass as new (opts: Record<string, unknown>) => { query: () => Promise<{ exitCode: number; costUsd?: number }> })({
         cwd: wt.path,
@@ -299,7 +306,7 @@ async function dispatchPhase(opts: {
       const args = [
         "claude",
         "--print",
-        `/beastmode:${opts.phase} ${opts.args.join(" ")}`,
+        `/beastmode:${opts.phase} ${opts.args.join(" ")}${commitRefs}`,
         "--output-format",
         "json",
         "--dangerously-skip-permissions",

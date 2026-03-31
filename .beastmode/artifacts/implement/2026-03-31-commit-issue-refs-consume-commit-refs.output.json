@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "artifacts": {
+    "features": [
+      {
+        "slug": "consume-commit-refs",
+        "status": "completed"
+      }
+    ]
+  }
+}

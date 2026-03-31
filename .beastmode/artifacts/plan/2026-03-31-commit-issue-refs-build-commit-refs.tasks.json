@@ -1,0 +1,8 @@
+{
+  "featurePlan": ".beastmode/artifacts/plan/2026-03-31-commit-issue-refs-build-commit-refs.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: buildCommitRefs utility function + tests", "status": "completed"},
+    {"id": 1, "subject": "Task 1: Wire buildCommitRefs into dispatch prompt construction", "status": "completed"}
+  ],
+  "lastUpdated": "2026-03-31T12:05:00Z"
+}
