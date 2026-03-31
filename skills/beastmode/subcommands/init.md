@@ -151,7 +151,6 @@ Agent:
     Focus on:
     1. Validating L2 files just written by init writers
     2. Processing any existing state/ artifacts
-    3. Populating meta/{phase}/process.md and meta/{phase}/workarounds.md
 ```
 
 Launch all 5 retro agents in parallel.

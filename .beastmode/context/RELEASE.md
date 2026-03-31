@@ -6,7 +6,7 @@
 - ALWAYS follow commit format: `Release vX.Y.Z — Title` with categorized sections
 - NEVER skip retro before the release commit
 - ALWAYS run retro inlined in the release skill — no shared orchestrator or `@_shared/retro.md` import
-- ALWAYS use context walker as the sole retro agent — meta walker is removed
+- ALWAYS use context walker as the sole retro agent
 
 ## Release Process
 - ALWAYS use merge-only — no rebase before merge
