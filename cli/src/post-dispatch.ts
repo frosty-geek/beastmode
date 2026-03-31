@@ -26,6 +26,7 @@ import { discoverGitHub } from "./github-discovery";
 import { loadConfig } from "./config";
 import { createLogger } from "./logger";
 import { createEpicActor, epicMachine } from "./pipeline-machine";
+import { renameEpicSlug } from "./rename-slug";
 import { createActor } from "xstate";
 import { execSync } from "child_process";
 
@@ -116,17 +117,42 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       actor.send(event);
     }
 
-    // Final persist — read the actor's settled state and write to disk.
-    // This covers cases where the machine processed events but no transition
-    // fired persist (e.g., guard rejected the event).
+    // Design phase: rename hex slug to real slug with collision detection.
+    // Must happen after the machine processes DESIGN_COMPLETED (so context.slug
+    // is set) but before final persist (renameEpicSlug handles its own manifest).
     const finalSnapshot = actor.getSnapshot();
     const finalPhase = (typeof finalSnapshot.value === "string"
       ? finalSnapshot.value
       : manifest.phase) as Phase;
-    store.save(opts.projectRoot, opts.epicSlug, {
-      ...(finalSnapshot.context as unknown as PipelineManifest),
-      phase: finalPhase,
-    } as PipelineManifest);
+
+    let skipFinalPersist = false;
+    if (opts.phase === "design" && finalPhase !== "design") {
+      const realSlug = (finalSnapshot.context as unknown as EpicContext).slug;
+      if (realSlug && realSlug !== opts.epicSlug) {
+        const result = await renameEpicSlug({
+          hexSlug: opts.epicSlug,
+          realSlug,
+          projectRoot: opts.projectRoot,
+          worktreePath: opts.worktreePath,
+        });
+        if (result.renamed) {
+          opts.epicSlug = result.finalSlug;
+          skipFinalPersist = true; // renameEpicSlug already persisted manifest
+          logger.log(`Renamed ${realSlug} → ${result.finalSlug}`);
+        } else if (result.error) {
+          logger.warn(`Slug rename failed: ${result.error}`);
+        }
+      }
+    }
+
+    // Final persist — read the actor's settled state and write to disk.
+    // Skipped when renameEpicSlug already handled manifest persistence.
+    if (!skipFinalPersist) {
+      store.save(opts.projectRoot, opts.epicSlug, {
+        ...(finalSnapshot.context as unknown as PipelineManifest),
+        phase: finalPhase,
+      } as PipelineManifest);
+    }
 
     actor.stop();
 

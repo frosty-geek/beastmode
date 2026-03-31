@@ -6,8 +6,8 @@
  * failure and reports partial progress.
  */
 
-import { existsSync, renameSync, readFileSync, writeFileSync } from "fs";
-import { resolve, basename, dirname } from "path";
+import { existsSync, renameSync, readFileSync, writeFileSync, unlinkSync, readdirSync } from "fs";
+import { resolve, basename, dirname, join } from "path";
 import { git, gitCheck } from "./git.js";
 import { manifestPath } from "./manifest-store.js";
 import type { PipelineManifest } from "./manifest-store.js";
@@ -21,6 +21,8 @@ export interface RenameOptions {
   realSlug: string;
   /** Project root (where .beastmode/state/ lives) */
   projectRoot: string;
+  /** Worktree path (for patching design artifacts on collision) */
+  worktreePath?: string;
 }
 
 export interface RenameResult {
@@ -98,7 +100,7 @@ async function slugCollides(
 export async function renameEpicSlug(
   opts: RenameOptions,
 ): Promise<RenameResult> {
-  const { hexSlug, realSlug, projectRoot } = opts;
+  const { hexSlug, realSlug, projectRoot, worktreePath } = opts;
   const completedSteps: string[] = [];
 
   // No-op when slugs are already identical
@@ -189,8 +191,15 @@ export async function renameEpicSlug(
     writeFileSync(newManifest, JSON.stringify(manifest, null, 2));
     completedSteps.push("manifest-internals");
 
+    // Step 6: Patch design artifacts in worktree (only on collision)
+    if (finalSlug !== realSlug && worktreePath) {
+      console.log(`[rename] Step 6: Patching design artifacts (${realSlug} → ${finalSlug})`);
+      await patchDesignArtifacts(worktreePath, realSlug, finalSlug);
+      completedSteps.push("artifacts");
+    }
+
     console.log(
-      `[rename] All 5 targets renamed: ${hexSlug} -> ${finalSlug}`,
+      `[rename] All ${completedSteps.length} steps completed: ${hexSlug} -> ${finalSlug}`,
     );
 
     return {
@@ -211,5 +220,60 @@ export async function renameEpicSlug(
       completedSteps,
       error: message,
     };
+  }
+}
+
+// --- Artifact patching ---
+
+/**
+ * Patch design artifacts in the worktree after a slug collision rename.
+ * Renames the PRD file, updates frontmatter, removes stale output.json,
+ * and amends the commit message so resolveDesignSlug extracts the correct slug.
+ */
+async function patchDesignArtifacts(
+  worktreePath: string,
+  oldSlug: string,
+  newSlug: string,
+): Promise<void> {
+  const artifactsDir = join(worktreePath, ".beastmode", "artifacts", "design");
+  if (!existsSync(artifactsDir)) return;
+
+  // Find the PRD file matching the old slug
+  for (const filename of readdirSync(artifactsDir)) {
+    if (!filename.endsWith(`-${oldSlug}.md`)) continue;
+
+    const oldPath = join(artifactsDir, filename);
+    const newFilename = filename.replace(`-${oldSlug}.md`, `-${newSlug}.md`);
+    const newPath = join(artifactsDir, newFilename);
+
+    // Rename file
+    renameSync(oldPath, newPath);
+
+    // Update frontmatter slug
+    const content = readFileSync(newPath, "utf-8");
+    const updated = content.replace(
+      /^(slug:\s*).+$/m,
+      `$1${newSlug}`,
+    );
+    writeFileSync(newPath, updated);
+
+    // Remove stale output.json
+    const oldOutput = join(artifactsDir, filename.replace(".md", ".output.json"));
+    if (existsSync(oldOutput)) {
+      unlinkSync(oldOutput);
+    }
+
+    break; // Only one PRD per design
+  }
+
+  // Amend the commit message so resolveDesignSlug picks up the new slug
+  try {
+    await git(["add", "-A"], { cwd: worktreePath });
+    await git(["commit", "--amend", "-m", `design(${newSlug}): checkpoint`], {
+      cwd: worktreePath,
+    });
+  } catch {
+    // Non-fatal — manifest is still the source of truth
+    console.log(`[rename] Warning: could not amend commit message in worktree`);
   }
 }
