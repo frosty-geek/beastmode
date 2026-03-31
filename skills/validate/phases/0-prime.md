@@ -14,7 +14,6 @@ Greet in persona voice. One sentence. Set expectations for what this phase does 
 
 Read (if they exist):
 - `.beastmode/context/VALIDATE.md`
-- `.beastmode/meta/VALIDATE.md`
 
 Follow L2 convention paths (`context/validate/{domain}.md`) when relevant to the current topic.
 Prior decisions, conventions, and learnings inform this phase — don't re-decide what's already been decided.
@@ -54,4 +53,4 @@ From context, determine:
 - Test command (e.g., `npm test`, `pytest`)
 - Lint command (if configured)
 - Type check command (if configured)
-- Custom gates from meta
+- Custom gates from design acceptance criteria

@@ -45,14 +45,14 @@ If context walker returned "No changes needed", print "Retro: no changes needed.
 
 Apply all proposed changes from the context walker automatically in hierarchy order:
 
-1. **L3 -- Records**: Create/append approved records automatically
-2. **L2 -- Context docs**: Apply L2 edits/creates automatically
-3. **L1 -- Phase summaries**: Recompute L1 summaries automatically
-4. **L0 -- BEASTMODE.md**: Gate via step 1.4 below
+1. **L3 — Records**: Create/append approved records automatically
+2. **L2 — Context docs**: Apply L2 edits/creates automatically
+3. **L1 — Phase summaries**: Recompute L1 summaries automatically
+4. **L0 — BEASTMODE.md**: Gate via step 1.4 below
 
 ### 1.4 [GATE|retro.beastmode]
 
-Read `.beastmode/config.yaml` -> resolve mode for `retro.beastmode`.
+Read `.beastmode/config.yaml` → resolve mode for `retro.beastmode`.
 Default: `human`.
 
 If no L0 changes proposed, skip this gate entirely.
@@ -66,9 +66,9 @@ Present the before/after diff for `.beastmode/BEASTMODE.md`. Ask for approval:
 
 #### 1.4.2 [GATE-OPTION|auto] Auto-Apply
 
-Apply L0 changes silently. Log: "Gate `retro.beastmode` -> auto: applied L0 changes"
+Apply L0 changes silently. Log: "Gate `retro.beastmode` → auto: applied L0 changes"
 
-> **TRANSITION BOUNDARY -- Steps below operate from main repo, NOT the feature branch working directory.**
+> **TRANSITION BOUNDARY — Steps below operate from main repo, NOT the feature branch working directory.**
 
 ## 2. Commit to Feature Branch
 
@@ -135,14 +135,14 @@ Prepend the new release section to CHANGELOG.md **on main** using the computed v
 ## 6. Bump Version Files
 
 Update version in all files **on main**:
-- `.claude-plugin/plugin.json` -> `"version": "X.Y.Z"`
-- `.claude-plugin/marketplace.json` -> version in plugins array
-- `hooks/session-start.sh` -> banner line `BEASTMODE vX.Y.Z`
+- `.claude-plugin/plugin.json` → `"version": "X.Y.Z"`
+- `.claude-plugin/marketplace.json` → version in plugins array
+- `hooks/session-start.sh` → banner line `BEASTMODE vX.Y.Z`
 
 ## 7. Update Release Artifacts
 
 Update the release notes **on main** to include the actual computed version:
-- `.beastmode/artifacts/release/YYYY-MM-DD-<feature>.md` -> replace `**Bump:** type` with `**Version:** vX.Y.Z`
+- `.beastmode/artifacts/release/YYYY-MM-DD-<feature>.md` → replace `**Bump:** type` with `**Version:** vX.Y.Z`
 
 ## 8. Commit Release
 
@@ -150,7 +150,7 @@ Create the single commit with GitHub release style message:
 
 ```bash
 git add -A
-git commit -m "Release vX.Y.Z -- <Title from CHANGELOG>
+git commit -m "Release vX.Y.Z — <Title from CHANGELOG>
 
 ## Features
 - <feature 1>
