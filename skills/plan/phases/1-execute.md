@@ -40,9 +40,22 @@ For each feature, capture:
 - **User Stories:** which PRD user stories this feature covers
 - **What to Build:** architectural description of what needs to happen (no file paths or code)
 - **Acceptance Criteria:** how to verify this feature is done
+- **Wave:** proposed execution wave (1 = foundation, higher = depends on earlier waves)
+
+### Wave Assignment
+
+When multiple features exist, propose wave groupings based on dependency analysis:
+- **Wave 1:** Foundation features — no dependencies on other features
+- **Wave 2:** Features that consume or extend wave 1 outputs
+- **Wave 3+:** Integration features, cross-cutting concerns
+
+Rules:
+- Single-feature plans: assign wave 1 automatically
+- Features with no inter-feature dependencies: same wave (parallel execution)
+- Present proposed waves as part of the normal interview flow for user confirmation
+- Wave number is the sole ordering primitive — no explicit dependency graph between features
 
 ## 4. Iterate Until Ready
 
-- Refine features based on feedback
 - Keep YAGNI in mind — remove unnecessary scope
 - Features are ready when all have user stories, descriptions, and acceptance criteria

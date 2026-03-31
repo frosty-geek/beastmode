@@ -5,6 +5,13 @@
 Each feature plan file follows this structure:
 
 ```markdown
+---
+phase: plan
+epic: <design>
+feature: <feature-slug>
+wave: <N>
+---
+
 # [Feature Name]
 
 **Design:** [path to parent PRD]
@@ -31,3 +38,4 @@ Each feature plan file follows this structure:
 - **Architectural, not procedural** — describe WHAT, not step-by-step HOW
 - **Self-contained** — each feature should be implementable without reading other feature plans
 - **Linked** — always reference the parent PRD and shared architectural decisions
+- **Wave field** — stamped by validate phase, indicates execution order (1 = foundation, higher = later)

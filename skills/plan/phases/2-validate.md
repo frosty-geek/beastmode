@@ -43,7 +43,26 @@ US 2: impl-decompose only
 US 3: validate-gate, impl-decompose (shared — intentional)
 ```
 
-## 4. Executive Summary
+## 4. Wave Stamping
+
+Stamp `wave: N` into each feature's internal record based on execute phase's proposed wave assignments.
+
+Rules:
+- Single-feature plans: stamp `wave: 1` automatically
+- Multi-feature plans: use the wave assignments from execute phase
+- Verify no circular dependencies exist (wave N features should not depend on wave N+1)
+
+Print wave assignment:
+
+```
+Wave Assignment
+───────────────
+Wave 1: feature-a, feature-b (foundation — no dependencies)
+Wave 2: feature-c (depends on wave 1 outputs)
+Wave 3: feature-d (integration — cross-cutting)
+```
+
+## 5. Executive Summary
 
 Present a consolidated view before approval:
 
@@ -57,12 +76,13 @@ Present a consolidated view before approval:
 |----------|--------|
 | [decision 1] | [choice] |
 
-**Features:** [count] features covering [count] user stories
+**Features:** [count] features covering [count] user stories in [count] waves
 
-| # | Feature | Stories | Scope |
-|---|---------|---------|-------|
-| 1 | [slug]  | US 1, 3 | [one-line] |
-| 2 | [slug]  | US 2    | [one-line] |
+| Wave | Feature | Stories | Scope | Rationale |
+|------|---------|---------|-------|-----------|
+| 1    | [slug]  | US 1, 3 | [one-line] | Foundation — no dependencies |
+| 1    | [slug]  | US 4    | [one-line] | Foundation — no dependencies |
+| 2    | [slug]  | US 2    | [one-line] | Depends on [wave 1 feature] |
 ```
 
 This is read-only — do NOT ask new questions here.
