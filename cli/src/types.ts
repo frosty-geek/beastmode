@@ -32,10 +32,11 @@ export interface PhaseResult {
 export interface DesignArtifacts {
   design: string; // path to PRD
   slug?: string;  // real slug from PRD frontmatter (for post-dispatch rename)
+  summary?: { problem: string; solution: string };
 }
 
 export interface PlanArtifacts {
-  features: Array<{ slug: string; plan: string }>;
+  features: Array<{ slug: string; plan: string; description?: string }>;
 }
 
 export interface ImplementArtifacts {

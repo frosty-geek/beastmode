@@ -9,14 +9,9 @@
  */
 
 import type { PipelineManifest, ManifestFeature } from "./manifest";
-import { setGitHubEpic, setFeatureGitHubIssue } from "./manifest";
 import type { BeastmodeConfig } from "./config";
-import { loadConfig } from "./config";
 import type { ResolvedGitHub } from "./github-discovery";
-import { discoverGitHub } from "./github-discovery";
-import * as store from "./manifest-store";
-import { createLogger } from "./logger";
-import type { Logger } from "./logger";
+import { formatEpicBody, formatFeatureBody } from "./body-format";
 import {
   ghIssueCreate,
   ghIssueEdit,
@@ -30,10 +25,19 @@ import {
   ghSubIssueAdd,
 } from "./gh";
 
+/** Simple hash for body content comparison. Uses Bun's built-in crypto. */
+function hashBody(body: string): string {
+  const hasher = new Bun.CryptoHasher("sha256");
+  hasher.update(body);
+  return hasher.digest("hex");
+}
+
 /** A mutation to apply to the manifest after sync. */
 export type SyncMutation =
   | { type: "setEpic"; epicNumber: number; repo: string }
-  | { type: "setFeatureIssue"; featureSlug: string; issueNumber: number };
+  | { type: "setFeatureIssue"; featureSlug: string; issueNumber: number }
+  | { type: "setEpicBodyHash"; bodyHash: string }
+  | { type: "setFeatureBodyHash"; featureSlug: string; bodyHash: string };
 
 /** Result of a sync operation — informational, never throws. */
 export interface SyncResult {
@@ -43,6 +47,7 @@ export interface SyncResult {
   featuresClosed: number;
   featuresReopened: number;
   labelsUpdated: number;
+  bodiesUpdated: number;
   projectUpdated: boolean;
   epicClosed: boolean;
   warnings: string[];
@@ -58,7 +63,6 @@ const PHASE_TO_BOARD_STATUS: Record<string, string> = {
   validate: "Validate",
   release: "Release",
   done: "Done",
-  cancelled: "Done",
 };
 
 /** Map manifest feature status to GitHub label. */
@@ -80,7 +84,6 @@ const ALL_PHASE_LABELS = [
   "phase/validate",
   "phase/release",
   "phase/done",
-  "phase/cancelled",
 ];
 
 /**
@@ -100,6 +103,7 @@ export async function syncGitHub(
     featuresClosed: 0,
     featuresReopened: 0,
     labelsUpdated: 0,
+    bodiesUpdated: 0,
     projectUpdated: false,
     epicClosed: false,
     warnings: [],
@@ -119,18 +123,29 @@ export async function syncGitHub(
 
   // Resolve or create the epic number — track locally, never mutate manifest
   let epicNumber = manifest.github?.epic;
+  let epicJustCreated = false;
 
   if (!epicNumber) {
+    const initialEpicBody = formatEpicBody({
+      slug: manifest.slug,
+      phase: manifest.phase,
+      summary: manifest.summary,
+      features: manifest.features,
+    });
     epicNumber = await ghIssueCreate(
       repo,
       manifest.slug,
-      `## ${manifest.slug}\n\n**Phase:** ${manifest.phase}`,
+      initialEpicBody,
       ["type/epic", `phase/${manifest.phase}`],
     );
     if (epicNumber) {
       result.mutations.push({ type: "setEpic", epicNumber, repo });
+      const createHash = hashBody(initialEpicBody);
+      result.mutations.push({ type: "setEpicBodyHash", bodyHash: createHash });
       result.epicCreated = true;
       result.epicNumber = epicNumber;
+      result.bodiesUpdated++;
+      epicJustCreated = true;
     } else {
       result.warnings.push("Failed to create epic issue");
       return result; // Can't proceed without epic
@@ -138,6 +153,28 @@ export async function syncGitHub(
   }
 
   result.epicNumber = epicNumber;
+
+  // --- Epic Body Update ---
+  if (!epicJustCreated) {
+    const epicBody = formatEpicBody({
+      slug: manifest.slug,
+      phase: manifest.phase,
+      summary: manifest.summary,
+      features: manifest.features,
+    });
+    const epicBodyHash = hashBody(epicBody);
+    const storedEpicHash = manifest.github?.bodyHash;
+
+    if (epicBodyHash !== storedEpicHash) {
+      const bodyUpdated = await ghIssueEdit(repo, epicNumber, { body: epicBody });
+      if (bodyUpdated) {
+        result.mutations.push({ type: "setEpicBodyHash", bodyHash: epicBodyHash });
+        result.bodiesUpdated++;
+      } else {
+        result.warnings.push("Failed to update epic body");
+      }
+    }
+  }
 
   // Blast-replace phase label on epic
   const targetPhaseLabel = `phase/${manifest.phase}`;
@@ -175,7 +212,7 @@ export async function syncGitHub(
   }
 
   // --- Epic Close (if done) ---
-  if (manifest.phase === "done" || manifest.phase === "cancelled") {
+  if (manifest.phase === "done") {
     const closed = await ghIssueClose(repo, epicNumber);
     if (closed) {
       result.epicClosed = true;
@@ -191,61 +228,6 @@ export async function syncGitHub(
 }
 
 /**
- * High-level helper: load config, discover GitHub metadata, sync, apply
- * mutations, persist. Wraps everything in try/catch — never throws.
- *
- * Callers that pre-discover metadata (e.g. watch loop caching per scan cycle)
- * pass `resolved` to skip the discoverGitHub() call.
- */
-export async function syncGitHubForEpic(opts: {
-  projectRoot: string;
-  epicSlug: string;
-  resolved?: ResolvedGitHub;
-  logger?: Logger;
-}): Promise<void> {
-  const log = opts.logger ?? createLogger(0, "github-sync");
-  try {
-    const config = loadConfig(opts.projectRoot);
-    if (!config.github.enabled) return;
-
-    const resolved =
-      opts.resolved ??
-      (await discoverGitHub(opts.projectRoot, config.github["project-name"], log));
-    if (!resolved) {
-      log.debug("GitHub discovery failed — skipping sync");
-      return;
-    }
-
-    const manifest = store.load(opts.projectRoot, opts.epicSlug);
-    if (!manifest) return;
-
-    const syncResult = await syncGitHub(manifest, config, resolved);
-
-    // Apply mutations to manifest
-    let updated = manifest;
-    for (const mutation of syncResult.mutations) {
-      if (mutation.type === "setEpic") {
-        updated = setGitHubEpic(updated, mutation.epicNumber, mutation.repo);
-      } else if (mutation.type === "setFeatureIssue") {
-        updated = setFeatureGitHubIssue(updated, mutation.featureSlug, mutation.issueNumber);
-      }
-    }
-
-    // Persist if mutations were applied
-    if (syncResult.mutations.length > 0) {
-      store.save(opts.projectRoot, opts.epicSlug, updated);
-    }
-
-    for (const warning of syncResult.warnings) {
-      log.warn(warning);
-    }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    log.warn(`GitHub sync failed (non-blocking): ${message}`);
-  }
-}
-
-/**
  * Sync a single feature to GitHub. Pushes mutations instead of mutating in-place.
  */
 async function syncFeature(
@@ -258,12 +240,17 @@ async function syncFeature(
 ): Promise<void> {
   // Resolve or create the feature issue number — track locally, never mutate feature
   let featureNumber = feature.github?.issue;
+  let featureJustCreated = false;
 
   if (!featureNumber) {
+    const featureBody = formatFeatureBody(
+      { slug: feature.slug, description: feature.description },
+      epicNumber,
+    );
     featureNumber = await ghIssueCreate(
       repo,
       feature.slug,
-      `## ${feature.slug}\n\n**Epic:** #${epicNumber}`,
+      featureBody,
       ["type/feature", STATUS_TO_LABEL[feature.status] ?? "status/ready"],
     );
     if (featureNumber) {
@@ -272,7 +259,15 @@ async function syncFeature(
         featureSlug: feature.slug,
         issueNumber: featureNumber,
       });
+      const createHash = hashBody(featureBody);
+      result.mutations.push({
+        type: "setFeatureBodyHash",
+        featureSlug: feature.slug,
+        bodyHash: createHash,
+      });
       result.featuresCreated++;
+      result.bodiesUpdated++;
+      featureJustCreated = true;
 
       // Link as sub-issue of epic
       await ghSubIssueAdd(repo, epicNumber, featureNumber);
@@ -301,6 +296,30 @@ async function syncFeature(
       result.featuresReopened++;
     } else {
       result.warnings.push(`Failed to reopen feature ${feature.slug}`);
+    }
+  }
+
+  // --- Feature Body Update ---
+  if (!featureJustCreated) {
+    const featureBody = formatFeatureBody(
+      { slug: feature.slug, description: feature.description },
+      epicNumber,
+    );
+    const featureBodyHash = hashBody(featureBody);
+    const storedFeatureHash = feature.github?.bodyHash;
+
+    if (featureBodyHash !== storedFeatureHash) {
+      const bodyUpdated = await ghIssueEdit(repo, featureNumber, { body: featureBody });
+      if (bodyUpdated) {
+        result.mutations.push({
+          type: "setFeatureBodyHash",
+          featureSlug: feature.slug,
+          bodyHash: featureBodyHash,
+        });
+        result.bodiesUpdated++;
+      } else {
+        result.warnings.push(`Failed to update body for feature ${feature.slug}`);
+      }
     }
   }
 

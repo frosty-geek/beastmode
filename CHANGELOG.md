@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.53.0 — GitHub Issue Enrichment (Mar 2026)
+
+- **Epic body formatting** — Epic issues now display a phase badge, problem statement, solution summary, and a feature checklist with `[x]`/`[ ]` completion status and `#N` issue links
+- **Feature body formatting** — Feature issues show plan description text with epic back-reference
+- **Manifest summary fields** — `summary` (problem + solution) on `PipelineManifest`, `description` on `ManifestFeature`, populated by design and plan checkpoints respectively
+- **Sync body update** — `ghIssueEdit` accepts optional `body` param, formats and writes issue bodies on every sync pass
+- **Hash-compare short-circuit** — `github.bodyHash` stores last-written content hash, skips API call when body unchanged
+- **Graceful fallback** — Missing summary fields still produce richer body (phase badge + checklist) instead of stub
+- **Cancelled features excluded** from checklist; manifest array order preserved
+
 ### v0.52.0 — GitHub Sync Watch Loop (Mar 2026)
 
 - **Watch loop sync** — `reconcileState()` now calls `syncGitHubForEpic()` after persistence, with discovery cached once per scan cycle and per-epic logger support

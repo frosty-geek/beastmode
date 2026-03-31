@@ -8,6 +8,7 @@ export interface EpicContext {
   phase: Phase;
   features: ManifestFeature[];
   artifacts: Record<string, string[]>;
+  summary?: { problem: string; solution: string };
   worktree?: { branch: string; path: string };
   github?: { epic: number; repo: string };
   blocked?: { gate: string; reason: string } | null;
@@ -15,8 +16,8 @@ export interface EpicContext {
 }
 
 export type EpicEvent =
-  | { type: "DESIGN_COMPLETED"; realSlug?: string }
-  | { type: "PLAN_COMPLETED"; features: Array<{ slug: string; plan: string }> }
+  | { type: "DESIGN_COMPLETED"; realSlug?: string; summary?: { problem: string; solution: string } }
+  | { type: "PLAN_COMPLETED"; features: Array<{ slug: string; plan: string; description?: string }> }
   | { type: "FEATURE_COMPLETED"; featureSlug: string }
   | { type: "IMPLEMENT_COMPLETED" }
   | { type: "VALIDATE_COMPLETED" }

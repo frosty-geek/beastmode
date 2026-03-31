@@ -1,0 +1,8 @@
+{
+  "featurePlan": ".beastmode/artifacts/plan/2026-03-31-github-issue-enrichment-body-formatting.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Create body-format.ts with epic and feature formatters", "status": "completed"},
+    {"id": 1, "subject": "Task 1: Create body-format.test.ts with comprehensive tests", "status": "completed"}
+  ],
+  "lastUpdated": "2026-03-31T13:58:00Z"
+}

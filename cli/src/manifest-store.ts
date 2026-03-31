@@ -27,13 +27,15 @@ import { isValidPhase } from "./types";
 export interface ManifestFeature {
   slug: string;
   plan: string;
+  description?: string;
   status: "pending" | "in-progress" | "completed" | "blocked";
-  github?: { issue: number };
+  github?: { issue: number; bodyHash?: string };
 }
 
 export interface ManifestGitHub {
   epic: number;
   repo: string;
+  bodyHash?: string;
 }
 
 export interface PipelineManifest {
@@ -41,6 +43,7 @@ export interface PipelineManifest {
   phase: Phase;
   features: ManifestFeature[];
   artifacts: Record<string, string[]>;
+  summary?: { problem: string; solution: string };
   worktree?: { branch: string; path: string };
   github?: ManifestGitHub;
   blocked?: { gate: string; reason: string } | null;

@@ -50,6 +50,16 @@ mock.module("../src/gh", () => ({
     if (mockErrors.ghIssueClose) return false;
     return mockReturns.ghIssueClose ?? true;
   },
+  ghIssueState: async (...args: unknown[]) => {
+    trackCall("ghIssueState", ...args);
+    if (mockErrors.ghIssueState) return undefined;
+    return mockReturns.ghIssueState ?? "open";
+  },
+  ghIssueReopen: async (...args: unknown[]) => {
+    trackCall("ghIssueReopen", ...args);
+    if (mockErrors.ghIssueReopen) return false;
+    return mockReturns.ghIssueReopen ?? true;
+  },
   ghIssueLabels: async (...args: unknown[]) => {
     trackCall("ghIssueLabels", ...args);
     if (mockErrors.ghIssueLabels) return undefined;
@@ -69,6 +79,11 @@ mock.module("../src/gh", () => ({
     trackCall("ghSubIssueAdd", ...args);
     if (mockErrors.ghSubIssueAdd) return false;
     return mockReturns.ghSubIssueAdd ?? true;
+  },
+  ghProjectItemDelete: async (...args: unknown[]) => {
+    trackCall("ghProjectItemDelete", ...args);
+    if (mockErrors.ghProjectItemDelete) return false;
+    return mockReturns.ghProjectItemDelete ?? true;
   },
 }));
 
@@ -309,12 +324,13 @@ describe("syncGitHub", () => {
       const editCalls = callsTo("ghIssueEdit");
       expect(editCalls.length).toBeGreaterThanOrEqual(1);
 
-      // Find the epic label edit (issue 10)
-      const epicEdit = editCalls.find(
-        (c) => c.args[0] === "org/repo" && c.args[1] === 10,
+      // Find the epic label edit (has removeLabels, not body update)
+      const epicLabelEdit = editCalls.find(
+        (c) => c.args[0] === "org/repo" && c.args[1] === 10 &&
+          (c.args[2] as Record<string, unknown>).removeLabels !== undefined,
       );
-      expect(epicEdit).toBeDefined();
-      const edits = epicEdit!.args[2] as {
+      expect(epicLabelEdit).toBeDefined();
+      const edits = epicLabelEdit!.args[2] as {
         removeLabels: string[];
         addLabels: string[];
       };
@@ -332,9 +348,12 @@ describe("syncGitHub", () => {
       const result = await syncGitHub(manifest, config, resolved);
 
       const editCalls = callsTo("ghIssueEdit");
-      const epicEdit = editCalls.find((c) => c.args[1] === 10);
-      expect(epicEdit).toBeDefined();
-      const edits = epicEdit!.args[2] as {
+      const epicLabelEdit = editCalls.find(
+        (c) => c.args[1] === 10 &&
+          (c.args[2] as Record<string, unknown>).removeLabels !== undefined,
+      );
+      expect(epicLabelEdit).toBeDefined();
+      const edits = epicLabelEdit!.args[2] as {
         removeLabels: string[];
         addLabels: string[];
       };
@@ -357,11 +376,12 @@ describe("syncGitHub", () => {
 
       await syncGitHub(manifest, config, resolved);
 
-      // No edit calls should be made for the epic labels
-      const editCalls = callsTo("ghIssueEdit").filter(
-        (c) => c.args[1] === 10,
+      // No label edit calls should be made for the epic
+      const labelEditCalls = callsTo("ghIssueEdit").filter(
+        (c) => c.args[1] === 10 &&
+          (c.args[2] as Record<string, unknown>).removeLabels !== undefined,
       );
-      expect(editCalls).toHaveLength(0);
+      expect(labelEditCalls).toHaveLength(0);
     });
   });
 
@@ -505,11 +525,14 @@ describe("syncGitHub", () => {
 
       const result = await syncGitHub(manifest, config, resolved);
 
-      // There should be edit calls. Find the one for issue 20.
+      // Find the feature label edit (has removeLabels, not body update)
       const editCalls = callsTo("ghIssueEdit");
-      const featureEdit = editCalls.find((c) => c.args[1] === 20);
-      expect(featureEdit).toBeDefined();
-      const edits = featureEdit!.args[2] as {
+      const featureLabelEdit = editCalls.find(
+        (c) => c.args[1] === 20 &&
+          (c.args[2] as Record<string, unknown>).removeLabels !== undefined,
+      );
+      expect(featureLabelEdit).toBeDefined();
+      const edits = featureLabelEdit!.args[2] as {
         removeLabels: string[];
         addLabels: string[];
       };
@@ -532,11 +555,12 @@ describe("syncGitHub", () => {
 
       await syncGitHub(manifest, config, resolved);
 
-      // No edit call for feature issue 21
-      const featureEdits = callsTo("ghIssueEdit").filter(
-        (c) => c.args[1] === 21,
+      // No label edit call for feature issue 21 (body edit may exist)
+      const featureLabelEdits = callsTo("ghIssueEdit").filter(
+        (c) => c.args[1] === 21 &&
+          (c.args[2] as Record<string, unknown>).removeLabels !== undefined,
       );
-      expect(featureEdits).toHaveLength(0);
+      expect(featureLabelEdits).toHaveLength(0);
     });
   });
 
@@ -944,6 +968,211 @@ describe("syncGitHub", () => {
       expect(result.featuresCreated).toBe(1);
       // Labels updated for active-1 (status/ready -> status/in-progress)
       expect(result.labelsUpdated).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  // -------------------------------------------------------
+  // 15. Epic body update — hash compare
+  // -------------------------------------------------------
+  describe("epic body update", () => {
+    test("updates epic body when hash differs from stored", async () => {
+      const manifest = makeManifest({
+        phase: "implement",
+        github: { epic: 10, bodyHash: "stale-hash" },
+      });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved);
+
+      // ghIssueEdit should be called with body for issue 10
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(
+        (c) => c.args[1] === 10 && (c.args[2] as Record<string, unknown>).body !== undefined,
+      );
+      expect(bodyEdit).toBeDefined();
+      expect(result.bodiesUpdated).toBeGreaterThanOrEqual(1);
+
+      // Should return body hash mutation
+      const hashMutation = result.mutations.find(m => m.type === "setEpicBodyHash");
+      expect(hashMutation).toBeDefined();
+    });
+
+    test("skips epic body update when hash matches", async () => {
+      // First call to get the hash the engine would compute
+      const manifest = makeManifest({
+        phase: "design",
+        features: [],
+        github: { epic: 10 },
+      });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const first = await syncGitHub(manifest, config, resolved);
+      const hashMut = first.mutations.find(m => m.type === "setEpicBodyHash");
+
+      // Now use that hash so it matches
+      resetMocks();
+      const manifest2 = makeManifest({
+        phase: "design",
+        features: [],
+        github: { epic: 10, bodyHash: hashMut?.type === "setEpicBodyHash" ? hashMut.bodyHash : "x" },
+      });
+
+      const result = await syncGitHub(manifest2, config, resolved);
+
+      // No body edit should have been made
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(
+        (c) => c.args[1] === 10 && (c.args[2] as Record<string, unknown>).body !== undefined,
+      );
+      expect(bodyEdit).toBeUndefined();
+
+      // No body hash mutation should be returned
+      const hashMutation = result.mutations.find(m => m.type === "setEpicBodyHash");
+      expect(hashMutation).toBeUndefined();
+    });
+
+    test("sets body on epic creation with hash mutation", async () => {
+      const manifest = makeManifest();
+      delete (manifest.github as Record<string, unknown>).epic;
+      mockReturns.ghIssueCreate = 99;
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved);
+
+      // Body should be set via ghIssueCreate (not ghIssueEdit)
+      const createCalls = callsTo("ghIssueCreate");
+      expect(createCalls).toHaveLength(1);
+      // Body arg (index 2) should contain formatted content
+      expect(createCalls[0].args[2]).toContain("**Phase:**");
+
+      // Body hash mutation should be returned
+      const hashMut = result.mutations.find(m => m.type === "setEpicBodyHash");
+      expect(hashMut).toBeDefined();
+      expect(result.bodiesUpdated).toBe(1);
+    });
+
+    test("warns when epic body update fails", async () => {
+      const manifest = makeManifest({
+        phase: "implement",
+        github: { epic: 10, bodyHash: "stale-hash" },
+      });
+      mockErrors.ghIssueEdit = true;
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved);
+
+      expect(result.warnings).toContain("Failed to update epic body");
+    });
+  });
+
+  // -------------------------------------------------------
+  // 16. Feature body update — hash compare
+  // -------------------------------------------------------
+  describe("feature body update", () => {
+    test("updates feature body when hash differs", async () => {
+      const feature = makeFeature({
+        slug: "feat-a",
+        status: "in-progress",
+        github: { issue: 20, bodyHash: "stale-hash" },
+      });
+      const manifest = makeManifest({ features: [feature] });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved);
+
+      // ghIssueEdit for feature 20 with body
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(
+        (c) => c.args[1] === 20 && (c.args[2] as Record<string, unknown>).body !== undefined,
+      );
+      expect(bodyEdit).toBeDefined();
+      expect(result.bodiesUpdated).toBeGreaterThanOrEqual(1);
+
+      // Body hash mutation for feature
+      const hashMut = result.mutations.find(
+        m => m.type === "setFeatureBodyHash" && m.featureSlug === "feat-a",
+      );
+      expect(hashMut).toBeDefined();
+    });
+
+    test("skips feature body update when hash matches", async () => {
+      // First call to get the correct hash
+      const feature1 = makeFeature({
+        slug: "feat-a",
+        status: "in-progress",
+        github: { issue: 20 },
+      });
+      const manifest1 = makeManifest({ features: [feature1] });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const first = await syncGitHub(manifest1, config, resolved);
+      const hashMut = first.mutations.find(
+        m => m.type === "setFeatureBodyHash" && m.featureSlug === "feat-a",
+      );
+
+      // Now use that hash
+      resetMocks();
+      const feature2 = makeFeature({
+        slug: "feat-a",
+        status: "in-progress",
+        github: { issue: 20, bodyHash: hashMut?.type === "setFeatureBodyHash" ? hashMut.bodyHash : "x" },
+      });
+      const manifest2 = makeManifest({ features: [feature2] });
+
+      const result = await syncGitHub(manifest2, config, resolved);
+
+      // No body edit for feature 20
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(
+        (c) => c.args[1] === 20 && (c.args[2] as Record<string, unknown>).body !== undefined,
+      );
+      expect(bodyEdit).toBeUndefined();
+    });
+
+    test("sets body on feature creation with hash mutation", async () => {
+      const feature = makeFeature({ slug: "new-feat", status: "pending" });
+      const manifest = makeManifest({ features: [feature] });
+      mockReturns.ghIssueCreate = 50;
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved);
+
+      // Feature create should include body
+      const createCalls = callsTo("ghIssueCreate");
+      // Find the feature create (title = feature slug)
+      const featureCreate = createCalls.find(c => c.args[1] === "new-feat");
+      expect(featureCreate).toBeDefined();
+      expect(featureCreate!.args[2]).toContain("**Epic:** #10");
+
+      // Body hash mutation
+      const hashMut = result.mutations.find(
+        m => m.type === "setFeatureBodyHash" && m.featureSlug === "new-feat",
+      );
+      expect(hashMut).toBeDefined();
+      expect(result.bodiesUpdated).toBeGreaterThanOrEqual(1);
+    });
+
+    test("warns when feature body update fails", async () => {
+      const feature = makeFeature({
+        slug: "feat-a",
+        status: "in-progress",
+        github: { issue: 20, bodyHash: "stale-hash" },
+      });
+      const manifest = makeManifest({ features: [feature] });
+      mockErrors.ghIssueEdit = true;
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved);
+
+      expect(result.warnings).toContain("Failed to update body for feature feat-a");
     });
   });
 });

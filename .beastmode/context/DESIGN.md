@@ -3,7 +3,7 @@
 ## Product
 - ALWAYS design before code — structured phases prevent wasted implementation
 - NEVER skip the retro sub-phase — it's how the system learns and improves
-- Capabilities include: collaborative design, bite-sized planning, parallel wave execution, git worktree isolation via TypeScript CLI orchestrator (`beastmode`), brownfield discovery with 17-domain init system, progressive knowledge hierarchy, self-improving retro, commit-per-phase with squash-at-release, session-start hook, unified /beastmode command (init, ideas subcommands), deferred ideas capture and reconciliation, deadpan persona, manifest-based local state with optional GitHub mirroring for issue-based lifecycle tracking, CLI-owned worktree lifecycle with feature branch detection, pipeline orchestration via `beastmode watch` with event-driven re-scan, multi-epic parallelism, per-feature agent fan-out, `beastmode status` for pipeline state visibility with `--watch` live-updating terminal dashboard, and optional cmux terminal multiplexer integration for live pipeline visibility with workspace-per-epic surface model, context tree compaction with retro value-add gate (prevents redundant L3 creation) and periodic compaction agent (staleness removal, restatement folding, L0 promotion detection) triggered every 5 releases or via `beastmode compact`
+- Capabilities include: collaborative design, bite-sized planning, parallel wave execution, git worktree isolation via TypeScript CLI orchestrator (`beastmode`), brownfield discovery with 17-domain init system, progressive knowledge hierarchy, self-improving retro, commit-per-phase with squash-at-release, session-start hook, unified /beastmode command (init, ideas subcommands), deferred ideas capture and reconciliation, deadpan persona, manifest-based local state with optional GitHub mirroring for issue-based lifecycle tracking and issue body enrichment (summary text, feature checklists, hash-compare sync), CLI-owned worktree lifecycle with feature branch detection, pipeline orchestration via `beastmode watch` with event-driven re-scan, multi-epic parallelism, per-feature agent fan-out, `beastmode status` for pipeline state visibility with `--watch` live-updating terminal dashboard, and optional cmux terminal multiplexer integration for live pipeline visibility with workspace-per-epic surface model, context tree compaction with retro value-add gate (prevents redundant L3 creation) and periodic compaction agent (staleness removal, restatement folding, L0 promotion detection) triggered every 5 releases or via `beastmode compact`
 
 ## Architecture
 - ALWAYS follow the progressive loading pattern — L0 autoloads, L1 loads at prime, L2 on-demand
@@ -60,7 +60,7 @@ TypeScript CLI (`beastmode`) drives phase transitions via `beastmode <phase> <sl
 context/design/init-system.md
 
 ## GitHub State Model
-Manifest JSON is the operational authority for feature lifecycle, located at `.beastmode/state/YYYY-MM-DD-<slug>.manifest.json` (local-only, gitignored). GitHub is a one-way synced mirror updated by the CLI after every phase dispatch when github.enabled is true. Two-level issue hierarchy (Epic > Feature) with label-based state machines using blast-replace for mutually exclusive label families. Only Epics appear on the Projects V2 board. Skills are fully GitHub-unaware and manifest-unaware — they write artifacts to `artifacts/<phase>/`, a Stop hook generates output.json from frontmatter, and the CLI reads output.json to enrich the manifest and sync GitHub. github-sync.ts returns mutations instead of mutating in-place. GitHub API failures warn and continue without blocking.
+Manifest JSON is the operational authority for feature lifecycle, located at `.beastmode/state/YYYY-MM-DD-<slug>.manifest.json` (local-only, gitignored). GitHub is a one-way synced mirror updated by the CLI after every phase dispatch when github.enabled is true. Two-level issue hierarchy (Epic > Feature) with label-based state machines using blast-replace for mutually exclusive label families. Only Epics appear on the Projects V2 board. Skills are fully GitHub-unaware and manifest-unaware — they write artifacts to `artifacts/<phase>/`, a Stop hook generates output.json from frontmatter, and the CLI reads output.json to enrich the manifest and sync GitHub. github-sync.ts returns mutations instead of mutating in-place. GitHub API failures warn and continue without blocking. Sync formats issue bodies from manifest summary fields — epic bodies include phase badge, problem/solution text, and feature checklist with completion status; feature bodies include description and epic back-reference. Body updates use hash-compare to avoid redundant API calls.
 
 1. ALWAYS use two-level hierarchy: Epic (capability) > Feature (work unit) with label-based type/phase/status encoding
 2. ALWAYS use manifest JSON as operational authority — GitHub is a one-way mirror, CLI never reads GitHub state to update the manifest
@@ -70,6 +70,8 @@ Manifest JSON is the operational authority for feature lifecycle, located at `.b
 6. ALWAYS use 13-label taxonomy: 2 type, 8 phase (backlog, design, plan, implement, validate, release, done, cancelled), 3 status (ready, in-progress, blocked) plus gate/awaiting-approval — cancelled is a terminal phase alongside done
 7. ALWAYS use github.enabled config toggle to control GitHub sync — when false, all GitHub steps are silently skipped
 8. ALWAYS use blast-replace for mutually exclusive label families (phase/*, status/*) — remove all labels in family, add correct one, idempotent
+9. ALWAYS format issue bodies from manifest summary fields during sync — hash-compare skips API calls when content unchanged
+10. ALWAYS produce fallback body format when summary fields are missing — phase badge and feature checklist render regardless
 
 context/design/github-state-model.md
 
@@ -107,7 +109,7 @@ context/design/cli.md
 Gutted or deleted. Scanning is composed from manifest-store.ts (store.list()) plus manifest.ts pure functions (deriveNextAction(), checkBlocked()). No standalone scanner module. PipelineManifest is the sole manifest type — EpicState, FeatureProgress, ScanResult are deleted. Manifest path: state/YYYY-MM-DD-<slug>.manifest.json (gitignored). Blocked is structured ({ gate, reason } | null), not boolean.
 
 1. ALWAYS compose scanning from store.list() + manifest.deriveNextAction() + manifest.checkBlocked() — no standalone scanner module
-2. ALWAYS use PipelineManifest as the sole manifest type — EpicState, FeatureProgress, ScanResult, Manifest are all deleted
+2. ALWAYS use PipelineManifest as the sole manifest type with optional summary ({ problem, solution }) and per-feature description fields — EpicState, FeatureProgress, ScanResult, Manifest are all deleted
 3. ALWAYS use manifest path convention state/YYYY-MM-DD-<slug>.manifest.json — gitignored, CLI-owned
 4. ALWAYS use structured blocked field ({ gate, reason } | null) — not boolean, enables status display of block reason
 5. ALWAYS auto-resolve git merge conflict markers before parsing manifests — take ours-side, strip markers, attempt parse
