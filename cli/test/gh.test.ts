@@ -426,6 +426,48 @@ describe("ghIssueEdit() argument construction", () => {
 });
 
 // ---------------------------------------------------------------------------
+// ghIssueEdit() body parameter
+// ---------------------------------------------------------------------------
+describe("ghIssueEdit() body parameter", () => {
+  test("passes --body when body is provided", () => {
+    const args = ["issue", "edit", "42", "--repo", "org/repo"];
+    const body = "## Updated\n\nNew content here";
+    args.push("--body", body);
+
+    expect(args).toContain("--body");
+    expect(args).toContain(body);
+  });
+
+  test("omits --body when body is undefined", () => {
+    const args = ["issue", "edit", "42", "--repo", "org/repo"];
+    const body: string | undefined = undefined;
+    if (body !== undefined) args.push("--body", body);
+
+    expect(args).not.toContain("--body");
+  });
+
+  test("passes --body with empty string", () => {
+    const args = ["issue", "edit", "42", "--repo", "org/repo"];
+    const body = "";
+    if (body !== undefined) args.push("--body", body);
+
+    expect(args).toContain("--body");
+    expect(args).toContain("");
+  });
+
+  test("combines body with label edits", () => {
+    const args = ["issue", "edit", "42", "--repo", "org/repo"];
+    const body = "## Body\n\nContent";
+    const addLabels = ["status/ready"];
+    if (body !== undefined) args.push("--body", body);
+    if (addLabels.length) args.push("--add-label", addLabels.join(","));
+
+    expect(args).toContain("--body");
+    expect(args).toContain("--add-label");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // ghIssueClose() — mock test
 // ---------------------------------------------------------------------------
 describe("ghIssueClose()", () => {

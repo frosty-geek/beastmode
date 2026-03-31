@@ -26,6 +26,7 @@ import { isValidPhase } from "./types";
 export interface ManifestFeature {
   slug: string;
   plan: string;
+  description?: string;
   status: "pending" | "in-progress" | "completed" | "blocked";
   github?: { issue: number };
 }
@@ -40,6 +41,7 @@ export interface PipelineManifest {
   phase: Phase;
   features: ManifestFeature[];
   artifacts: Record<string, string[]>;
+  summary?: { problem: string; solution: string };
   worktree?: { branch: string; path: string };
   github?: ManifestGitHub;
   blocked?: { gate: string; reason: string } | null;

@@ -126,10 +126,12 @@ export async function ghIssueEdit(
     addLabels?: string[];
     removeLabels?: string[];
     state?: "open" | "closed";
+    body?: string;
   },
   opts: { cwd?: string } = {},
 ): Promise<boolean> {
   const args = ["issue", "edit", String(issueNumber), "--repo", repo];
+  if (edits.body !== undefined) args.push("--body", edits.body);
   if (edits.addLabels?.length)
     args.push("--add-label", edits.addLabels.join(","));
   if (edits.removeLabels?.length)
