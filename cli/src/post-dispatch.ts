@@ -311,12 +311,12 @@ function mapToEvents(
  */
 function extractFeaturesFromOutput(
   output: ReturnType<typeof loadWorktreePhaseOutput>,
-): Array<{ slug: string; plan: string; description?: string }> {
+): Array<{ slug: string; plan: string; description?: string; wave?: number }> {
   if (!output) return [];
   const artifacts = output.artifacts as unknown as Record<string, unknown>;
   if (!artifacts || !Array.isArray(artifacts.features)) return [];
 
-  const features: Array<{ slug: string; plan: string; description?: string }> = [];
+  const features: Array<{ slug: string; plan: string; description?: string; wave?: number }> = [];
   for (const entry of artifacts.features) {
     if (
       typeof entry === "object" &&
@@ -328,6 +328,7 @@ function extractFeaturesFromOutput(
         slug: rec.slug as string,
         plan: typeof rec.plan === "string" ? rec.plan : "",
         description: typeof rec.description === "string" ? rec.description : undefined,
+        wave: typeof rec.wave === "number" ? rec.wave : undefined,
       });
     }
   }

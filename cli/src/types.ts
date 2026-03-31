@@ -36,7 +36,7 @@ export interface DesignArtifacts {
 }
 
 export interface PlanArtifacts {
-  features: Array<{ slug: string; plan: string; description?: string }>;
+  features: Array<{ slug: string; plan: string; description?: string; wave?: number }>;
 }
 
 export interface ImplementArtifacts {

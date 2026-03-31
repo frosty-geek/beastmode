@@ -130,15 +130,19 @@ function mapOutputToEvents(
     case "plan": {
       const artifacts = output.artifacts as unknown as Record<string, unknown> | undefined;
       const rawFeatures = artifacts?.features;
-      const features: Array<{ slug: string; plan: string }> = [];
+      const features: Array<{ slug: string; plan: string; wave?: number }> = [];
       if (Array.isArray(rawFeatures)) {
         for (const entry of rawFeatures) {
           if (typeof entry === "object" && entry !== null && typeof (entry as Record<string, unknown>).slug === "string") {
             const rec = entry as Record<string, unknown>;
-            features.push({
+            const feat: { slug: string; plan: string; wave?: number } = {
               slug: rec.slug as string,
               plan: typeof rec.plan === "string" ? rec.plan : "",
-            });
+            };
+            if (typeof rec.wave === "number" && rec.wave >= 1) {
+              feat.wave = rec.wave;
+            }
+            features.push(feat);
           }
         }
       }
@@ -194,15 +198,33 @@ function deriveNextActionFromMachine(manifest: PipelineManifest): NextAction | n
   if (!dispatchType || dispatchType === "skip") return null;
 
   if (dispatchType === "fan-out") {
-    const pendingFeatures = manifest.features
+    const incompleteFeatures = manifest.features
+      .filter((f) => f.status === "pending" || f.status === "in-progress" || f.status === "blocked");
+    if (incompleteFeatures.length === 0) return null;
+
+    // Wave-aware filtering: find the lowest wave with any incomplete feature.
+    // Features without a wave field default to wave 1.
+    const lowestWave = Math.min(...incompleteFeatures.map((f) => f.wave ?? 1));
+
+    // Check if any feature in the lowest wave is blocked — if so, the wave is
+    // stuck and we cannot proceed to higher waves either.
+    const lowestWaveFeatures = incompleteFeatures.filter((f) => (f.wave ?? 1) === lowestWave);
+
+    // Only dispatch pending/in-progress features from the lowest wave.
+    // Blocked features are excluded — if ALL are blocked, dispatchable is empty → return null.
+    const dispatchable = lowestWaveFeatures
       .filter((f) => f.status === "pending" || f.status === "in-progress")
       .map((f) => f.slug);
-    if (pendingFeatures.length === 0) return null;
+
+    // If blocked features exist but there are still pending/in-progress ones
+    // in the same wave, dispatch those. If ALL are blocked, return null.
+    if (dispatchable.length === 0) return null;
+
     return {
       phase: stateValue,
       args: [manifest.slug],
       type: "fan-out",
-      features: pendingFeatures,
+      features: dispatchable,
     };
   }
 

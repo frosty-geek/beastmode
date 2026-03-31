@@ -14,6 +14,7 @@ export function computeEnrichFeatures(context: EpicContext, event: EpicEvent): E
       slug: f.slug,
       plan: f.plan,
       description: f.description,
+      wave: f.wave,
       status: "pending" as const,
     }));
     const existingBySlug = new Map(context.features.map((f) => [f.slug, f]));
@@ -47,6 +48,7 @@ export function computeSetFeatures(event: EpicEvent): EpicContext["features"] {
       slug: f.slug,
       plan: f.plan,
       description: f.description,
+      wave: f.wave,
       status: "pending" as const,
     }));
   }

@@ -179,6 +179,30 @@ describe("scanPlanFeatures", () => {
     rmSync(join(ARTIFACTS_DIR, "plan"), { recursive: true });
     expect(scanPlanFeatures(ARTIFACTS_DIR, "my-epic")).toEqual([]);
   });
+
+  test("extracts wave number from feature frontmatter", () => {
+    writeArtifact("plan", "2026-03-30-my-epic-wave-a.md",
+      "---\nphase: plan\nepic: my-epic\nfeature: wave-a\nwave: 1\n---\n# Wave A");
+    writeArtifact("plan", "2026-03-30-my-epic-wave-b.md",
+      "---\nphase: plan\nepic: my-epic\nfeature: wave-b\nwave: 2\n---\n# Wave B");
+
+    const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
+    expect(features).toHaveLength(2);
+    const sorted = features.sort((a, b) => (a.wave ?? 1) - (b.wave ?? 1));
+    expect(sorted[0].slug).toBe("wave-a");
+    expect(sorted[0].wave).toBe(1);
+    expect(sorted[1].slug).toBe("wave-b");
+    expect(sorted[1].wave).toBe(2);
+  });
+
+  test("defaults wave to undefined when not in frontmatter", () => {
+    writeArtifact("plan", "2026-03-30-my-epic-no-wave.md",
+      "---\nphase: plan\nepic: my-epic\nfeature: no-wave\n---\n# No Wave");
+
+    const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
+    expect(features).toHaveLength(1);
+    expect(features[0].wave).toBeUndefined();
+  });
 });
 
 // --- processArtifact ---

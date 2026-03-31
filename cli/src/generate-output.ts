@@ -31,6 +31,7 @@ export interface ArtifactFrontmatter {
   description?: string;
   problem?: string;
   solution?: string;
+  wave?: string;
 }
 
 /**
@@ -131,13 +132,13 @@ export function buildOutput(
 export function scanPlanFeatures(
   artifactsDir: string,
   epic: string | undefined,
-): Array<{ slug: string; plan: string; description?: string }> {
+): Array<{ slug: string; plan: string; description?: string; wave?: number }> {
   if (!epic) return [];
 
   const planDir = join(artifactsDir, "plan");
   if (!existsSync(planDir)) return [];
 
-  const features: Array<{ slug: string; plan: string; description?: string }> = [];
+  const features: Array<{ slug: string; plan: string; description?: string; wave?: number }> = [];
 
   for (const filename of readdirSync(planDir)) {
     if (!filename.endsWith(".md")) continue;
@@ -155,11 +156,18 @@ export function scanPlanFeatures(
     // Strict epic match — the fix for the stale-artifact bug
     if (fm.epic !== epic) continue;
 
-    features.push({
+    const entry: { slug: string; plan: string; description?: string; wave?: number } = {
       slug: fm.feature,
       plan: basename(filePath, ".md") + ".md",
       description: fm.description,
-    });
+    };
+    if (fm.wave !== undefined) {
+      const parsed = parseInt(fm.wave, 10);
+      if (!isNaN(parsed) && parsed >= 1) {
+        entry.wave = parsed;
+      }
+    }
+    features.push(entry);
   }
 
   return features;

@@ -95,11 +95,25 @@ function colorPhase(phase: string): string {
 // Formatters
 // ---------------------------------------------------------------------------
 
+/** Compute compact wave indicator for multi-wave implement-phase epics. */
+export function formatWaveIndicator(epic: EnrichedManifest): string {
+  if (epic.phase !== "implement") return "";
+  const waves = epic.features.map(f => f.wave).filter((w): w is number => w != null);
+  if (waves.length === 0) return "";
+  const totalWaves = Math.max(...waves);
+  if (totalWaves <= 1) return "";
+  const incomplete = epic.features.filter(f => f.status !== "completed" && f.wave != null);
+  if (incomplete.length === 0) return "";
+  const currentWave = Math.min(...incomplete.map(f => f.wave!));
+  return `W${currentWave}/${totalWaves}`;
+}
+
 export function formatFeatures(epic: EnrichedManifest): string {
   const total = epic.features.length;
   if (total === 0) return "-";
   const completed = epic.features.filter(f => f.status === "completed").length;
-  return `${completed}/${total}`;
+  const wave = formatWaveIndicator(epic);
+  return wave ? `${completed}/${total} ${wave}` : `${completed}/${total}`;
 }
 
 export function formatStatus(epic: EnrichedManifest): string {
@@ -123,24 +137,72 @@ const PHASE_ORDER: Record<string, number> = {
   done: 5,
 };
 
-export function buildStatusRows(epics: EnrichedManifest[], opts: { all?: boolean } = {}): StatusRow[] {
+// ---------------------------------------------------------------------------
+// Verbose wave breakdown
+// ---------------------------------------------------------------------------
+
+/** Status color for wave summary counts. */
+function colorWaveStatus(completed: number, total: number): string {
+  if (completed === total) return color(`${completed}/${total} completed`, ANSI.green);
+  if (completed === 0) return color(`${completed}/${total} pending`, ANSI.dim);
+  return color(`${completed}/${total} in progress`, ANSI.yellow);
+}
+
+/** Build per-wave sub-rows for verbose mode. Returns extra StatusRows to insert after the epic row. */
+export function buildVerboseWaveRows(epic: EnrichedManifest): StatusRow[] {
+  if (epic.phase !== "implement") return [];
+  const waves = epic.features.map(f => f.wave).filter((w): w is number => w != null);
+  if (waves.length === 0) return [];
+  const totalWaves = Math.max(...waves);
+  if (totalWaves <= 1) return [];
+
+  const byWave = new Map<number, typeof epic.features>();
+  for (const f of epic.features) {
+    const w = f.wave ?? 1;
+    const list = byWave.get(w) ?? [];
+    list.push(f);
+    byWave.set(w, list);
+  }
+
+  const rows: StatusRow[] = [];
+  for (let w = 1; w <= totalWaves; w++) {
+    const feats = byWave.get(w) ?? [];
+    const completed = feats.filter(f => f.status === "completed").length;
+    rows.push({
+      name: color(`  W${w}`, ANSI.dim),
+      phase: "",
+      features: `${completed}/${feats.length}`,
+      status: colorWaveStatus(completed, feats.length),
+    });
+  }
+  return rows;
+}
+
+export function buildStatusRows(epics: EnrichedManifest[], opts: { all?: boolean; verbose?: boolean } = {}): StatusRow[] {
   const filtered = opts.all
     ? epics
     : epics.filter(e => e.phase !== "done" && e.phase !== "cancelled");
 
-  return filtered
-    .sort((a, b) => {
-      const aPhase = PHASE_ORDER[a.phase] ?? 99;
-      const bPhase = PHASE_ORDER[b.phase] ?? 99;
-      if (aPhase !== bPhase) return bPhase - aPhase; // furthest phase first
-      return a.slug.localeCompare(b.slug);
-    })
-    .map(epic => ({
+  const sorted = filtered.sort((a, b) => {
+    const aPhase = PHASE_ORDER[a.phase] ?? 99;
+    const bPhase = PHASE_ORDER[b.phase] ?? 99;
+    if (aPhase !== bPhase) return bPhase - aPhase; // furthest phase first
+    return a.slug.localeCompare(b.slug);
+  });
+
+  const rows: StatusRow[] = [];
+  for (const epic of sorted) {
+    rows.push({
       name: epic.slug,
       phase: colorPhase(epic.phase),
       features: formatFeatures(epic),
       status: formatStatus(epic),
-    }));
+    });
+    if (opts.verbose) {
+      rows.push(...buildVerboseWaveRows(epic));
+    }
+  }
+  return rows;
 }
 
 // ---------------------------------------------------------------------------
@@ -248,7 +310,7 @@ export function formatTable(rows: StatusRow[]): string {
 
 export function renderStatusTable(
   epics: EnrichedManifest[],
-  opts: { all?: boolean } = {},
+  opts: { all?: boolean; verbose?: boolean } = {},
   changedSlugs?: Set<string>,
 ): string {
   let rows = buildStatusRows(epics, opts);
@@ -279,7 +341,7 @@ export function formatWatchHeader(meta: WatchMeta): string {
  */
 export function renderStatusScreen(
   epics: EnrichedManifest[],
-  opts: { all?: boolean } = {},
+  opts: { all?: boolean; verbose?: boolean } = {},
   meta?: WatchMeta,
   changedSlugs?: Set<string>,
 ): string {
@@ -356,6 +418,7 @@ export async function statusWatchLoop(projectRoot: string, all: boolean): Promis
 
 export async function statusCommand(_config: BeastmodeConfig, args: string[] = [], _verbosity: number = 0): Promise<void> {
   const all = args.includes("--all");
+  const verbose = args.includes("--verbose");
   const watch = args.includes("--watch") || args.includes("-w");
   const projectRoot = findProjectRoot();
 
@@ -365,5 +428,5 @@ export async function statusCommand(_config: BeastmodeConfig, args: string[] = [
   }
 
   const { epics } = await scanEpics(projectRoot);
-  process.stdout.write(renderStatusScreen(epics, { all }) + "\n");
+  process.stdout.write(renderStatusScreen(epics, { all, verbose }) + "\n");
 }

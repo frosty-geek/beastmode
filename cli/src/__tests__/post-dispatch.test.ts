@@ -363,4 +363,57 @@ describe("runPostDispatch", () => {
     expect(updated.slug).toBe(EPIC_SLUG);
     expect(updated.phase).toBe("plan");
   });
+
+  test("carries wave field from plan output to manifest features", async () => {
+    const manifest = makeManifest({ phase: "plan" });
+    writeTestManifest(EPIC_SLUG, manifest);
+
+    writePhaseOutput(WORKTREE, "plan", EPIC_SLUG, {
+      status: "completed",
+      artifacts: {
+        features: [
+          { slug: "foundation", plan: "foundation.md", wave: 1 },
+          { slug: "consumer", plan: "consumer.md", wave: 2 },
+        ],
+      },
+    });
+
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "plan",
+      success: true,
+    });
+
+    const updated = readTestManifest(EPIC_SLUG);
+    expect(updated.features).toHaveLength(2);
+    expect(updated.features.find((f) => f.slug === "foundation")?.wave).toBe(1);
+    expect(updated.features.find((f) => f.slug === "consumer")?.wave).toBe(2);
+  });
+
+  test("features without wave field default to undefined in manifest", async () => {
+    const manifest = makeManifest({ phase: "plan" });
+    writeTestManifest(EPIC_SLUG, manifest);
+
+    writePhaseOutput(WORKTREE, "plan", EPIC_SLUG, {
+      status: "completed",
+      artifacts: {
+        features: [
+          { slug: "no-wave", plan: "no-wave.md" },
+        ],
+      },
+    });
+
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "plan",
+      success: true,
+    });
+
+    const updated = readTestManifest(EPIC_SLUG);
+    expect(updated.features[0].wave).toBeUndefined();
+  });
 });

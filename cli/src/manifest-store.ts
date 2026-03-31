@@ -28,6 +28,7 @@ export interface ManifestFeature {
   slug: string;
   plan: string;
   description?: string;
+  wave?: number;
   status: "pending" | "in-progress" | "completed" | "blocked";
   github?: { issue: number; bodyHash?: string };
 }

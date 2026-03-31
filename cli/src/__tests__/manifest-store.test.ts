@@ -363,6 +363,34 @@ describe("validate", () => {
       }),
     ).toBe(true);
   });
+
+  test("validates manifest with features missing wave field (backwards compat)", () => {
+    const manifest = {
+      slug: "legacy-epic",
+      phase: "implement",
+      features: [
+        { slug: "feat-a", plan: "feat-a.md", status: "pending" },
+        { slug: "feat-b", plan: "feat-b.md", status: "completed" },
+      ],
+      artifacts: {},
+      lastUpdated: "2026-03-31T00:00:00Z",
+    };
+    expect(validate(manifest)).toBe(true);
+  });
+
+  test("validates manifest with features that have wave field", () => {
+    const manifest = {
+      slug: "wave-epic",
+      phase: "implement",
+      features: [
+        { slug: "feat-a", plan: "feat-a.md", status: "pending", wave: 1 },
+        { slug: "feat-b", plan: "feat-b.md", status: "pending", wave: 2 },
+      ],
+      artifacts: {},
+      lastUpdated: "2026-03-31T00:00:00Z",
+    };
+    expect(validate(manifest)).toBe(true);
+  });
 });
 
 describe("PipelineManifest type", () => {
