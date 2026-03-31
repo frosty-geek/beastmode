@@ -3,7 +3,13 @@
 ## Issue Hierarchy
 - ALWAYS use two-level hierarchy: Epic (capability) > Feature (work unit) -- keeps automation simple while matching design/plan decomposition
 - ALWAYS use labels for type, phase, and status -- universal across all GitHub plans, no org-level setup required
-- NEVER store design docs or plans in issue bodies -- GitHub tracks status/lifecycle, repo stores content
+- NEVER store design docs or plans in issue bodies -- GitHub tracks status/lifecycle, repo stores detailed content
+- ALWAYS format issue bodies from manifest summary fields during sync — epic bodies include phase badge, problem/solution text, and feature checklist with completion status; feature bodies include description and epic back-reference
+- ALWAYS use hash-compare before writing issue bodies — `github.bodyHash` in the manifest github block stores the last-written hash, sync skips the API call if content unchanged
+- ALWAYS show unlinked features as plain text in epic checklists — features without issue numbers yet still appear in scope
+- ALWAYS hide cancelled features from epic checklists — active scope only
+- ALWAYS follow manifest array order for feature checklists — stable, intentional plan-order sequencing
+- ALWAYS produce fallback body format when summary fields are missing — phase badge and feature checklist render regardless, richer than a stub
 
 ## Epic State Machine
 - ALWAYS track Epic phase via mutually exclusive `phase/*` labels: backlog, design, plan, implement, validate, release, done -- lifecycle state is visible and queryable
@@ -19,7 +25,7 @@
 ## Source of Truth Split
 - ALWAYS use manifest JSON as operational authority for feature lifecycle — GitHub is a one-way mirror, CLI never reads GitHub to update the manifest
 - ALWAYS use repo files for content — design docs, plans, validation reports remain in artifacts/
-- NEVER duplicate content between issue bodies and state files — issue bodies link to repo artifacts
+- NEVER duplicate content between issue bodies and state files — issue bodies are formatted from manifest summary fields, not copied from artifact files
 - ALWAYS sync GitHub after every phase dispatch in the CLI — `syncGitHub(manifest, config)` is a post-dispatch step, not a skill checkpoint step
 - Bootstrap write-back is the sole exception to one-way sync — when sync creates an Epic or Feature issue, it writes the issue number back to the manifest github block
 
@@ -48,7 +54,9 @@
 
 ## Manifest Schema
 - PipelineManifest is pure pipeline state at `.beastmode/state/YYYY-MM-DD-<slug>.manifest.json` — local-only, gitignored, CLI rebuilds from worktree branch scanning on cold start
-- Schema: slug, phase (Phase), features (ManifestFeature[]), artifacts (Record<string, string[]>), worktree? ({ branch, path }), github? ({ epic, repo }), blocked? ({ gate, reason } | null), lastUpdated (ISO-8601)
+- Schema: slug, phase (Phase), features (ManifestFeature[]), artifacts (Record<string, string[]>), summary? ({ problem, solution }), worktree? ({ branch, path }), github? ({ epic, repo, bodyHash? }), blocked? ({ gate, reason } | null), lastUpdated (ISO-8601)
+- ManifestFeature extended with optional `description` field — populated by plan checkpoint
+- Design checkpoint populates `summary.problem` and `summary.solution` on the manifest root
 - ALWAYS create manifest at first phase dispatch (design) via store.create(slug) — manifest exists before skill session starts
 - ALWAYS enrich manifest from output.json at each checkpoint — Stop hook generates output.json from artifact frontmatter
 - CLI is the sole manifest mutator via manifest-store.ts + manifest.ts — github-sync.ts returns mutations instead of mutating in-place
