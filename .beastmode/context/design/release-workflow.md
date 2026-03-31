@@ -20,3 +20,4 @@
 - ALWAYS archive branch tip before squash merge — `git tag archive/feature/<name>` preserves history
 - NEVER rebase at merge time — merge-only strategy avoids per-commit conflicts
 - Interactive merge options: merge locally (recommended), push and create PR, keep as-is, discard — user choice
+- ALWAYS include epic ref (`Refs #<epic>`) only on release squash-merge commit — feature refs are excluded because they live on the archived feature branch history

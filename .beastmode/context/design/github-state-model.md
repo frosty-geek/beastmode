@@ -46,6 +46,14 @@
 - NEVER make skills GitHub-aware or manifest-aware — skills write artifacts with frontmatter only, Stop hook generates output.json, CLI is the sole manifest mutator
 - ALWAYS centralize GitHub sync and manifest mutation in the CLI — the `syncGitHub(manifest, config)` function in the TypeScript CLI is the sole sync entry point
 
+## Commit-to-Issue Linking
+- ALWAYS use `Refs #N` lines in checkpoint commit messages to link commits to their GitHub issues — GitHub auto-links create bidirectional traceability (commits appear in issue timelines, issues appear in commit views)
+- ALWAYS use `Refs` keyword, NEVER `Closes` or `Fixes` — commits reference issues without triggering auto-close
+- Refs are injected by the CLI via `<commit-refs>` block in the skill prompt — skills are not GitHub-aware, they read refs from prompt context only
+- Checkpoint commits include epic ref always; implement checkpoints include epic + feature ref — granularity matches the work unit
+- Release squash-merge on main gets epic ref only — feature refs live on the archived feature branch
+- No-op when manifest lacks github field — no linking, no behavior change from today
+
 ## Manifest Schema
 - PipelineManifest is pure pipeline state at `.beastmode/state/YYYY-MM-DD-<slug>.manifest.json` — local-only, gitignored, CLI rebuilds from worktree branch scanning on cold start
 - Schema: slug, phase (Phase), features (ManifestFeature[]), artifacts (Record<string, string[]>), worktree? ({ branch, path }), github? ({ epic, repo }), blocked? ({ gate, reason } | null), lastUpdated (ISO-8601)

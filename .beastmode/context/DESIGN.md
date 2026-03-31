@@ -3,7 +3,7 @@
 ## Product
 - ALWAYS design before code — structured phases prevent wasted implementation
 - NEVER skip the retro sub-phase — it's how the system learns and improves
-- Capabilities include: collaborative design, bite-sized planning, parallel wave execution, git worktree isolation via TypeScript CLI orchestrator (`beastmode`), brownfield discovery with 17-domain init system, progressive knowledge hierarchy, self-improving retro, commit-per-phase with squash-at-release, session-start hook, unified /beastmode command (init, ideas subcommands), deferred ideas capture and reconciliation, deadpan persona, manifest-based local state with optional GitHub mirroring for issue-based lifecycle tracking, CLI-owned worktree lifecycle with feature branch detection, pipeline orchestration via `beastmode watch` with event-driven re-scan, multi-epic parallelism, per-feature agent fan-out, `beastmode status` for pipeline state visibility with `--watch` live-updating terminal dashboard, and optional cmux terminal multiplexer integration for live pipeline visibility with workspace-per-epic surface model, context tree compaction with retro value-add gate (prevents redundant L3 creation) and periodic compaction agent (staleness removal, restatement folding, L0 promotion detection) triggered every 5 releases or via `beastmode compact`
+- Capabilities include: collaborative design, bite-sized planning, parallel wave execution, git worktree isolation via TypeScript CLI orchestrator (`beastmode`), brownfield discovery with 17-domain init system, progressive knowledge hierarchy, self-improving retro, commit-per-phase with squash-at-release, session-start hook, unified /beastmode command (init, ideas subcommands), deferred ideas capture and reconciliation, deadpan persona, manifest-based local state with optional GitHub mirroring for issue-based lifecycle tracking, CLI-owned worktree lifecycle with feature branch detection, pipeline orchestration via `beastmode watch` with event-driven re-scan, multi-epic parallelism, per-feature agent fan-out, `beastmode status` for pipeline state visibility with `--watch` live-updating terminal dashboard, and optional cmux terminal multiplexer integration for live pipeline visibility with workspace-per-epic surface model, context tree compaction with retro value-add gate (prevents redundant L3 creation) and periodic compaction agent (staleness removal, restatement folding, L0 promotion detection) triggered every 5 releases or via `beastmode compact`, commit-issue reference injection via CLI-appended `<commit-refs>` block in skill prompts (automatic `Refs #N` linking from checkpoint commits to GitHub issues, per-feature refs at implement fan-out, epic-only ref on release squash-merge, graceful no-op when github field absent)
 
 ## Architecture
 - ALWAYS follow the progressive loading pattern — L0 autoloads, L1 loads at prime, L2 on-demand
@@ -32,6 +32,7 @@
 - ALWAYS commit per phase on the feature branch — each phase persists work at checkpoint for cross-session durability
 - ALWAYS squash-merge feature branch at release — per-phase commits collapse to one clean commit on main
 - ALWAYS archive branch tip before squash merge
+- ALWAYS include epic ref only on release squash-merge commit — feature refs live on the archived feature branch history
 
 ## Phase Transitions
 TypeScript CLI (`beastmode`) drives phase transitions via `beastmode <phase> <slug>`. Each phase is a separate Claude Agent SDK session. Skills are pure content processors with no worktree or transition logic. Checkpoint prints the `beastmode` command for the next phase. Only the checkpoint may produce next-step commands; retro agents are banned from transition guidance. The watch loop (`beastmode watch`) provides automated advancement: event-driven re-scan on session completion drives epics through plan -> release. Justfile is deleted — CLI is the sole orchestration entry point.
@@ -70,6 +71,7 @@ Manifest JSON is the operational authority for feature lifecycle, located at `.b
 6. ALWAYS use 12-label taxonomy: 2 type, 7 phase, 3 status (ready, in-progress, blocked) plus gate/awaiting-approval — status/review is dropped
 7. ALWAYS use github.enabled config toggle to control GitHub sync — when false, all GitHub steps are silently skipped
 8. ALWAYS use blast-replace for mutually exclusive label families (phase/*, status/*) — remove all labels in family, add correct one, idempotent
+9. ALWAYS use `Refs` keyword (not `Closes` or `Fixes`) in checkpoint commit messages — links commits to issues without auto-closing them; refs injected via CLI prompt context, not skill logic
 
 context/design/github-state-model.md
 
@@ -99,6 +101,7 @@ TypeScript CLI (`beastmode`) built with Bun and Claude Agent SDK that provides m
 8. ALWAYS use flat-file manifest path convention — state/YYYY-MM-DD-<slug>.manifest.json, no directory-per-slug
 9. ALWAYS use findProjectRoot() in status command — not process.cwd(), works from subdirectories
 10. ALWAYS use polling for status --watch (2-second interval) — no filesystem events, no new dependencies, pure ANSI escape codes over stdout
+11. ALWAYS append `<commit-refs>` block to skill prompt before dispatch when manifest has a github field — `buildCommitRefs(manifest, featureSlug?)` builds `Refs #N` lines from manifest github data; no-op when github field absent
 
 context/design/cli.md
 

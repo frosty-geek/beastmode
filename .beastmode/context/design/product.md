@@ -25,6 +25,7 @@
 - Pipeline orchestration via `beastmode watch` — TypeScript CLI watch loop drives epics through plan -> release with parallel SDK session dispatching, per-feature implement fan-out, pre-merge conflict simulation, and cost tracking
 - Optional cmux terminal multiplexer integration — live pipeline visibility with workspace-per-epic surface model, desktop notifications on errors/blocks, automatic cleanup on release, zero-regression fallback to SDK dispatch
 - Context tree compaction — retro value-add gate prevents redundant L3 creation at source, periodic compaction agent removes stale L3s, folds restatements, and detects cross-phase duplicates for L0 promotion; runs every 5 releases or on-demand via `beastmode compact`
+- Commit-issue reference injection — automatic `Refs #N` linking from checkpoint commits to GitHub issues via CLI prompt injection, per-feature granularity at implement, epic-only on release squash-merge, graceful no-op when GitHub is not configured
 
 ## Differentiators
 - Progressive hierarchy uses curated summaries — NEVER use embedding/vector retrieval

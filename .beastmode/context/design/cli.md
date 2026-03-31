@@ -58,3 +58,11 @@
 - output.json is the sole completion signal for all dispatch strategies — replaces `.dispatch-done.json`
 - Artifact frontmatter schema per phase: design (phase, slug), plan (phase, epic, feature), implement (phase, epic, feature, status), validate (phase, slug, status), release (phase, slug, bump)
 - CLI reads output.json from the worktree's `artifacts/<phase>/` directory after dispatch
+
+## Commit Ref Injection
+- ALWAYS append `<commit-refs>` block to the skill prompt string in sdk-runner.ts before SDK dispatch when manifest has a github field — pre-dispatch prompt enrichment, not a post-dispatch step
+- `buildCommitRefs(manifest, featureSlug?)` utility function builds the refs block: epic ref always included, feature ref included when featureSlug is provided and that feature has a `github.issue` field
+- ALWAYS use `Refs` keyword (not `Closes` or `Fixes`) — links commits to issues without auto-closing them
+- For implement fan-out, each per-feature dispatch gets the epic ref plus that feature's ref — per-feature prompt injection
+- Graceful no-op when manifest lacks github field — no `<commit-refs>` block appended, skill checkpoint sees nothing and commits as today
+- Skills read refs from prompt context only — skills remain fully manifest-unaware and GitHub-unaware
