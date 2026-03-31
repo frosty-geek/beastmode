@@ -58,6 +58,7 @@ const PHASE_TO_BOARD_STATUS: Record<string, string> = {
   validate: "Validate",
   release: "Release",
   done: "Done",
+  cancelled: "Done",
 };
 
 /** Map manifest feature status to GitHub label. */
@@ -79,6 +80,7 @@ const ALL_PHASE_LABELS = [
   "phase/validate",
   "phase/release",
   "phase/done",
+  "phase/cancelled",
 ];
 
 /**
@@ -173,7 +175,7 @@ export async function syncGitHub(
   }
 
   // --- Epic Close (if done) ---
-  if (manifest.phase === "done") {
+  if (manifest.phase === "done" || manifest.phase === "cancelled") {
     const closed = await ghIssueClose(repo, epicNumber);
     if (closed) {
       result.epicClosed = true;
