@@ -106,6 +106,53 @@ describe("enrich", () => {
     expect(manifest.features).toHaveLength(0);
     expect(result.features).toHaveLength(1);
   });
+
+  test("carries forward wave from incoming feature", () => {
+    const manifest = makeManifest();
+    const result = enrich(manifest, {
+      phase: "plan",
+      features: [makeFeature({ slug: "feat-a", wave: 2 })],
+    });
+
+    expect(result.features[0].wave).toBe(2);
+  });
+
+  test("defaults wave to 1 when incoming feature has no wave", () => {
+    const manifest = makeManifest();
+    const result = enrich(manifest, {
+      phase: "plan",
+      features: [makeFeature({ slug: "feat-a" })],
+    });
+
+    expect(result.features[0].wave).toBe(1);
+  });
+
+  test("preserves existing wave when incoming has no wave", () => {
+    const manifest = makeManifest({
+      features: [makeFeature({ slug: "feat-a", wave: 3 })],
+    });
+
+    const result = enrich(manifest, {
+      phase: "plan",
+      features: [makeFeature({ slug: "feat-a", plan: "updated.md" })],
+    });
+
+    expect(result.features[0].wave).toBe(3);
+    expect(result.features[0].plan).toBe("updated.md");
+  });
+
+  test("incoming wave overrides existing wave", () => {
+    const manifest = makeManifest({
+      features: [makeFeature({ slug: "feat-a", wave: 1 })],
+    });
+
+    const result = enrich(manifest, {
+      phase: "plan",
+      features: [makeFeature({ slug: "feat-a", wave: 2 })],
+    });
+
+    expect(result.features[0].wave).toBe(2);
+  });
 });
 
 // --- advancePhase ---

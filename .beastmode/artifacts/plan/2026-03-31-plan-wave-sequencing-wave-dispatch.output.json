@@ -1,0 +1,23 @@
+{
+  "status": "completed",
+  "artifacts": {
+    "features": [
+      {
+        "slug": "manifest-wave-plumbing",
+        "plan": "2026-03-31-plan-wave-sequencing-manifest-wave-plumbing.md"
+      },
+      {
+        "slug": "status-wave-display",
+        "plan": "2026-03-31-plan-wave-sequencing-status-wave-display.md"
+      },
+      {
+        "slug": "plan-skill-waves",
+        "plan": "2026-03-31-plan-wave-sequencing-plan-skill-waves.md"
+      },
+      {
+        "slug": "wave-dispatch",
+        "plan": "2026-03-31-plan-wave-sequencing-wave-dispatch.md"
+      }
+    ]
+  }
+}

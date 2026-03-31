@@ -204,6 +204,92 @@ export function detectChanges(prev: StatusSnapshot[], curr: StatusSnapshot[]): S
   return changed;
 }
 
+// ---------------------------------------------------------------------------
+// Wave computation helpers
+// ---------------------------------------------------------------------------
+
+/** Wave progress info for an epic's features. Null if single-wave or no features. */
+export interface WaveInfo {
+  /** Lowest wave number with non-terminal (pending/in-progress/blocked) features. */
+  currentWave: number;
+  /** Total distinct wave count. */
+  totalWaves: number;
+}
+
+/** Per-wave breakdown for verbose display. */
+export interface WaveDetail {
+  wave: number;
+  total: number;
+  completed: number;
+  active: boolean;
+}
+
+/**
+ * Compute wave progress from an epic's features.
+ * Returns null when all features are wave 1 or waveless (backwards compat).
+ */
+export function computeWaveInfo(epic: EnrichedManifest): WaveInfo | null {
+  if (epic.features.length === 0) return null;
+
+  const waves = new Set<number>();
+  for (const f of epic.features) {
+    waves.add(f.wave ?? 1);
+  }
+
+  // Single wave (all wave 1 or all same wave) — no indicator needed
+  if (waves.size <= 1) return null;
+
+  const totalWaves = waves.size;
+
+  // Current wave = lowest wave with any non-terminal feature
+  const nonTerminal = epic.features.filter(f => f.status !== "completed");
+  if (nonTerminal.length === 0) {
+    // All completed — show highest wave
+    return { currentWave: Math.max(...waves), totalWaves };
+  }
+
+  const currentWave = Math.min(...nonTerminal.map(f => f.wave ?? 1));
+  return { currentWave, totalWaves };
+}
+
+/**
+ * Format compact wave indicator for the features column.
+ * Returns `W1/3` style string or empty string for single-wave epics.
+ */
+export function formatWaveIndicator(epic: EnrichedManifest): string {
+  const info = computeWaveInfo(epic);
+  if (!info) return "";
+  return `W${info.currentWave}/${info.totalWaves}`;
+}
+
+/**
+ * Compute per-wave details for verbose display.
+ * Returns empty array for single-wave or featureless epics.
+ */
+export function computeWaveDetails(epic: EnrichedManifest): WaveDetail[] {
+  if (epic.features.length === 0) return [];
+
+  const waves = new Set<number>();
+  for (const f of epic.features) {
+    waves.add(f.wave ?? 1);
+  }
+
+  if (waves.size <= 1) return [];
+
+  const info = computeWaveInfo(epic);
+  const currentWave = info?.currentWave ?? 1;
+
+  return [...waves].sort((a, b) => a - b).map(w => {
+    const inWave = epic.features.filter(f => (f.wave ?? 1) === w);
+    return {
+      wave: w,
+      total: inWave.length,
+      completed: inWave.filter(f => f.status === "completed").length,
+      active: w === currentWave,
+    };
+  });
+}
+
 /** Wrap all columns of a StatusRow in bold+inverse ANSI for one render cycle. */
 export function highlightRow(row: StatusRow): StatusRow {
   const hl = (s: string) => `\x1b[1m\x1b[7m${s}\x1b[0m`;

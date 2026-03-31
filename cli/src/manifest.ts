@@ -59,11 +59,13 @@ export function enrich(
         if (incoming.github) {
           merged.github = incoming.github;
         }
+        // Carry forward wave: incoming wins, else preserve existing, else default 1
+        merged.wave = incoming.wave ?? existing.wave ?? 1;
         features = features.map((f) =>
           f.slug === incoming.slug ? merged : f,
         );
       } else {
-        features = [...features, incoming];
+        features = [...features, { ...incoming, wave: incoming.wave ?? 1 }];
       }
     }
   }

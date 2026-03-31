@@ -27,6 +27,7 @@ export interface ManifestFeature {
   slug: string;
   plan: string;
   status: "pending" | "in-progress" | "completed" | "blocked";
+  wave?: number;
   github?: { issue: number };
 }
 

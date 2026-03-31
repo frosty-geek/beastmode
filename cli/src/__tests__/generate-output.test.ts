@@ -179,6 +179,33 @@ describe("scanPlanFeatures", () => {
     rmSync(join(ARTIFACTS_DIR, "plan"), { recursive: true });
     expect(scanPlanFeatures(ARTIFACTS_DIR, "my-epic")).toEqual([]);
   });
+
+  test("reads wave from feature frontmatter", () => {
+    writeArtifact("plan", "2026-03-30-my-epic-auth.md",
+      "---\nphase: plan\nepic: my-epic\nfeature: auth\nwave: 2\n---\n# Auth");
+
+    const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
+    expect(features).toHaveLength(1);
+    expect(features[0].wave).toBe(2);
+  });
+
+  test("defaults wave to 1 when frontmatter omits it", () => {
+    writeArtifact("plan", "2026-03-30-my-epic-db.md",
+      "---\nphase: plan\nepic: my-epic\nfeature: db\n---\n# DB");
+
+    const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
+    expect(features).toHaveLength(1);
+    expect(features[0].wave).toBe(1);
+  });
+
+  test("defaults wave to 1 for non-numeric wave value", () => {
+    writeArtifact("plan", "2026-03-30-my-epic-ui.md",
+      "---\nphase: plan\nepic: my-epic\nfeature: ui\nwave: abc\n---\n# UI");
+
+    const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
+    expect(features).toHaveLength(1);
+    expect(features[0].wave).toBe(1);
+  });
 });
 
 // --- processArtifact ---

@@ -940,4 +940,375 @@ describe("WatchLoop", () => {
 
     await loop.stop();
   });
+
+  // --- Wave dispatch tests ---
+
+  describe("wave-based dispatch", () => {
+    it("only dispatches features from the lowest incomplete wave", async () => {
+      const dispatched: string[] = [];
+      let scanCount = 0;
+
+      const waveEpic: EnrichedManifest = {
+        slug: "wave-epic",
+        manifestPath: "pipeline/wave-epic.manifest.json",
+        phase: "implement",
+        nextAction: {
+          phase: "implement",
+          args: ["wave-epic"],
+          type: "fan-out",
+          features: ["feat-a", "feat-b", "feat-c"],
+        },
+        features: [
+          { slug: "feat-a", plan: "feat-a.md", status: "pending", wave: 1 },
+          { slug: "feat-b", plan: "feat-b.md", status: "pending", wave: 1 },
+          { slug: "feat-c", plan: "feat-c.md", status: "pending", wave: 2 },
+        ],
+        artifacts: {},
+        lastUpdated: "2026-03-31T00:00:00Z",
+        blocked: null,
+      };
+
+      const deps = mockDeps({
+        scanEpics: async () => {
+          scanCount++;
+          if (scanCount === 1) return [waveEpic];
+          return [{ ...waveEpic, nextAction: null }];
+        },
+        sessionFactory: new SdkSessionFactory(async (opts) => {
+          dispatched.push(opts.featureSlug!);
+          return {
+            id: `dispatch-${opts.featureSlug}-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: Promise.resolve({
+              success: true,
+              exitCode: 0,
+              costUsd: 0.1,
+              durationMs: 500,
+            }),
+          };
+        }),
+      });
+
+      const loop = new WatchLoop(
+        { intervalSeconds: 999, projectRoot: TEST_ROOT },
+        deps,
+      );
+      loop.setRunning(true);
+
+      await loop.tick();
+
+      // Only wave 1 features should be dispatched
+      expect(dispatched).toEqual(["feat-a", "feat-b"]);
+      expect(dispatched).not.toContain("feat-c");
+
+      await new Promise((r) => setTimeout(r, 50));
+      await loop.stop();
+    });
+
+    it("blocks higher waves while lower wave has pending features", async () => {
+      const dispatched: string[] = [];
+      let scanCount = 0;
+
+      const mixedEpic: EnrichedManifest = {
+        slug: "mixed-epic",
+        manifestPath: "pipeline/mixed-epic.manifest.json",
+        phase: "implement",
+        nextAction: {
+          phase: "implement",
+          args: ["mixed-epic"],
+          type: "fan-out",
+          features: ["feat-a", "feat-b"],
+        },
+        features: [
+          { slug: "feat-a", plan: "feat-a.md", status: "in-progress", wave: 1 },
+          { slug: "feat-b", plan: "feat-b.md", status: "pending", wave: 2 },
+          { slug: "feat-c", plan: "feat-c.md", status: "completed", wave: 1 },
+        ],
+        artifacts: {},
+        lastUpdated: "2026-03-31T00:00:00Z",
+        blocked: null,
+      };
+
+      const deps = mockDeps({
+        scanEpics: async () => {
+          scanCount++;
+          if (scanCount === 1) return [mixedEpic];
+          return [{ ...mixedEpic, nextAction: null }];
+        },
+        sessionFactory: new SdkSessionFactory(async (opts) => {
+          dispatched.push(opts.featureSlug!);
+          return {
+            id: `dispatch-${opts.featureSlug}-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: Promise.resolve({
+              success: true,
+              exitCode: 0,
+              costUsd: 0.1,
+              durationMs: 500,
+            }),
+          };
+        }),
+      });
+
+      const loop = new WatchLoop(
+        { intervalSeconds: 999, projectRoot: TEST_ROOT },
+        deps,
+      );
+      loop.setRunning(true);
+
+      await loop.tick();
+
+      // feat-a is in-progress (wave 1), so wave 1 is current.
+      // feat-a is in the features list from nextAction — it gets dispatched.
+      // feat-b (wave 2) should NOT be dispatched.
+      expect(dispatched).toEqual(["feat-a"]);
+
+      await new Promise((r) => setTimeout(r, 50));
+      await loop.stop();
+    });
+
+    it("blocked feature in wave N prevents wave N+1 from dispatching", async () => {
+      const dispatched: string[] = [];
+      let scanCount = 0;
+
+      const blockedEpic: EnrichedManifest = {
+        slug: "blocked-wave",
+        manifestPath: "pipeline/blocked-wave.manifest.json",
+        phase: "implement",
+        nextAction: {
+          phase: "implement",
+          args: ["blocked-wave"],
+          type: "fan-out",
+          features: ["feat-b"],
+        },
+        features: [
+          { slug: "feat-a", plan: "feat-a.md", status: "blocked", wave: 1 },
+          { slug: "feat-b", plan: "feat-b.md", status: "pending", wave: 2 },
+        ],
+        artifacts: {},
+        lastUpdated: "2026-03-31T00:00:00Z",
+        blocked: null,
+      };
+
+      const deps = mockDeps({
+        scanEpics: async () => {
+          scanCount++;
+          if (scanCount === 1) return [blockedEpic];
+          return [{ ...blockedEpic, nextAction: null }];
+        },
+        sessionFactory: new SdkSessionFactory(async (opts) => {
+          dispatched.push(opts.featureSlug!);
+          return {
+            id: `dispatch-${opts.featureSlug}-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: Promise.resolve({
+              success: true,
+              exitCode: 0,
+              costUsd: 0.1,
+              durationMs: 500,
+            }),
+          };
+        }),
+      });
+
+      const loop = new WatchLoop(
+        { intervalSeconds: 999, projectRoot: TEST_ROOT },
+        deps,
+      );
+      loop.setRunning(true);
+
+      await loop.tick();
+
+      // feat-a is blocked (wave 1), so current wave is 1.
+      // feat-b (wave 2) must not dispatch. feat-a is blocked, not in features list.
+      expect(dispatched).toHaveLength(0);
+
+      await new Promise((r) => setTimeout(r, 50));
+      await loop.stop();
+    });
+
+    it("features without wave field default to wave 1", async () => {
+      const dispatched: string[] = [];
+      let scanCount = 0;
+
+      const noWaveEpic: EnrichedManifest = {
+        slug: "no-wave",
+        manifestPath: "pipeline/no-wave.manifest.json",
+        phase: "implement",
+        nextAction: {
+          phase: "implement",
+          args: ["no-wave"],
+          type: "fan-out",
+          features: ["feat-a", "feat-b", "feat-c"],
+        },
+        features: [
+          { slug: "feat-a", plan: "feat-a.md", status: "pending" },
+          { slug: "feat-b", plan: "feat-b.md", status: "pending" },
+          { slug: "feat-c", plan: "feat-c.md", status: "pending", wave: 2 },
+        ],
+        artifacts: {},
+        lastUpdated: "2026-03-31T00:00:00Z",
+        blocked: null,
+      };
+
+      const deps = mockDeps({
+        scanEpics: async () => {
+          scanCount++;
+          if (scanCount === 1) return [noWaveEpic];
+          return [{ ...noWaveEpic, nextAction: null }];
+        },
+        sessionFactory: new SdkSessionFactory(async (opts) => {
+          dispatched.push(opts.featureSlug!);
+          return {
+            id: `dispatch-${opts.featureSlug}-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: Promise.resolve({
+              success: true,
+              exitCode: 0,
+              costUsd: 0.1,
+              durationMs: 500,
+            }),
+          };
+        }),
+      });
+
+      const loop = new WatchLoop(
+        { intervalSeconds: 999, projectRoot: TEST_ROOT },
+        deps,
+      );
+      loop.setRunning(true);
+
+      await loop.tick();
+
+      // feat-a and feat-b have no wave (default 1), feat-c is wave 2
+      expect(dispatched).toEqual(["feat-a", "feat-b"]);
+
+      await new Promise((r) => setTimeout(r, 50));
+      await loop.stop();
+    });
+
+    it("dispatches wave N+1 when all wave N features complete", async () => {
+      const dispatched: string[] = [];
+      let scanCount = 0;
+
+      const advancedEpic: EnrichedManifest = {
+        slug: "advance-epic",
+        manifestPath: "pipeline/advance-epic.manifest.json",
+        phase: "implement",
+        nextAction: {
+          phase: "implement",
+          args: ["advance-epic"],
+          type: "fan-out",
+          features: ["feat-c"],
+        },
+        features: [
+          { slug: "feat-a", plan: "feat-a.md", status: "completed", wave: 1 },
+          { slug: "feat-b", plan: "feat-b.md", status: "completed", wave: 1 },
+          { slug: "feat-c", plan: "feat-c.md", status: "pending", wave: 2 },
+        ],
+        artifacts: {},
+        lastUpdated: "2026-03-31T00:00:00Z",
+        blocked: null,
+      };
+
+      const deps = mockDeps({
+        scanEpics: async () => {
+          scanCount++;
+          if (scanCount === 1) return [advancedEpic];
+          return [{ ...advancedEpic, nextAction: null }];
+        },
+        sessionFactory: new SdkSessionFactory(async (opts) => {
+          dispatched.push(opts.featureSlug!);
+          return {
+            id: `dispatch-${opts.featureSlug}-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: Promise.resolve({
+              success: true,
+              exitCode: 0,
+              costUsd: 0.1,
+              durationMs: 500,
+            }),
+          };
+        }),
+      });
+
+      const loop = new WatchLoop(
+        { intervalSeconds: 999, projectRoot: TEST_ROOT },
+        deps,
+      );
+      loop.setRunning(true);
+
+      await loop.tick();
+
+      // Wave 1 is all completed, so wave 2 should dispatch
+      expect(dispatched).toEqual(["feat-c"]);
+
+      await new Promise((r) => setTimeout(r, 50));
+      await loop.stop();
+    });
+
+    it("multiple features in same wave dispatch in parallel", async () => {
+      const dispatched: string[] = [];
+      let scanCount = 0;
+
+      const parallelEpic: EnrichedManifest = {
+        slug: "parallel-epic",
+        manifestPath: "pipeline/parallel-epic.manifest.json",
+        phase: "implement",
+        nextAction: {
+          phase: "implement",
+          args: ["parallel-epic"],
+          type: "fan-out",
+          features: ["feat-a", "feat-b", "feat-c"],
+        },
+        features: [
+          { slug: "feat-a", plan: "feat-a.md", status: "pending", wave: 2 },
+          { slug: "feat-b", plan: "feat-b.md", status: "pending", wave: 2 },
+          { slug: "feat-c", plan: "feat-c.md", status: "pending", wave: 2 },
+          { slug: "feat-d", plan: "feat-d.md", status: "completed", wave: 1 },
+        ],
+        artifacts: {},
+        lastUpdated: "2026-03-31T00:00:00Z",
+        blocked: null,
+      };
+
+      const deps = mockDeps({
+        scanEpics: async () => {
+          scanCount++;
+          if (scanCount === 1) return [parallelEpic];
+          return [{ ...parallelEpic, nextAction: null }];
+        },
+        sessionFactory: new SdkSessionFactory(async (opts) => {
+          dispatched.push(opts.featureSlug!);
+          return {
+            id: `dispatch-${opts.featureSlug}-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: Promise.resolve({
+              success: true,
+              exitCode: 0,
+              costUsd: 0.1,
+              durationMs: 500,
+            }),
+          };
+        }),
+      });
+
+      const loop = new WatchLoop(
+        { intervalSeconds: 999, projectRoot: TEST_ROOT },
+        deps,
+      );
+      loop.setRunning(true);
+
+      await loop.tick();
+
+      // All 3 wave-2 features should dispatch in parallel
+      expect(dispatched).toHaveLength(3);
+      expect(dispatched).toContain("feat-a");
+      expect(dispatched).toContain("feat-b");
+      expect(dispatched).toContain("feat-c");
+
+      await new Promise((r) => setTimeout(r, 50));
+      await loop.stop();
+    });
+  });
 });

@@ -220,6 +220,35 @@ export class WatchLoop {
     epic: EnrichedManifest,
     features: string[],
   ): Promise<void> {
+    // --- Wave filtering ---
+    // Determine the current wave: the lowest wave number that has any
+    // pending or in-progress features. Only dispatch features from that wave.
+    // Features without a wave field default to wave 1.
+    const featureWaves = new Map<string, number>();
+    for (const f of epic.features) {
+      featureWaves.set(f.slug, f.wave ?? 1);
+    }
+
+    // Find the lowest wave with any non-terminal (pending/in-progress) feature
+    const nonTerminalWaves = epic.features
+      .filter((f) => f.status === "pending" || f.status === "in-progress" || f.status === "blocked")
+      .map((f) => f.wave ?? 1);
+
+    if (nonTerminalWaves.length === 0) return;
+
+    const currentWave = Math.min(...nonTerminalWaves);
+
+    // Filter the dispatch list to only features in the current wave
+    const waveFeatures = features.filter(
+      (slug) => (featureWaves.get(slug) ?? 1) === currentWave,
+    );
+
+    if (waveFeatures.length === 0) return;
+
+    this.logger.detail(
+      `${epic.slug}: wave ${currentWave} — dispatching ${waveFeatures.length}/${features.length} features`,
+    );
+
     // Validate feature provenance when worktree exists: each feature must
     // have a plan file with matching epic frontmatter. Skip check if worktree
     // hasn't been created yet (session factory will create it).
@@ -230,10 +259,10 @@ export class WatchLoop {
       epic.slug,
     );
 
-    let featuresToDispatch = features;
+    let featuresToDispatch = waveFeatures;
 
     if (existsSync(worktreePath)) {
-      const validFeatures = features.filter((featureSlug) => {
+      const validFeatures = waveFeatures.filter((featureSlug) => {
         const feature = epic.features.find((f) => f.slug === featureSlug);
         if (!feature?.plan) {
           this.logger.debug(`${epic.slug}: skipping feature ${featureSlug} — no plan file reference`);
@@ -261,8 +290,8 @@ export class WatchLoop {
         return true;
       });
 
-      if (validFeatures.length === 0 && features.length > 0) {
-        this.logger.error(`${epic.slug}: BLOCKED — all ${features.length} features failed provenance check`);
+      if (validFeatures.length === 0 && waveFeatures.length > 0) {
+        this.logger.error(`${epic.slug}: BLOCKED — all ${waveFeatures.length} wave ${currentWave} features failed provenance check`);
         return;
       }
 
