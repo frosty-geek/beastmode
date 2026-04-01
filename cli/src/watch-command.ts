@@ -100,12 +100,14 @@ export async function reconcileState(opts: {
   actor.stop();
 
   // 6. Sync to GitHub — warn-and-continue, never blocks reconciliation
-  await syncGitHubForEpic({
-    projectRoot: opts.projectRoot,
-    epicSlug: opts.epicSlug,
-    resolved: opts.resolved,
-    logger: opts.logger,
-  });
+  if (opts.resolved && opts.logger) {
+    await syncGitHubForEpic({
+      projectRoot: opts.projectRoot,
+      epicSlug: opts.epicSlug,
+      resolved: opts.resolved,
+      logger: opts.logger,
+    });
+  }
 
   return readProgress(opts.projectRoot, opts.epicSlug);
 }

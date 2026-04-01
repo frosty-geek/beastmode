@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.56.0 — Slug Redesign (Apr 2026)
+
+- **Standardized YAML frontmatter** — Consistent `slug`, `epic`, `feature` fields across all 5 phases with phase-specific additions (`wave`, `status`, `bump`)
+- **`store.rename()`** — Single atomic method handling all 7 slug-keyed resources (artifacts, branch, worktree, manifest file, manifest content)
+- **`store.find()`** — Resolves epics by either hex slug or human-readable name
+- **`slugify()` / `isValidSlug()`** — Centralized format validation in the manifest store
+- **Collision resolution** — Deterministic `<epic>-<hex>` suffix when slugs collide
+- **Single `store.save()` persist** — One call per dispatch; no more multiple writes or mid-transaction divergence
+- **`output.json` as sole LLM-to-CLI channel** — Replaces commit-message regex parsing
+- **Deletions** — `rename-slug.ts`, `resolveDesignSlug()` regex parser, `skipFinalPersist` flag, disk writes from machine persist action, rename logic from `store.save()`
+
 ### v0.55.0 — Fullscreen Dashboard (Mar 2026)
 
 - **`beastmode dashboard` command** — Fullscreen terminal UI built with Ink v6.8.0 + React for monitoring and controlling the pipeline

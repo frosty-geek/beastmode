@@ -10,6 +10,8 @@ import {
   save,
   create,
   validate,
+  slugify,
+  isValidSlug,
 } from "../manifest-store";
 import type { PipelineManifest } from "../manifest-store";
 
@@ -427,5 +429,87 @@ describe("PipelineManifest type", () => {
       lastUpdated: new Date().toISOString(),
     };
     expect(withoutBlocked.blocked).toBeUndefined();
+  });
+
+  test("includes optional originId and epic fields", () => {
+    const withOriginId: PipelineManifest = {
+      slug: "abc123",
+      epic: "my-feature",
+      phase: "design",
+      features: [],
+      artifacts: {},
+      originId: "abc123",
+      lastUpdated: new Date().toISOString(),
+    };
+    expect(withOriginId.originId).toBe("abc123");
+    expect(withOriginId.epic).toBe("my-feature");
+  });
+});
+
+describe("slugify", () => {
+  test("lowercases input", () => {
+    expect(slugify("MyFeature")).toBe("myfeature");
+  });
+
+  test("replaces spaces with hyphens", () => {
+    expect(slugify("my feature name")).toBe("my-feature-name");
+  });
+
+  test("replaces special characters with hyphens", () => {
+    expect(slugify("my_feature!@#name")).toBe("my-feature-name");
+  });
+
+  test("collapses multiple hyphens", () => {
+    expect(slugify("my---feature")).toBe("my-feature");
+  });
+
+  test("strips leading and trailing hyphens", () => {
+    expect(slugify("-my-feature-")).toBe("my-feature");
+  });
+
+  test("handles already-valid slugs", () => {
+    expect(slugify("valid-slug")).toBe("valid-slug");
+  });
+
+  test("throws on empty input", () => {
+    expect(() => slugify("")).toThrow(/Cannot slugify/);
+  });
+
+  test("throws on all-special-character input", () => {
+    expect(() => slugify("!!!")).toThrow(/Cannot slugify/);
+  });
+});
+
+describe("isValidSlug", () => {
+  test("accepts simple alphanumeric", () => {
+    expect(isValidSlug("abc123")).toBe(true);
+  });
+
+  test("accepts hyphenated slug", () => {
+    expect(isValidSlug("my-feature")).toBe(true);
+  });
+
+  test("rejects leading hyphen", () => {
+    expect(isValidSlug("-leading")).toBe(false);
+  });
+
+  test("rejects trailing hyphen", () => {
+    expect(isValidSlug("trailing-")).toBe(false);
+  });
+
+  test("rejects uppercase", () => {
+    expect(isValidSlug("MyFeature")).toBe(false);
+  });
+
+  test("rejects special characters", () => {
+    expect(isValidSlug("my_feature")).toBe(false);
+  });
+
+  test("accepts single character", () => {
+    expect(isValidSlug("a")).toBe(true);
+  });
+
+  test("rejects empty string", () => {
+    expect(isValidSlug("")).toBe(false);
   });
 });

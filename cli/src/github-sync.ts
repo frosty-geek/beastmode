@@ -11,6 +11,7 @@
 import type { PipelineManifest, ManifestFeature } from "./manifest";
 import type { BeastmodeConfig } from "./config";
 import type { ResolvedGitHub } from "./github-discovery";
+import { discoverGitHub } from "./github-discovery";
 import type { Logger } from "./logger";
 import { loadConfig } from "./config";
 import * as store from "./manifest-store";
@@ -430,22 +431,25 @@ async function syncProjectStatus(
 export async function syncGitHubForEpic(opts: {
   projectRoot: string;
   epicSlug: string;
-  resolved: ResolvedGitHub;
-  logger: Logger;
+  resolved?: ResolvedGitHub;
+  logger?: Logger;
 }): Promise<void> {
   try {
     const config = loadConfig(opts.projectRoot);
     if (!config.github.enabled) return;
 
+    const resolved = opts.resolved ?? await discoverGitHub(opts.projectRoot);
+    if (!resolved) return;
+
     const manifest = store.load(opts.projectRoot, opts.epicSlug);
     if (!manifest) {
-      opts.logger.debug(`No manifest for ${opts.epicSlug} — skipping GitHub sync`);
+      opts.logger?.debug(`No manifest for ${opts.epicSlug} — skipping GitHub sync`);
       return;
     }
 
-    const result = await syncGitHub(manifest, config, opts.resolved);
+    const result = await syncGitHub(manifest, config, resolved);
     for (const w of result.warnings) {
-      opts.logger.warn(`GitHub sync: ${w}`);
+      opts.logger?.warn(`GitHub sync: ${w}`);
     }
 
     if (result.mutations.length > 0) {
@@ -468,6 +472,6 @@ export async function syncGitHubForEpic(opts: {
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    opts.logger.warn(`GitHub sync failed (non-blocking): ${message}`);
+    opts.logger?.warn(`GitHub sync failed (non-blocking): ${message}`);
   }
 }

@@ -275,7 +275,7 @@ describe("runPostDispatch", () => {
       artifacts: { design: "some-prd.md", slug: "real-feature-name" },
     });
 
-    // This will try to rename but fail (no git repo in test env).
+    // store.rename() will fail (no git repo in test env).
     // The important thing: it should NOT throw and should still advance the phase.
     await runPostDispatch({
       worktreePath: WORKTREE,
@@ -415,5 +415,28 @@ describe("runPostDispatch", () => {
 
     const updated = readTestManifest(EPIC_SLUG);
     expect(updated.features[0].wave).toBeUndefined();
+  });
+
+  test("design phase finds output by epicSlug (hex-based lookup)", async () => {
+    const manifest = makeManifest({ phase: "design" });
+    writeTestManifest(EPIC_SLUG, manifest);
+
+    // Output file is keyed to epicSlug — no commit message parsing needed
+    writePhaseOutput(WORKTREE, "design", EPIC_SLUG, {
+      status: "completed",
+      artifacts: { design: "some-prd.md", slug: "real-feature-name" },
+    });
+
+    await runPostDispatch({
+      worktreePath: WORKTREE,
+      projectRoot: TEST_ROOT,
+      epicSlug: EPIC_SLUG,
+      phase: "design",
+      success: true,
+    });
+
+    // Phase should advance — output was found by epicSlug directly
+    const updated = readTestManifest(EPIC_SLUG);
+    expect(updated.phase).toBe("plan");
   });
 });

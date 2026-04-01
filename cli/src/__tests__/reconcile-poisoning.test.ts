@@ -91,7 +91,7 @@ describe("reconcileState — feature isolation", () => {
     if (existsSync(TEST_ROOT)) rmSync(TEST_ROOT, { recursive: true });
   });
 
-  test("first feature completing does not mark other features completed", () => {
+  test("first feature completing does not mark other features completed", async () => {
     // 6 features, all pending — mirrors the real scenario
     writeManifest(makeManifest([
       { slug: "render-extract", status: "pending" },
@@ -111,7 +111,7 @@ describe("reconcileState — feature isolation", () => {
     });
 
     // Reconcile for render-extract only
-    const progress = reconcileState({
+    const progress = await reconcileState({
       worktreePath: WORKTREE,
       projectRoot: TEST_ROOT,
       epicSlug: EPIC,
@@ -137,7 +137,7 @@ describe("reconcileState — feature isolation", () => {
     expect(progress).toEqual({ completed: 1, total: 6 });
   });
 
-  test("sequential completions accumulate correctly without poisoning", () => {
+  test("sequential completions accumulate correctly without poisoning", async () => {
     writeManifest(makeManifest([
       { slug: "feat-a", status: "pending" },
       { slug: "feat-b", status: "pending" },
@@ -150,7 +150,7 @@ describe("reconcileState — feature isolation", () => {
       artifacts: { features: [{ slug: "feat-a", status: "completed" }] },
     });
 
-    reconcileState({
+    await reconcileState({
       worktreePath: WORKTREE,
       projectRoot: TEST_ROOT,
       epicSlug: EPIC,
@@ -171,7 +171,7 @@ describe("reconcileState — feature isolation", () => {
       artifacts: { features: [{ slug: "feat-b", status: "completed" }] },
     });
 
-    reconcileState({
+    await reconcileState({
       worktreePath: WORKTREE,
       projectRoot: TEST_ROOT,
       epicSlug: EPIC,
@@ -192,7 +192,7 @@ describe("reconcileState — feature isolation", () => {
       artifacts: { features: [{ slug: "feat-c", status: "completed" }] },
     });
 
-    reconcileState({
+    await reconcileState({
       worktreePath: WORKTREE,
       projectRoot: TEST_ROOT,
       epicSlug: EPIC,
@@ -208,7 +208,7 @@ describe("reconcileState — feature isolation", () => {
     expect(manifest.phase).toBe("validate");
   });
 
-  test("epic-level output cannot poison features via enrich", () => {
+  test("epic-level output cannot poison features via enrich", async () => {
     // This is the EXACT bug scenario: an epic-level output.json exists
     // that lists all features as completed. Before the fix, reconcileState
     // would pick this up via loadWorktreePhaseOutput and enrich all features.
@@ -237,7 +237,7 @@ describe("reconcileState — feature isolation", () => {
     });
 
     // Reconcile for feat-a — should ONLY read feat-a's output, NOT the epic-level one
-    reconcileState({
+    await reconcileState({
       worktreePath: WORKTREE,
       projectRoot: TEST_ROOT,
       epicSlug: EPIC,
@@ -253,13 +253,13 @@ describe("reconcileState — feature isolation", () => {
     expect(manifest.phase).toBe("implement");
   });
 
-  test("feature without output.json is not marked completed", () => {
+  test("feature without output.json is not marked completed", async () => {
     writeManifest(makeManifest([
       { slug: "lazy-feat", status: "pending" },
     ]));
 
     // Session exited 0 but no output.json written
-    reconcileState({
+    await reconcileState({
       worktreePath: WORKTREE,
       projectRoot: TEST_ROOT,
       epicSlug: EPIC,

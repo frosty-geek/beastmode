@@ -11,6 +11,26 @@ export type Command = Phase | "watch" | "status" | "cancel" | "compact" | "dashb
 export interface ParsedCommand {
   command: Command;
   args: string[];
+  verbosity: number;
+}
+
+/**
+ * Parse -v / -vv / -vvv flags from an args array.
+ * Returns the verbosity count and remaining args with -v flags stripped.
+ */
+export function parseVerbosity(args: string[]): { verbosity: number; rest: string[] } {
+  let verbosity = 0;
+  const rest: string[] = [];
+
+  for (const arg of args) {
+    if (/^-v+$/.test(arg)) {
+      verbosity += arg.length - 1; // count v's after the dash
+    } else {
+      rest.push(arg);
+    }
+  }
+
+  return { verbosity, rest };
 }
 
 export function parseArgs(argv: string[]): ParsedCommand {
@@ -18,7 +38,7 @@ export function parseArgs(argv: string[]): ParsedCommand {
   const userArgs = argv.slice(2);
 
   if (userArgs.length === 0) {
-    return { command: "help", args: [] };
+    return { command: "help", args: [], verbosity: 0 };
   }
 
   const command = userArgs[0];
@@ -32,8 +52,11 @@ export function parseArgs(argv: string[]): ParsedCommand {
     process.exit(1);
   }
 
+  const { verbosity, rest } = parseVerbosity(userArgs.slice(1));
+
   return {
     command: command as Command,
-    args: userArgs.slice(1),
+    args: rest,
+    verbosity,
   };
 }

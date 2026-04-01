@@ -9,13 +9,12 @@ import {
 } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
-import { renameEpicSlug, findAvailableSlug } from "../rename-slug";
+import { rename } from "../manifest-store";
 
-const TEST_ROOT = resolve(import.meta.dir, "../../.test-rename-slug");
+const TEST_ROOT = resolve(import.meta.dir, "../../.test-manifest-rename");
 
 function cleanup(): void {
   if (existsSync(TEST_ROOT)) {
-    // Prune worktrees before deleting so git doesn't complain
     try {
       execSync("git worktree prune", { cwd: TEST_ROOT, stdio: "ignore" });
     } catch {}
@@ -26,15 +25,11 @@ function cleanup(): void {
 function setupTestRepo(): void {
   cleanup();
   mkdirSync(TEST_ROOT, { recursive: true });
-
-  // Init a real git repo with an initial commit
   execSync("git init", { cwd: TEST_ROOT, stdio: "ignore" });
   execSync("git commit --allow-empty -m 'init'", {
     cwd: TEST_ROOT,
     stdio: "ignore",
   });
-
-  // Create .beastmode/state/ and .claude/worktrees/ dirs
   mkdirSync(resolve(TEST_ROOT, ".beastmode", "state"), { recursive: true });
   mkdirSync(resolve(TEST_ROOT, ".claude", "worktrees"), { recursive: true });
 }
@@ -42,11 +37,7 @@ function setupTestRepo(): void {
 function createTestWorktree(slug: string): void {
   const branch = `feature/${slug}`;
   const wtPath = resolve(TEST_ROOT, ".claude", "worktrees", slug);
-
-  // Create the branch from HEAD
   execSync(`git branch ${branch}`, { cwd: TEST_ROOT, stdio: "ignore" });
-
-  // Create the worktree pointing at that branch
   execSync(`git worktree add ${wtPath} ${branch}`, {
     cwd: TEST_ROOT,
     stdio: "ignore",
@@ -100,39 +91,27 @@ function readManifest(slug: string): Record<string, unknown> {
   return JSON.parse(readFileSync(resolve(dir, file), "utf-8"));
 }
 
-describe("renameEpicSlug", () => {
+describe("rename", () => {
   beforeEach(() => setupTestRepo());
   afterEach(() => cleanup());
 
-  test("renames all 5 targets on happy path", async () => {
+  test("happy path: renames all resources", async () => {
     createTestWorktree("abc123");
     createTestManifest("abc123");
 
-    const result = await renameEpicSlug({
-      hexSlug: "abc123",
-      realSlug: "my-feature",
-      projectRoot: TEST_ROOT,
-    });
+    const result = await rename(TEST_ROOT, "abc123", "My Feature");
 
-    // Result shape
     expect(result.renamed).toBe(true);
     expect(result.finalSlug).toBe("my-feature");
-    expect(result.completedSteps.length).toBeGreaterThanOrEqual(4);
+    expect(result.error).toBeUndefined();
 
     // Branch renamed
     expect(branchExists("feature/my-feature")).toBe(true);
     expect(branchExists("feature/abc123")).toBe(false);
 
-    // Worktree directory renamed
-    const newWtPath = resolve(
-      TEST_ROOT,
-      ".claude",
-      "worktrees",
-      "my-feature",
-    );
-    const oldWtPath = resolve(TEST_ROOT, ".claude", "worktrees", "abc123");
-    expect(existsSync(newWtPath)).toBe(true);
-    expect(existsSync(oldWtPath)).toBe(false);
+    // Worktree dir renamed
+    expect(existsSync(resolve(TEST_ROOT, ".claude", "worktrees", "my-feature"))).toBe(true);
+    expect(existsSync(resolve(TEST_ROOT, ".claude", "worktrees", "abc123"))).toBe(false);
 
     // Manifest file renamed
     expect(findManifestFile("my-feature")).toBeDefined();
@@ -141,106 +120,91 @@ describe("renameEpicSlug", () => {
     // Manifest internals updated
     const manifest = readManifest("my-feature");
     expect(manifest.slug).toBe("my-feature");
-    const worktree = manifest.worktree as Record<string, string>;
-    expect(worktree.branch).toBe("feature/my-feature");
+    expect(manifest.epic).toBe("my-feature");
+    expect(manifest.originId).toBe("abc123");
+    const wt = manifest.worktree as Record<string, string>;
+    expect(wt.branch).toBe("feature/my-feature");
   });
 
-  test("auto-suffixes on slug collision", async () => {
+  test("collision uses hex suffix", async () => {
     createTestWorktree("abc123");
     createTestManifest("abc123");
 
-    // Create a colliding branch so "my-feature" is taken
+    // Create colliding branch
     execSync("git branch feature/my-feature", {
       cwd: TEST_ROOT,
       stdio: "ignore",
     });
 
-    const result = await renameEpicSlug({
-      hexSlug: "abc123",
-      realSlug: "my-feature",
-      projectRoot: TEST_ROOT,
-    });
+    const result = await rename(TEST_ROOT, "abc123", "My Feature");
 
-    expect(result.finalSlug).toBe("my-feature-v2");
-    expect(branchExists("feature/my-feature-v2")).toBe(true);
     expect(result.renamed).toBe(true);
+    expect(result.finalSlug).toBe("my-feature-abc123");
+    expect(branchExists("feature/my-feature-abc123")).toBe(true);
+
+    const manifest = readManifest("my-feature-abc123");
+    expect(manifest.originId).toBe("abc123");
   });
 
-  test("aborts remaining steps on failure", async () => {
-    // Create the branch but NOT a worktree directory — branch rename
-    // succeeds, but worktree directory rename will fail (no dir to move)
-    execSync("git branch feature/abc123", {
-      cwd: TEST_ROOT,
-      stdio: "ignore",
-    });
-    createTestManifest("abc123");
+  test("rejects invalid format after slugify", async () => {
+    const result = await rename(TEST_ROOT, "abc123", "!!!");
 
-    const result = await renameEpicSlug({
-      hexSlug: "abc123",
-      realSlug: "target",
-      projectRoot: TEST_ROOT,
-    });
-
-    // Rename should have reported failure
     expect(result.renamed).toBe(false);
     expect(result.error).toBeDefined();
-    expect(typeof result.error).toBe("string");
-
-    // Branch rename (step 1) should have completed before abort
-    expect(result.completedSteps.length).toBeGreaterThanOrEqual(1);
-    expect(branchExists("feature/target")).toBe(true);
+    expect(result.error).toContain("Cannot slugify");
   });
 
-  test("returns early when hexSlug equals realSlug", async () => {
-    const result = await renameEpicSlug({
-      hexSlug: "same",
-      realSlug: "same",
-      projectRoot: TEST_ROOT,
-    });
+  test("precondition failure: missing branch", async () => {
+    // Create worktree dir + manifest but no branch
+    mkdirSync(resolve(TEST_ROOT, ".claude", "worktrees", "abc123"), { recursive: true });
+    createTestManifest("abc123");
+
+    const result = await rename(TEST_ROOT, "abc123", "my-feature");
+
+    expect(result.renamed).toBe(false);
+    expect(result.error).toContain("Branch not found");
+    expect(result.completedSteps).toEqual([]);
+  });
+
+  test("precondition failure: missing worktree dir", async () => {
+    // Create branch + manifest but no worktree dir
+    execSync("git branch feature/abc123", { cwd: TEST_ROOT, stdio: "ignore" });
+    createTestManifest("abc123");
+
+    const result = await rename(TEST_ROOT, "abc123", "my-feature");
+
+    expect(result.renamed).toBe(false);
+    expect(result.error).toContain("Worktree directory not found");
+    expect(result.completedSteps).toEqual([]);
+  });
+
+  test("precondition failure: missing manifest", async () => {
+    createTestWorktree("abc123");
+    // No manifest created
+
+    const result = await rename(TEST_ROOT, "abc123", "my-feature");
+
+    expect(result.renamed).toBe(false);
+    expect(result.error).toContain("Manifest not found");
+    expect(result.completedSteps).toEqual([]);
+  });
+
+  test("no-op when slugs match", async () => {
+    const result = await rename(TEST_ROOT, "same", "same");
 
     expect(result.renamed).toBe(false);
     expect(result.finalSlug).toBe("same");
     expect(result.error).toBeUndefined();
     expect(result.completedSteps).toEqual([]);
   });
-});
 
-describe("findAvailableSlug", () => {
-  beforeEach(() => setupTestRepo());
-  afterEach(() => cleanup());
+  test("slugifies the epic name before rename", async () => {
+    createTestWorktree("abc123");
+    createTestManifest("abc123");
 
-  test("returns target slug when no collision", async () => {
-    const slug = await findAvailableSlug("my-feature", {
-      projectRoot: TEST_ROOT,
-    });
-    expect(slug).toBe("my-feature");
-  });
+    const result = await rename(TEST_ROOT, "abc123", "My Cool Feature!");
 
-  test("suffixes -v2 on first collision", async () => {
-    execSync("git branch feature/my-feature", {
-      cwd: TEST_ROOT,
-      stdio: "ignore",
-    });
-
-    const slug = await findAvailableSlug("my-feature", {
-      projectRoot: TEST_ROOT,
-    });
-    expect(slug).toBe("my-feature-v2");
-  });
-
-  test("increments suffix on multiple collisions", async () => {
-    execSync("git branch feature/my-feature", {
-      cwd: TEST_ROOT,
-      stdio: "ignore",
-    });
-    execSync("git branch feature/my-feature-v2", {
-      cwd: TEST_ROOT,
-      stdio: "ignore",
-    });
-
-    const slug = await findAvailableSlug("my-feature", {
-      projectRoot: TEST_ROOT,
-    });
-    expect(slug).toBe("my-feature-v3");
+    expect(result.renamed).toBe(true);
+    expect(result.finalSlug).toBe("my-cool-feature");
   });
 });

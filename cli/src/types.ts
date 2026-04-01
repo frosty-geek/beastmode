@@ -32,6 +32,7 @@ export interface PhaseResult {
 export interface DesignArtifacts {
   design: string; // path to PRD
   slug?: string;  // real slug from PRD frontmatter (for post-dispatch rename)
+  epic?: string;  // human-readable epic name from standardized frontmatter
   summary?: { problem: string; solution: string };
 }
 
