@@ -1,4 +1,5 @@
 import type { EpicContext, EpicEvent } from "./types";
+import { regress } from "../manifest";
 
 /**
  * Action logic implementations for the epic machine.
@@ -68,4 +69,28 @@ export function computeMarkFeatureCompleted(context: EpicContext, event: EpicEve
     );
   }
   return context.features;
+}
+
+/**
+ * Compute the regressed context using the manifest regress() pure function.
+ * Returns a partial EpicContext with all fields that need updating.
+ */
+export function computeRegress(context: EpicContext, event: EpicEvent): Partial<EpicContext> {
+  if (event.type !== "REGRESS") return {};
+
+  const manifest = {
+    slug: context.slug,
+    phase: context.phase,
+    features: context.features,
+    artifacts: context.artifacts,
+    blocked: context.blocked,
+    lastUpdated: context.lastUpdated,
+  };
+  const result = regress(manifest as any, event.targetPhase);
+  return {
+    phase: result.phase,
+    features: result.features,
+    artifacts: result.artifacts,
+    blocked: result.blocked,
+  };
 }

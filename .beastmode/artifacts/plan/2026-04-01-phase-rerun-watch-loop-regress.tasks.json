@@ -1,0 +1,10 @@
+{
+  "featurePlan": ".beastmode/artifacts/plan/2026-04-01-phase-rerun-watch-loop-regress.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Replace VALIDATE_FAILED with REGRESS in post-dispatch.ts", "status": "pending", "wave": 1},
+    {"id": 1, "subject": "Task 1: Replace VALIDATE_FAILED with REGRESS in watch-command.ts", "status": "pending", "wave": 1},
+    {"id": 2, "subject": "Task 2: Update watch-reconcile-sync test for REGRESS event", "status": "pending", "wave": 2},
+    {"id": 3, "subject": "Task 3: Verify full test suite passes", "status": "pending", "wave": 3}
+  ],
+  "lastUpdated": "2026-04-01T00:00:00Z"
+}

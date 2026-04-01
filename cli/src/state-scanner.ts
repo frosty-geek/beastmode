@@ -78,7 +78,7 @@ function preReconcile(manifest: PipelineManifest, projectRoot: string): Pipeline
   if (!output) return manifest;
 
   // Non-completed outputs are normally skipped — except validate, where a
-  // non-completed output must reach the machine so VALIDATE_FAILED fires.
+  // non-completed output must reach the machine so REGRESS fires.
   const phase = manifest.phase as Phase;
   if (output.status !== "completed" && phase !== "validate") return manifest;
 
@@ -164,7 +164,7 @@ function mapOutputToEvents(
       if (output.status === "completed") {
         events.push({ type: "VALIDATE_COMPLETED" });
       } else {
-        events.push({ type: "VALIDATE_FAILED" });
+        events.push({ type: "REGRESS", targetPhase: "implement" as Phase });
       }
       break;
     }

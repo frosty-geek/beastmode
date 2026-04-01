@@ -82,6 +82,20 @@ export const VALID_PHASES: readonly Phase[] = [
   "cancelled",
 ] as const;
 
+/** Phase ordering for regression detection. Only workflow phases included. */
+export const PHASE_ORDER: readonly Phase[] = [
+  "design",
+  "plan",
+  "implement",
+  "validate",
+  "release",
+] as const;
+
+/** Get the zero-based index of a phase in the workflow order. Returns -1 for terminal phases. */
+export function phaseIndex(phase: Phase): number {
+  return (PHASE_ORDER as readonly string[]).indexOf(phase);
+}
+
 export function isValidPhase(s: string): s is Phase {
   return (VALID_PHASES as readonly string[]).includes(s);
 }
