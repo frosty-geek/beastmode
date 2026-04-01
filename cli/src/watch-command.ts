@@ -59,7 +59,9 @@ export async function reconcileState(opts: {
   resolved?: ResolvedGitHub;
   logger?: Logger;
 }): Promise<{ completed: number; total: number } | undefined> {
-  if (!opts.success) return readProgress(opts.projectRoot, opts.epicSlug);
+  // Skip manifest updates on failure — except validate, which must send
+  // VALIDATE_FAILED to regress the epic back to implement.
+  if (!opts.success && opts.phase !== "validate") return readProgress(opts.projectRoot, opts.epicSlug);
 
   // 1. Load manifest — if it's gone (e.g. release teardown removed it), bail
   const manifest: PipelineManifest | undefined = store.load(opts.projectRoot, opts.epicSlug);

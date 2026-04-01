@@ -58,8 +58,10 @@ export interface PostDispatchOptions {
 export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> {
   const logger = opts.logger ?? createLogger(0, "post-dispatch");
   try {
-    // Early exit on failure — no manifest/sync updates
-    if (!opts.success) {
+    // Early exit on failure — no manifest/sync updates.
+    // Exception: validate failures must reach the machine so VALIDATE_FAILED
+    // fires and regresses the epic back to implement.
+    if (!opts.success && opts.phase !== "validate") {
       logger.log(`Phase ${opts.phase} failed for ${opts.epicSlug} — skipping updates`);
       return;
     }

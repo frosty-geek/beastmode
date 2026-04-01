@@ -75,7 +75,12 @@ function preReconcile(manifest: PipelineManifest, projectRoot: string): Pipeline
   if (!file) return manifest;
 
   const output = loadOutput(file);
-  if (!output || output.status !== "completed") return manifest;
+  if (!output) return manifest;
+
+  // Non-completed outputs are normally skipped — except validate, where a
+  // non-completed output must reach the machine so VALIDATE_FAILED fires.
+  const phase = manifest.phase as Phase;
+  if (output.status !== "completed" && phase !== "validate") return manifest;
 
   // Hydrate ephemeral actor at the manifest's current phase
   const epicContext = manifest as unknown as EpicContext;
