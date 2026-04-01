@@ -4,7 +4,6 @@ import {
   writeFileSync,
   rmSync,
   existsSync,
-  readFileSync,
 } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
