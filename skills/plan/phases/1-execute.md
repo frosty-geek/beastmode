@@ -52,10 +52,11 @@ When multiple features exist, propose wave groupings based on dependency analysi
 Rules:
 - Single-feature plans: assign wave 1 automatically
 - Features with no inter-feature dependencies: same wave (parallel execution)
-- Present proposed waves as part of the normal interview flow for user confirmation
+- Assign waves based on dependency analysis
 - Wave number is the sole ordering primitive — no explicit dependency graph between features
 
-## 4. Iterate Until Ready
+## 4. Finalize Features
 
-- Keep YAGNI in mind — remove unnecessary scope
-- Features are ready when all have user stories, descriptions, and acceptance criteria
+- Apply YAGNI — remove unnecessary scope
+- Verify all features have user stories, descriptions, and acceptance criteria
+- Self-review: check feature boundaries make sense, no overlaps, no gaps

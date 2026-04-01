@@ -6,7 +6,7 @@ The feature name comes from the skill arguments. Use it directly for all artifac
 
 ## 2. Announce Skill
 
-Greet in persona voice. One sentence. Set expectations for what this phase does and what the user's role is.
+Greet in persona voice. One sentence. Set expectations for what this phase does.
 
 ## 3. Load Project Context
 
