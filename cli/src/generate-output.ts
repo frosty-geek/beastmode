@@ -79,7 +79,7 @@ export function buildOutput(
         : undefined;
       return {
         status: (fm.status as PhaseOutput["status"]) ?? "completed",
-        artifacts: { design: artifactPath, slug: fm.slug, epic: fm.epic, summary },
+        artifacts: { design: artifactPath, slug: fm.epic ?? fm.slug, epic: fm.epic, summary },
       };
     }
 
