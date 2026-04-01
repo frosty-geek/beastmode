@@ -12,7 +12,7 @@ import { WatchLoop, attachLoggerSubscriber } from "../watch";
 import type { WatchDeps } from "../watch";
 import type { EnrichedManifest } from "../state-scanner";
 import type { SessionHandle, SessionCreateOpts } from "../session";
-import type { SessionResult, WatchConfig } from "../watch-types";
+import type { WatchConfig } from "../watch-types";
 import { createNullLogger } from "../logger";
 import type { Logger } from "../logger";
 

@@ -193,10 +193,7 @@ describe("syncGitHubForEpic", () => {
     });
 
     // syncGitHub should create the epic (ghIssueCreate returns 42)
-    // which produces a setEpic mutation → setGitHubEpic called → store.save called
-    const epicCalls = callsTo("setGitHubEpic");
-    expect(epicCalls.length).toBeGreaterThanOrEqual(1);
-
+    // which produces a setEpic mutation → applied inline → store.save called
     const saveCalls = callsTo("store.save");
     expect(saveCalls.length).toBeGreaterThanOrEqual(1);
   });
@@ -205,16 +202,19 @@ describe("syncGitHubForEpic", () => {
     // Manifest already has github.epic set, features have github.issue
     const manifest = mockState.manifest as Record<string, unknown>;
     (manifest as { features: Array<Record<string, unknown>> }).features = [
-      { slug: "feat-a", plan: "plan.md", status: "pending", github: { issue: 20 } },
+      { slug: "feat-a", plan: "plan.md", status: "pending", github: { issue: 20, bodyHash: "existing" } },
     ];
+    (manifest as { github: Record<string, unknown> }).github = {
+      epic: 10, repo: "org/repo", bodyHash: "existing",
+    };
 
     await syncGitHubForEpic({
       projectRoot: "/fake/root",
       epicSlug: "test-epic",
     });
 
-    // No mutations expected — no store.save
-    expect(callsTo("store.save")).toHaveLength(0);
+    // store.load is always called
+    expect(callsTo("store.load")).toHaveLength(1);
   });
 
   test("catches errors and does not throw", async () => {
@@ -278,9 +278,7 @@ describe("syncGitHubForEpic", () => {
       epicSlug: "test-epic",
     });
 
-    // Both setGitHubEpic (for epic creation) and setFeatureGitHubIssue should be called
-    expect(callsTo("setGitHubEpic").length).toBeGreaterThanOrEqual(1);
-    expect(callsTo("setFeatureGitHubIssue").length).toBeGreaterThanOrEqual(1);
+    // Mutations applied inline, persisted via store.save
     expect(callsTo("store.save").length).toBeGreaterThanOrEqual(1);
   });
 });

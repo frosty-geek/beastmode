@@ -9,8 +9,7 @@ import {
 } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
-import { rename, manifestPath, slugify, isValidSlug } from "../manifest-store";
-import type { PipelineManifest, RenameResult } from "../manifest-store";
+import { rename } from "../manifest-store";
 
 const TEST_ROOT = resolve(import.meta.dir, "../../.test-manifest-rename");
 

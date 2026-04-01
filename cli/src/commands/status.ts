@@ -83,6 +83,58 @@ function colorPhase(phase: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Wave display helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Compact wave indicator for multi-wave implement epics.
+ * Returns "W{current}/{total}" or "" if not applicable.
+ */
+export function formatWaveIndicator(epic: EnrichedManifest): string {
+  if (epic.phase !== "implement") return "";
+  const waves = new Set(epic.features.map(f => f.wave).filter((w): w is number => w !== undefined));
+  if (waves.size <= 1) return "";
+  // All completed → no indicator needed
+  if (epic.features.every(f => f.status === "completed")) return "";
+  const sortedWaves = [...waves].sort((a, b) => a - b);
+  const currentWave = sortedWaves.find(w =>
+    epic.features.some(f => f.wave === w && f.status !== "completed")
+  );
+  if (currentWave === undefined) return "";
+  return `W${currentWave}/${sortedWaves.length}`;
+}
+
+/**
+ * Build per-wave sub-rows for verbose status display.
+ * Only applies to multi-wave implement epics.
+ */
+export function buildVerboseWaveRows(epic: EnrichedManifest): StatusRow[] {
+  if (epic.phase !== "implement") return [];
+  const waveMap = new Map<number, typeof epic.features>();
+  for (const f of epic.features) {
+    if (f.wave === undefined) continue;
+    const list = waveMap.get(f.wave) ?? [];
+    list.push(f);
+    waveMap.set(f.wave, list);
+  }
+  if (waveMap.size <= 1) return [];
+  const sortedWaves = [...waveMap.keys()].sort((a, b) => a - b);
+  return sortedWaves.map(w => {
+    const features = waveMap.get(w)!;
+    const completed = features.filter(f => f.status === "completed").length;
+    const total = features.length;
+    const allDone = completed === total;
+    const waveStatus = allDone ? "completed" : (features.some(f => f.status === "in-progress") ? "in-progress" : "pending");
+    return {
+      name: color(`  W${w}`, ANSI.dim),
+      phase: "",
+      features: `${completed}/${total}`,
+      status: color(waveStatus, waveStatus === "completed" ? ANSI.green : waveStatus === "in-progress" ? ANSI.yellow : ANSI.dim),
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Formatters
 // ---------------------------------------------------------------------------
 
@@ -90,7 +142,9 @@ export function formatFeatures(epic: EnrichedManifest): string {
   const total = epic.features.length;
   if (total === 0) return "-";
   const completed = epic.features.filter(f => f.status === "completed").length;
-  return `${completed}/${total}`;
+  const base = `${completed}/${total}`;
+  const wave = formatWaveIndicator(epic);
+  return wave ? `${base} ${wave}` : base;
 }
 
 export function formatStatus(epic: EnrichedManifest): string {
@@ -104,12 +158,28 @@ export function formatStatus(epic: EnrichedManifest): string {
 // Row building — delegates to shared module with ANSI formatters
 // ---------------------------------------------------------------------------
 
-export function buildStatusRows(epics: EnrichedManifest[], opts: { all?: boolean } = {}): StatusRow[] {
-  return sharedBuildStatusRows(epics, opts, {
+export function buildStatusRows(epics: EnrichedManifest[], opts: { all?: boolean; verbose?: boolean } = {}): StatusRow[] {
+  const baseRows = sharedBuildStatusRows(epics, opts, {
     colorPhase,
     formatFeatures,
     formatStatus,
   });
+  if (!opts.verbose) return baseRows;
+
+  // Insert wave sub-rows after each epic row
+  const filtered = opts.all
+    ? epics
+    : epics.filter(e => e.phase !== "done" && e.phase !== "cancelled");
+  const epicMap = new Map(filtered.map(e => [e.slug, e]));
+  const result: StatusRow[] = [];
+  for (const row of baseRows) {
+    result.push(row);
+    const epic = epicMap.get(row.name);
+    if (epic) {
+      result.push(...buildVerboseWaveRows(epic));
+    }
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
