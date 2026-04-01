@@ -26,3 +26,27 @@ Checkpoint prints the CLI command for the next phase. Format: `beastmode <next-p
 Only the transition gate in the checkpoint phase may produce next-step commands. Retro agents and sub-agents are banned from printing transition guidance, session-restart instructions, or next-step commands.
 
 1. NEVER print next-step commands from retro agents — transition gate is the sole authority
+
+## Phase Detection
+
+### Decision
+`beastmode <phase> <slug>` uses a detection matrix: requested < current = regression, requested == current (with prior commits) = same-phase rerun, requested == current (no prior commits) = normal forward, requested > current = forward-jump blocked (error and exit). Same-phase rerun resets to the predecessor's tag and reruns — uniform with regression. Plan is the earliest valid regression target; design is excluded. Manual CLI prompts for confirmation before destructive reset; watch loop skips the prompt.
+
+### Rationale
+Overloading the existing command avoids introducing a new `beastmode regress` command. The detection matrix covers all possible states of requested-vs-current phase comparison. Forward-jump blocking prevents accidentally skipping phases and producing incomplete epics. Confirmation prompt protects against accidental data loss in manual usage while allowing automated pipelines to self-heal unimpeded.
+
+### Source
+.beastmode/artifacts/design/2026-04-01-phase-rerun.md
+.beastmode/artifacts/implement/2026-04-01-phase-rerun-phase-detection.md
+
+## Phase Tags
+
+### Decision
+CLI-managed git tags named `beastmode/<slug>/<phase>` (e.g., `beastmode/phase-rerun/design`). Tags are created at each phase checkpoint, deleted on regression (downstream tags removed), and renamed during slug rename as part of `store.rename()`. Crash-safe ordering: delete downstream tags -> git reset -> regress manifest. Old epics without tags fail regression with a clear error. The `beastmode/` namespace avoids collision with user-created tags.
+
+### Rationale
+Git tags provide deterministic commit identification for reset targets, independent of commit message formatting or branch history shape. Crash-safe ordering ensures that missing tags are harmless (next successful phase recreates them) while mid-operation crashes leave the system in a recoverable state. Tag rename during slug rename maintains tag-to-epic association through the identity transition.
+
+### Source
+.beastmode/artifacts/design/2026-04-01-phase-rerun.md
+.beastmode/artifacts/implement/2026-04-01-phase-rerun-phase-tags.md

@@ -43,3 +43,4 @@
 5. Guards are standalone pure functions checked against event payloads, not external state
 6. CANCEL event must be valid from every non-terminal epic state
 7. Persist action accumulates state in memory only — no disk writes during machine transitions, single `store.save()` at end of dispatch
+8. REGRESS event replaces VALIDATE_FAILED — generic regression from any non-terminal state to any earlier phase except design, with full feature reset when regressing to or past implement

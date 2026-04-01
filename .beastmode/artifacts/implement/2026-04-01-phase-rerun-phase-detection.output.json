@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "artifacts": {
+    "features": [
+      {
+        "slug": "phase-detection",
+        "status": "completed"
+      }
+    ]
+  }
+}
