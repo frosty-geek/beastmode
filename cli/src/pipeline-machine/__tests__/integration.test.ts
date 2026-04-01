@@ -124,10 +124,10 @@ describe("integration: cancel from mid-pipeline", () => {
   });
 });
 
-// ── 3. Validate regression loop ─────────────────────────────────
+// ── 3. REGRESS regression loop ────────────────────────────────────
 
-describe("integration: validate regression loop", () => {
-  test("fails validation, resets features, re-completes, and finishes", () => {
+describe("integration: REGRESS regression loop", () => {
+  test("fails validation, resets features via REGRESS, re-completes, and finishes", () => {
     const actor = startEpicActor();
 
     // advance to validate
@@ -139,8 +139,8 @@ describe("integration: validate regression loop", () => {
     actor.send({ type: "IMPLEMENT_COMPLETED" });
     expect(actor.getSnapshot().value).toBe("validate");
 
-    // validation fails
-    actor.send({ type: "VALIDATE_FAILED" });
+    // validation fails — REGRESS to implement
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
     expect(actor.getSnapshot().value).toBe("implement");
     expect(actor.getSnapshot().context.features.every((f) => f.status === "pending")).toBe(true);
 

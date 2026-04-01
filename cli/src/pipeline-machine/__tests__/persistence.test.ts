@@ -325,10 +325,10 @@ describe("feature machine round-trip", () => {
   });
 });
 
-// ── 5. Round-trip after validate regression ──────────────────────
+// ── 5. Round-trip after REGRESS regression ────────────────────────
 
-describe("round-trip after validate regression", () => {
-  test("VALIDATE_FAILED state persists with reset features", () => {
+describe("round-trip after REGRESS regression", () => {
+  test("REGRESS state persists with reset features", () => {
     const actor = startEpicActor();
     actor.send({ type: "DESIGN_COMPLETED" });
     actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
@@ -338,7 +338,7 @@ describe("round-trip after validate regression", () => {
     expect(actor.getSnapshot().value).toBe("validate");
 
     // Validation fails — regresses to implement with pending features
-    actor.send({ type: "VALIDATE_FAILED" });
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
     expect(actor.getSnapshot().value).toBe("implement");
     expect(
       actor.getSnapshot().context.features.every((f) => f.status === "pending"),
@@ -367,7 +367,7 @@ describe("round-trip after validate regression", () => {
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
     actor.send({ type: "IMPLEMENT_COMPLETED" });
-    actor.send({ type: "VALIDATE_FAILED" });
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
 
     // Persist and restore
     const persisted = actor.getPersistedSnapshot();
@@ -395,7 +395,7 @@ describe("round-trip after validate regression", () => {
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
     actor.send({ type: "IMPLEMENT_COMPLETED" });
-    actor.send({ type: "VALIDATE_FAILED" });
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
 
     // Persist mid-regression
     const persisted = actor.getPersistedSnapshot();

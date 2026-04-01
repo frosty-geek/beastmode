@@ -27,6 +27,7 @@ import { loadConfig } from "./config";
 import { createLogger } from "./logger";
 import { createEpicActor, epicMachine } from "./pipeline-machine";
 import { createActor } from "xstate";
+import { createTag } from "./phase-tags.js";
 
 /** Options for the post-dispatch hook. */
 export interface PostDispatchOptions {
@@ -102,6 +103,9 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       logger.log(`Event: ${event.type}`);
       actor.send(event);
     }
+
+    // Create phase tag at current HEAD for regression support
+    await createTag(opts.epicSlug, opts.phase, { cwd: opts.worktreePath });
 
     // Design phase: rename hex slug to real slug with collision detection.
     // store.rename() updates manifest fields in memory — no disk write.

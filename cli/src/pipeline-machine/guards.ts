@@ -1,6 +1,5 @@
 import type { EpicContext, EpicEvent } from "./types";
 import type { Phase } from "../types";
-import { VALID_PHASES } from "../types";
 
 /**
  * Guard: plan -> implement only if output contains features.
@@ -36,26 +35,21 @@ export const outputCompleted = ({ event }: { context: EpicContext; event: EpicEv
 const PHASE_ORDER: readonly Phase[] = ["design", "plan", "implement", "validate", "release"];
 
 /**
- * Guard: REGRESS is valid only if targetPhase != "design" and
- * targetPhase <= currentPhase (same-phase rerun allowed).
+ * Guard: REGRESS is valid only if targetPhase != "design" and is a known phase.
+ *
+ * Direction checking (no forward jumps) is handled by the machine structure:
+ * each state only lists REGRESS transitions for phases <= itself.
+ * This guard serves as the catch-all for same-phase rerun (last entry in each
+ * state's REGRESS array).
+ *
+ * We cannot rely on context.phase for direction — the happy-path transitions
+ * don't update context.phase, so it stays at the initial value.
  */
-export const canRegress = ({ context, event }: { context: EpicContext; event: EpicEvent }) => {
+export const canRegress = ({ event }: { context: EpicContext; event: EpicEvent }) => {
   if (event.type !== "REGRESS") return false;
-
   const { targetPhase } = event;
-
-  // Design is excluded — start a new epic instead
   if (targetPhase === "design") return false;
-
-  const currentIdx = PHASE_ORDER.indexOf(context.phase as Phase);
-  const targetIdx = PHASE_ORDER.indexOf(targetPhase);
-
-  // Reject unknown phases
-  if (currentIdx === -1 || targetIdx === -1) return false;
-
-  // Reject forward jumps (targetPhase > currentPhase)
-  // Allow same-phase rerun (targetPhase == currentPhase)
-  return targetIdx <= currentIdx;
+  return PHASE_ORDER.indexOf(targetPhase) > 0;
 };
 
 /** Guard: REGRESS targets the "plan" phase specifically. */
