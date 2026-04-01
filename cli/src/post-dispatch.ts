@@ -109,7 +109,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       : manifest.phase) as Phase;
 
     if (opts.phase === "design" && finalPhase !== "design") {
-      const epicName = (finalSnapshot.context as unknown as EpicContext).epic
+      const epicName = (finalSnapshot.context as unknown as PipelineManifest).epic
         ?? (finalSnapshot.context as unknown as EpicContext).slug;
       if (epicName && epicName !== opts.epicSlug) {
         const result = await store.rename(

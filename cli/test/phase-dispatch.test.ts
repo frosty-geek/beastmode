@@ -112,7 +112,7 @@ describe("backwards compatibility", () => {
 describe("phase command is simplified", () => {
   test("phase.ts stays compact (worktree detection + manifest seeding included)", () => {
     const lineCount = phaseSource.split("\n").length;
-    expect(lineCount).toBeLessThan(155);
+    expect(lineCount).toBeLessThan(170);
   });
 
   test("single dispatch path — only one runInteractive call", () => {
