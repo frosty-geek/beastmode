@@ -63,8 +63,8 @@ describe("find", () => {
 
     const result = find(TEST_ROOT, "my-feature");
     expect(result).toBeDefined();
-    // Should find the one with slug "my-feature" (Array.find returns first match)
-    expect(result!.slug).toBe("abc123");
+    // Slug match takes priority over epic match
+    expect(result!.slug).toBe("my-feature");
   });
 
   test("returns undefined when state dir missing", () => {

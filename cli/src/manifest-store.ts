@@ -19,6 +19,7 @@ import {
   renameSync,
 } from "fs";
 import { resolve } from "path";
+import { git, gitCheck } from "./git.js";
 import type { Phase } from "./types";
 import { isValidPhase } from "./types";
 
@@ -51,6 +52,13 @@ export interface PipelineManifest {
   blocked?: { gate: string; reason: string } | null;
   originId?: string;
   lastUpdated: string;
+}
+
+export interface RenameResult {
+  renamed: boolean;
+  finalSlug: string;
+  completedSteps: string[];
+  error?: string;
 }
 
 // --- Valid feature statuses ---
@@ -112,6 +120,29 @@ export function slugify(input: string): string {
     throw new Error(`Cannot slugify empty or all-special-character input: "${input}"`);
   }
   return slug;
+}
+
+// --- Rename internals ---
+
+/**
+ * Check if a slug collides with any existing branch, worktree dir, or manifest.
+ */
+async function slugCollides(
+  slug: string,
+  projectRoot: string,
+): Promise<boolean> {
+  const branchExists = await gitCheck(
+    ["show-ref", "--verify", `refs/heads/feature/${slug}`],
+    { cwd: projectRoot },
+  );
+  if (branchExists) return true;
+
+  const worktreeDir = resolve(projectRoot, ".claude", "worktrees", slug);
+  if (existsSync(worktreeDir)) return true;
+
+  if (manifestPath(projectRoot, slug) !== undefined) return true;
+
+  return false;
 }
 
 // --- Public API ---
@@ -196,7 +227,8 @@ export function list(projectRoot: string): PipelineManifest[] {
 
 /**
  * Find a manifest by either hex slug or epic name.
- * Scans all manifests checking both the `slug` field (hex) and `epic` field (name).
+ * Prefers slug matches over epic matches — checks all slugs first,
+ * then falls back to scanning epic names.
  * Returns the matching manifest or undefined.
  */
 export function find(
@@ -204,11 +236,216 @@ export function find(
   identifier: string,
 ): PipelineManifest | undefined {
   const all = list(projectRoot);
-  return all.find(
-    (m) =>
-      m.slug === identifier ||
-      m.epic === identifier,
+  return (
+    all.find((m) => m.slug === identifier) ??
+    all.find((m) => m.epic === identifier)
   );
+}
+
+/**
+ * Rename a hex-slug epic to a human-readable name.
+ *
+ * Prepare-then-execute: validates all preconditions before any mutation.
+ * On mid-execution failure, reports completed steps so the caller knows
+ * what state things are in.
+ *
+ * Rename sequence:
+ * 1. Slugify + validate format
+ * 2. Collision detection (uses <epic>-<hex> suffix if needed)
+ * 3. Rename design artifacts in worktree
+ * 4. Commit renamed artifacts in worktree
+ * 5. Rename git branch
+ * 6. Move worktree directory + repair git metadata
+ * 7. Rename manifest file
+ * 8. Update manifest content (set epic, set originId)
+ */
+export async function rename(
+  projectRoot: string,
+  hexSlug: string,
+  epicName: string,
+  worktreePath?: string,
+): Promise<RenameResult> {
+  const completedSteps: string[] = [];
+
+  // --- Precondition: slugify and validate ---
+  let targetSlug: string;
+  try {
+    targetSlug = slugify(epicName);
+  } catch (err: unknown) {
+    return {
+      renamed: false,
+      finalSlug: hexSlug,
+      completedSteps,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  if (!isValidSlug(targetSlug)) {
+    return {
+      renamed: false,
+      finalSlug: hexSlug,
+      completedSteps,
+      error: `Invalid slug format: "${targetSlug}"`,
+    };
+  }
+
+  // No-op if already the same
+  if (hexSlug === targetSlug) {
+    return { renamed: false, finalSlug: targetSlug, completedSteps };
+  }
+
+  // --- Precondition: branch must exist ---
+  const hexBranch = `feature/${hexSlug}`;
+  const branchOk = await gitCheck(
+    ["show-ref", "--verify", `refs/heads/${hexBranch}`],
+    { cwd: projectRoot },
+  );
+  if (!branchOk) {
+    return {
+      renamed: false,
+      finalSlug: hexSlug,
+      completedSteps,
+      error: `Branch not found: ${hexBranch}`,
+    };
+  }
+
+  // --- Precondition: worktree dir must exist ---
+  const hexWorktree = resolve(projectRoot, ".claude", "worktrees", hexSlug);
+  if (!existsSync(hexWorktree)) {
+    return {
+      renamed: false,
+      finalSlug: hexSlug,
+      completedSteps,
+      error: `Worktree directory not found: ${hexWorktree}`,
+    };
+  }
+
+  // --- Precondition: manifest must exist ---
+  const oldManifestPath = manifestPath(projectRoot, hexSlug);
+  if (!oldManifestPath) {
+    return {
+      renamed: false,
+      finalSlug: hexSlug,
+      completedSteps,
+      error: `Manifest not found for slug: ${hexSlug}`,
+    };
+  }
+
+  // --- Collision detection ---
+  let finalSlug = targetSlug;
+  if (await slugCollides(targetSlug, projectRoot)) {
+    finalSlug = `${targetSlug}-${hexSlug}`;
+    if (await slugCollides(finalSlug, projectRoot)) {
+      return {
+        renamed: false,
+        finalSlug: hexSlug,
+        completedSteps,
+        error: `Both "${targetSlug}" and "${finalSlug}" collide with existing resources`,
+      };
+    }
+    process.stdout.write(
+      `[rename] Slug "${targetSlug}" collides, using "${finalSlug}" instead\n`,
+    );
+  }
+
+  const realBranch = `feature/${finalSlug}`;
+  const realWorktree = resolve(projectRoot, ".claude", "worktrees", finalSlug);
+
+  try {
+    // Step 1: Rename design artifacts in worktree
+    const wtPath = worktreePath ?? hexWorktree;
+    if (existsSync(wtPath)) {
+      const artifactsDir = resolve(wtPath, ".beastmode", "artifacts", "design");
+      if (existsSync(artifactsDir)) {
+        const files = readdirSync(artifactsDir);
+        for (const filename of files) {
+          if (!filename.endsWith(`-${hexSlug}.md`)) continue;
+          const oldPath = resolve(artifactsDir, filename);
+          const newFilename = filename.replace(`-${hexSlug}.md`, `-${finalSlug}.md`);
+          const newPath = resolve(artifactsDir, newFilename);
+          renameSync(oldPath, newPath);
+          // Update frontmatter slug
+          const content = readFileSync(newPath, "utf-8");
+          const updated = content.replace(/^(slug:\s*).+$/m, `$1${finalSlug}`);
+          writeFileSync(newPath, updated);
+          // Remove stale output.json
+          const oldOutput = resolve(artifactsDir, filename.replace(".md", ".output.json"));
+          if (existsSync(oldOutput)) unlinkSync(oldOutput);
+          break;
+        }
+      }
+      completedSteps.push("artifacts");
+
+      // Step 2: Commit renamed artifacts in worktree
+      try {
+        await git(["add", "-A"], { cwd: wtPath });
+        await git(
+          ["commit", "-m", `design(${finalSlug}): checkpoint`],
+          { cwd: wtPath, allowFailure: true },
+        );
+        completedSteps.push("artifact-commit");
+      } catch {
+        // Non-fatal — manifest is source of truth
+        completedSteps.push("artifact-commit-skipped");
+      }
+    }
+
+    // Step 3: Rename git branch
+    await git(["branch", "-m", hexBranch, realBranch], {
+      cwd: projectRoot,
+      allowFailure: false,
+    });
+    completedSteps.push("branch");
+
+    // Step 4: Move worktree directory + repair git metadata
+    renameSync(hexWorktree, realWorktree);
+    completedSteps.push("worktree-dir");
+
+    const gitDir = resolve(projectRoot, ".git", "worktrees", hexSlug);
+    const newGitDir = resolve(projectRoot, ".git", "worktrees", finalSlug);
+    if (existsSync(gitDir)) {
+      renameSync(gitDir, newGitDir);
+      const dotGitFile = resolve(realWorktree, ".git");
+      writeFileSync(dotGitFile, `gitdir: ${newGitDir}\n`);
+      const gitdirPath = resolve(newGitDir, "gitdir");
+      if (existsSync(gitdirPath)) {
+        writeFileSync(gitdirPath, `${realWorktree}/.git\n`);
+      }
+    }
+    await git(["worktree", "repair"], { cwd: projectRoot, allowFailure: true });
+    completedSteps.push("worktree-repair");
+
+    // Step 5: Rename manifest file
+    const oldFilename = oldManifestPath.split("/").pop()!;
+    const newFilename = oldFilename.replace(
+      `-${hexSlug}.manifest.json`,
+      `-${finalSlug}.manifest.json`,
+    );
+    const newManifestFilePath = resolve(
+      oldManifestPath.substring(0, oldManifestPath.lastIndexOf("/")),
+      newFilename,
+    );
+    renameSync(oldManifestPath, newManifestFilePath);
+    completedSteps.push("manifest-file");
+
+    // Step 6: Update manifest content
+    const raw = readFileSync(newManifestFilePath, "utf-8");
+    const manifest: PipelineManifest = JSON.parse(raw);
+    manifest.slug = finalSlug;
+    manifest.epic = finalSlug;
+    manifest.originId = hexSlug;
+    if (manifest.worktree) {
+      manifest.worktree.branch = realBranch;
+      manifest.worktree.path = realWorktree;
+    }
+    writeFileSync(newManifestFilePath, JSON.stringify(manifest, null, 2));
+    completedSteps.push("manifest-internals");
+
+    return { renamed: true, finalSlug, completedSteps };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { renamed: false, finalSlug, completedSteps, error: message };
+  }
 }
 
 /**
