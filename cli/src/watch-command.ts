@@ -60,7 +60,7 @@ export async function reconcileState(opts: {
   logger?: Logger;
 }): Promise<{ completed: number; total: number } | undefined> {
   // Skip manifest updates on failure — except validate, which must send
-  // VALIDATE_FAILED to regress the epic back to implement.
+  // REGRESS to regress the epic back to implement.
   if (!opts.success && opts.phase !== "validate") return readProgress(opts.projectRoot, opts.epicSlug);
 
   // 1. Load manifest — if it's gone (e.g. release teardown removed it), bail
@@ -160,7 +160,7 @@ function mapOutputToEvents(
       if (output?.status === "completed") {
         events.push({ type: "VALIDATE_COMPLETED" });
       } else {
-        events.push({ type: "VALIDATE_FAILED" });
+        events.push({ type: "REGRESS", targetPhase: "implement" as Phase });
       }
       break;
     }

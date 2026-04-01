@@ -58,4 +58,16 @@ Manifests are read by status command, watch loop, scanner, and potentially exter
 ### Source
 .beastmode/artifacts/design/2026-03-31-xstate-pipeline-machine.md
 
+## Regression
+
+### Decision
+Generic REGRESS event (`{ type: "REGRESS", targetPhase: Phase }`) replaces the hardcoded VALIDATE_FAILED transition. Guard enforces targetPhase <= currentPhase and targetPhase != "design". REGRESS actions: set phase to targetPhase, reset all features to pending when regressing to or past implement, clear blocked fields, clear downstream artifact entries. `regressPhase()` is a pure function in manifest.ts. VALIDATE_FAILED event type, its constants, and its legacy tests are fully removed.
+
+### Rationale
+A single generic regression mechanism eliminates the special-case VALIDATE_FAILED transition and enables regression from any phase to any earlier valid phase. Design is excluded as a regression target because it is interactive — users should start a new epic instead. Full-phase feature reset at implement ensures no stale feature state persists across regression boundaries.
+
+### Source
+.beastmode/artifacts/design/2026-04-01-phase-rerun.md
+.beastmode/artifacts/implement/2026-04-01-phase-rerun-regress-machine.md
+
 context/design/pipeline-machine/

@@ -6,6 +6,9 @@
 - Epic states: design, plan, implement, validate, release, done, cancelled — done and cancelled are terminal (type: "final")
 - Feature states: pending, in-progress, completed, blocked — completed is terminal (type: "final")
 - CANCEL event is valid from every non-terminal epic state
+- REGRESS event (`{ type: "REGRESS", targetPhase }`) is valid from every non-terminal epic state — guard enforces targetPhase <= currentPhase and targetPhase != "design"
+- REGRESS actions: set phase to targetPhase, reset all features to pending when regressing to or past implement, clear blocked fields, clear downstream artifact entries
+- VALIDATE_FAILED event is fully removed — replaced by REGRESS with targetPhase "implement"
 
 ## Assign Separation Pattern
 - ALWAYS place assign() calls inside setup() actions — XState v5.30 requires this for type inference

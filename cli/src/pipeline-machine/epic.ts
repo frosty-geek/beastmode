@@ -1,6 +1,15 @@
 import { setup, assign } from "xstate";
 import type { EpicContext, EpicEvent, DispatchType } from "./types";
-import { hasFeatures, allFeaturesCompleted, outputCompleted } from "./guards";
+import {
+  hasFeatures,
+  allFeaturesCompleted,
+  outputCompleted,
+  canRegress,
+  regressTargetsPlan,
+  regressTargetsImplement,
+  regressTargetsValidate,
+  regressTargetsRelease,
+} from "./guards";
 import {
   computeEnrichFeatures,
   computeRenameSlug,
@@ -8,6 +17,7 @@ import {
   computeSetFeatures,
   computeResetFeatures,
   computeMarkFeatureCompleted,
+  computeRegress,
 } from "./actions";
 import { syncGitHubService } from "./services";
 
@@ -21,6 +31,11 @@ export const epicMachine = setup({
     hasFeatures,
     allFeaturesCompleted,
     outputCompleted,
+    canRegress,
+    regressTargetsPlan,
+    regressTargetsImplement,
+    regressTargetsValidate,
+    regressTargetsRelease,
   },
   actions: {
     enrichManifest: assign({
@@ -42,6 +57,13 @@ export const epicMachine = setup({
     resetFeatures: assign({
       features: ({ context }) => computeResetFeatures(context),
       lastUpdated: () => new Date().toISOString(),
+    }),
+    applyRegress: assign(({ context, event }) => {
+      const result = computeRegress(context, event);
+      return {
+        ...result,
+        lastUpdated: new Date().toISOString(),
+      };
     }),
     markCancelled: assign({
       blocked: () => null as EpicContext["blocked"],
@@ -84,6 +106,13 @@ export const epicMachine = setup({
           guard: "hasFeatures",
           actions: ["setFeatures", "persist"],
         },
+        REGRESS: [
+          {
+            target: "plan",
+            guard: { type: "canRegress" },
+            actions: ["applyRegress", "persist"],
+          },
+        ],
         CANCEL: {
           target: "cancelled",
           actions: ["markCancelled", "persist"],
@@ -101,6 +130,18 @@ export const epicMachine = setup({
           guard: "allFeaturesCompleted",
           actions: ["persist"],
         },
+        REGRESS: [
+          {
+            target: "plan",
+            guard: { type: "regressTargetsPlan" },
+            actions: ["applyRegress", "persist"],
+          },
+          {
+            target: "implement",
+            guard: { type: "canRegress" },
+            actions: ["applyRegress", "persist"],
+          },
+        ],
         CANCEL: {
           target: "cancelled",
           actions: ["markCancelled", "persist"],
@@ -114,10 +155,23 @@ export const epicMachine = setup({
           target: "release",
           actions: ["persist"],
         },
-        VALIDATE_FAILED: {
-          target: "implement",
-          actions: ["resetFeatures", "persist"],
-        },
+        REGRESS: [
+          {
+            target: "plan",
+            guard: { type: "regressTargetsPlan" },
+            actions: ["applyRegress", "persist"],
+          },
+          {
+            target: "implement",
+            guard: { type: "regressTargetsImplement" },
+            actions: ["applyRegress", "persist"],
+          },
+          {
+            target: "validate",
+            guard: { type: "canRegress" },
+            actions: ["applyRegress", "persist"],
+          },
+        ],
         CANCEL: {
           target: "cancelled",
           actions: ["markCancelled", "persist"],
@@ -131,6 +185,28 @@ export const epicMachine = setup({
           target: "done",
           actions: ["persist"],
         },
+        REGRESS: [
+          {
+            target: "plan",
+            guard: { type: "regressTargetsPlan" },
+            actions: ["applyRegress", "persist"],
+          },
+          {
+            target: "implement",
+            guard: { type: "regressTargetsImplement" },
+            actions: ["applyRegress", "persist"],
+          },
+          {
+            target: "validate",
+            guard: { type: "regressTargetsValidate" },
+            actions: ["applyRegress", "persist"],
+          },
+          {
+            target: "release",
+            guard: { type: "canRegress" },
+            actions: ["applyRegress", "persist"],
+          },
+        ],
         CANCEL: {
           target: "cancelled",
           actions: ["markCancelled", "persist"],

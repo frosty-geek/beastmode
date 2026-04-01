@@ -12,6 +12,9 @@ import type {
 import type { Phase } from "./types";
 import type { GatesConfig } from "./config";
 
+// Phase ordering for regression logic
+const PHASE_ORDER: readonly Phase[] = ["design", "plan", "implement", "validate", "release"];
+
 // Re-export types so consumers can import from either module
 export type { PipelineManifest, ManifestFeature, ManifestGitHub } from "./manifest-store";
 
@@ -172,6 +175,43 @@ export function setFeatureBodyHash(
   return {
     ...manifest,
     features,
+    lastUpdated: now(),
+  };
+}
+
+// --- Gate checking ---
+
+/**
+ * Regress a manifest to an earlier (or same) phase.
+ * Resets features to "pending" if regressing to or past "implement".
+ * Clears blocked field. Clears downstream artifact entries.
+ */
+export function regress(
+  manifest: PipelineManifest,
+  targetPhase: Phase,
+): PipelineManifest {
+  const targetIdx = PHASE_ORDER.indexOf(targetPhase);
+  const implementIdx = PHASE_ORDER.indexOf("implement");
+
+  // Reset features if regressing to or past implement
+  const features = targetIdx <= implementIdx
+    ? manifest.features.map((f) => ({ ...f, status: "pending" as const }))
+    : manifest.features;
+
+  // Clear artifacts for phases after targetPhase
+  const artifacts: Record<string, string[]> = {};
+  for (const [phase, files] of Object.entries(manifest.artifacts)) {
+    const phaseIdx = PHASE_ORDER.indexOf(phase as Phase);
+    if (phaseIdx !== -1 && phaseIdx > targetIdx) continue; // downstream — drop
+    artifacts[phase] = files;
+  }
+
+  return {
+    ...manifest,
+    phase: targetPhase,
+    features,
+    artifacts,
+    blocked: null,
     lastUpdated: now(),
   };
 }

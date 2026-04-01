@@ -78,7 +78,7 @@ describe("buildOutput", () => {
     const output = buildOutput("path/to/design.md", { phase: "design", slug: "abc123", epic: "my-epic" }, ARTIFACTS_DIR);
     expect(output).toEqual({
       status: "completed",
-      artifacts: { design: "path/to/design.md", slug: "abc123", epic: "my-epic" },
+      artifacts: { design: "path/to/design.md", slug: "my-epic", epic: "my-epic", summary: undefined },
     });
   });
 

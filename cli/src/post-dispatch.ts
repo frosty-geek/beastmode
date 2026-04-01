@@ -27,6 +27,7 @@ import { loadConfig } from "./config";
 import { createLogger } from "./logger";
 import { createEpicActor, epicMachine } from "./pipeline-machine";
 import { createActor } from "xstate";
+import { createTag } from "./phase-tags.js";
 
 /** Options for the post-dispatch hook. */
 export interface PostDispatchOptions {
@@ -57,7 +58,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
   const logger = opts.logger ?? createLogger(0, "post-dispatch");
   try {
     // Early exit on failure — no manifest/sync updates.
-    // Exception: validate failures must reach the machine so VALIDATE_FAILED
+    // Exception: validate failures must reach the machine so REGRESS
     // fires and regresses the epic back to implement.
     if (!opts.success && opts.phase !== "validate") {
       logger.log(`Phase ${opts.phase} failed for ${opts.epicSlug} — skipping updates`);
@@ -102,6 +103,9 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
       logger.log(`Event: ${event.type}`);
       actor.send(event);
     }
+
+    // Create phase tag at current HEAD for regression support
+    await createTag(opts.epicSlug, opts.phase, { cwd: opts.worktreePath });
 
     // Design phase: rename hex slug to real slug with collision detection.
     // store.rename() updates manifest fields in memory — no disk write.
@@ -243,7 +247,7 @@ function mapToEvents(
       if (output?.status === "completed") {
         events.push({ type: "VALIDATE_COMPLETED" });
       } else {
-        events.push({ type: "VALIDATE_FAILED" });
+        events.push({ type: "REGRESS", targetPhase: "implement" as Phase });
       }
       break;
     }

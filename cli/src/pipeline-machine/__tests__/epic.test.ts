@@ -268,10 +268,10 @@ describe("CANCEL from every non-terminal state", () => {
   });
 });
 
-// ── 6. VALIDATE_FAILED regression ────────────────────────────────
+// ── 6. REGRESS from every non-terminal state ──────────────────────
 
-describe("VALIDATE_FAILED regression", () => {
-  test("validate -> implement on VALIDATE_FAILED", () => {
+describe("REGRESS regression", () => {
+  test("validate -> implement on REGRESS", () => {
     const actor = startActor();
     actor.send({ type: "DESIGN_COMPLETED" });
     actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
@@ -280,34 +280,32 @@ describe("VALIDATE_FAILED regression", () => {
     actor.send({ type: "IMPLEMENT_COMPLETED" });
     expect(actor.getSnapshot().value).toBe("validate");
 
-    actor.send({ type: "VALIDATE_FAILED" });
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
     expect(actor.getSnapshot().value).toBe("implement");
   });
 
-  test("VALIDATE_FAILED resets all features to pending", () => {
+  test("REGRESS to implement resets all features to pending", () => {
     const actor = startActor();
     actor.send({ type: "DESIGN_COMPLETED" });
     actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
     actor.send({ type: "IMPLEMENT_COMPLETED" });
-    // All completed at this point
     expect(actor.getSnapshot().context.features.every((f) => f.status === "completed")).toBe(true);
 
-    actor.send({ type: "VALIDATE_FAILED" });
-    // All reset to pending
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
     expect(actor.getSnapshot().context.features.every((f) => f.status === "pending")).toBe(true);
     expect(actor.getSnapshot().context.features).toHaveLength(2);
   });
 
-  test("after VALIDATE_FAILED, features must be re-completed before IMPLEMENT_COMPLETED", () => {
+  test("after REGRESS to implement, features must be re-completed before IMPLEMENT_COMPLETED", () => {
     const actor = startActor();
     actor.send({ type: "DESIGN_COMPLETED" });
     actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
     actor.send({ type: "IMPLEMENT_COMPLETED" });
-    actor.send({ type: "VALIDATE_FAILED" });
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
 
     // Try to skip ahead — should be blocked by allFeaturesCompleted guard
     actor.send({ type: "IMPLEMENT_COMPLETED" });
@@ -318,6 +316,181 @@ describe("VALIDATE_FAILED regression", () => {
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
     actor.send({ type: "IMPLEMENT_COMPLETED" });
     expect(actor.getSnapshot().value).toBe("validate");
+  });
+
+  test("validate -> plan regression", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
+    actor.send({ type: "IMPLEMENT_COMPLETED" });
+    expect(actor.getSnapshot().value).toBe("validate");
+
+    actor.send({ type: "REGRESS", targetPhase: "plan" });
+    expect(actor.getSnapshot().value).toBe("plan");
+    // Features reset because regressing past implement
+    expect(actor.getSnapshot().context.features.every((f) => f.status === "pending")).toBe(true);
+  });
+
+  test("release -> validate regression (features untouched)", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
+    actor.send({ type: "IMPLEMENT_COMPLETED" });
+    actor.send({ type: "VALIDATE_COMPLETED" });
+    expect(actor.getSnapshot().value).toBe("release");
+
+    actor.send({ type: "REGRESS", targetPhase: "validate" });
+    expect(actor.getSnapshot().value).toBe("validate");
+    // Features NOT reset — regression doesn't cross implement boundary
+    expect(actor.getSnapshot().context.features.every((f) => f.status === "completed")).toBe(true);
+  });
+
+  test("release -> implement regression resets features", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
+    actor.send({ type: "IMPLEMENT_COMPLETED" });
+    actor.send({ type: "VALIDATE_COMPLETED" });
+    expect(actor.getSnapshot().value).toBe("release");
+
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
+    expect(actor.getSnapshot().value).toBe("implement");
+    expect(actor.getSnapshot().context.features.every((f) => f.status === "pending")).toBe(true);
+  });
+
+  test("release -> plan regression resets features", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
+    actor.send({ type: "IMPLEMENT_COMPLETED" });
+    actor.send({ type: "VALIDATE_COMPLETED" });
+    expect(actor.getSnapshot().value).toBe("release");
+
+    actor.send({ type: "REGRESS", targetPhase: "plan" });
+    expect(actor.getSnapshot().value).toBe("plan");
+    expect(actor.getSnapshot().context.features.every((f) => f.status === "pending")).toBe(true);
+  });
+
+  test("implement -> plan regression", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
+    expect(actor.getSnapshot().value).toBe("implement");
+
+    actor.send({ type: "REGRESS", targetPhase: "plan" });
+    expect(actor.getSnapshot().value).toBe("plan");
+  });
+
+  test("same-phase rerun (validate -> validate) is accepted", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    actor.send({ type: "PLAN_COMPLETED", features: [{ slug: "f", plan: "p" }] });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "f" });
+    actor.send({ type: "IMPLEMENT_COMPLETED" });
+    expect(actor.getSnapshot().value).toBe("validate");
+
+    actor.send({ type: "REGRESS", targetPhase: "validate" });
+    expect(actor.getSnapshot().value).toBe("validate");
+  });
+
+  test("same-phase rerun (implement -> implement) resets features", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
+    actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-a" });
+    expect(actor.getSnapshot().value).toBe("implement");
+
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
+    expect(actor.getSnapshot().value).toBe("implement");
+    expect(actor.getSnapshot().context.features.every((f) => f.status === "pending")).toBe(true);
+  });
+
+  test("same-phase rerun (plan -> plan) is accepted", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    expect(actor.getSnapshot().value).toBe("plan");
+
+    actor.send({ type: "REGRESS", targetPhase: "plan" });
+    expect(actor.getSnapshot().value).toBe("plan");
+  });
+
+  test("REGRESS clears blocked field", () => {
+    const actor = startActor({
+      phase: "validate",
+      features: [{ slug: "f", plan: "p", status: "completed" }],
+      blocked: { gate: "review", reason: "stuck" },
+    });
+    // Hydrate at validate
+    const resolvedSnapshot = epicMachine.resolveState({
+      value: "validate",
+      context: actor.getSnapshot().context,
+    });
+    const actor2 = createActor(epicMachine, { snapshot: resolvedSnapshot, input: actor.getSnapshot().context });
+    actor2.start();
+
+    actor2.send({ type: "REGRESS", targetPhase: "implement" });
+    expect(actor2.getSnapshot().context.blocked).toBeNull();
+  });
+
+  test("REGRESS clears downstream artifacts", () => {
+    const ctx = makeContext({
+      phase: "validate",
+      features: [{ slug: "f", plan: "p", status: "completed" }],
+      artifacts: { design: ["d.md"], plan: ["p.md"], implement: ["i.md"], validate: ["v.md"] },
+    });
+    const resolvedSnapshot = epicMachine.resolveState({
+      value: "validate",
+      context: ctx,
+    });
+    const actor = createActor(epicMachine, { snapshot: resolvedSnapshot, input: ctx });
+    actor.start();
+
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
+    const arts = actor.getSnapshot().context.artifacts;
+    expect(arts.design).toEqual(["d.md"]);
+    expect(arts.plan).toEqual(["p.md"]);
+    expect(arts.implement).toEqual(["i.md"]);
+    expect(arts.validate).toBeUndefined();
+  });
+});
+
+// ── 6b. REGRESS guard conditions ──────────────────────────────────
+
+describe("REGRESS guard conditions", () => {
+  test("rejects design as targetPhase", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    expect(actor.getSnapshot().value).toBe("plan");
+
+    actor.send({ type: "REGRESS", targetPhase: "design" });
+    expect(actor.getSnapshot().value).toBe("plan"); // unchanged
+  });
+
+  test("rejects forward jump (plan -> validate)", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    expect(actor.getSnapshot().value).toBe("plan");
+
+    actor.send({ type: "REGRESS", targetPhase: "validate" });
+    expect(actor.getSnapshot().value).toBe("plan"); // unchanged
+  });
+
+  test("rejects forward jump (implement -> release)", () => {
+    const actor = startActor();
+    actor.send({ type: "DESIGN_COMPLETED" });
+    actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
+    expect(actor.getSnapshot().value).toBe("implement");
+
+    actor.send({ type: "REGRESS", targetPhase: "release" });
+    expect(actor.getSnapshot().value).toBe("implement"); // unchanged
   });
 });
 
@@ -330,7 +503,7 @@ describe("terminal states reject all events", () => {
     { type: "FEATURE_COMPLETED", featureSlug: "feat-a" },
     { type: "IMPLEMENT_COMPLETED" },
     { type: "VALIDATE_COMPLETED" },
-    { type: "VALIDATE_FAILED" },
+    { type: "REGRESS", targetPhase: "plan" },
     { type: "RELEASE_COMPLETED" },
     { type: "CANCEL" },
   ];
@@ -459,7 +632,7 @@ describe("action effects", () => {
     expect(features[1]).toEqual({ slug: "beta", plan: "plan-beta", status: "pending" });
   });
 
-  test("resetFeatures sets all features back to pending", () => {
+  test("resetFeatures sets all features back to pending via REGRESS", () => {
     const actor = startActor();
     actor.send({ type: "DESIGN_COMPLETED" });
     actor.send({ type: "PLAN_COMPLETED", features: twoFeatures });
@@ -467,7 +640,7 @@ describe("action effects", () => {
     actor.send({ type: "FEATURE_COMPLETED", featureSlug: "feat-b" });
     actor.send({ type: "IMPLEMENT_COMPLETED" });
     // Now in validate with all completed
-    actor.send({ type: "VALIDATE_FAILED" });
+    actor.send({ type: "REGRESS", targetPhase: "implement" });
     // Back in implement with all pending
     const features = actor.getSnapshot().context.features;
     expect(features[0].status).toBe("pending");

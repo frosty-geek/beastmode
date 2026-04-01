@@ -4,6 +4,20 @@ All notable changes to beastmode.
 
 ---
 
+### v0.57.0 — Phase Rerun (Apr 2026)
+
+- **Phase regression/rerun** — Overloads `beastmode <phase> <slug>` to detect when the requested phase is at or behind the current phase, resetting the branch to the predecessor phase's tag and rerunning fresh
+- **Phase detection matrix** — Four-case exhaustive detection: regression (requested < current), same-phase rerun (requested == current with prior commits), normal forward (no prior), forward-jump blocked (requested > current)
+- **Generic REGRESS event** — New XState machine event (`{ type: "REGRESS", targetPhase }`) replaces the hardcoded VALIDATE_FAILED transition; guard enforces valid regression targets
+- **CLI-managed git tags** — `beastmode/<slug>/<phase>` tags created at each phase checkpoint for deterministic reset targets; deleted on regression, renamed during slug rename
+- **Crash-safe ordering** — Delete downstream tags, git reset, regress manifest; missing tags are harmless, next phase recreates them
+- **Watch loop auto-regression** — Validate failure sends REGRESS with targetPhase "implement" instead of VALIDATE_FAILED; no confirmation prompt in automated mode
+- **Confirmation prompt** — Manual CLI prompts before destructive regression; watch loop skips for unattended operation
+- **Feature reset** — All features reset to pending when regressing to or past implement phase
+- **Deletions** — VALIDATE_FAILED event type, constants, and legacy tests fully removed
+
+---
+
 ### v0.56.0 — Slug Redesign (Apr 2026)
 
 - **Standardized YAML frontmatter** — Consistent `slug`, `epic`, `feature` fields across all 5 phases with phase-specific additions (`wave`, `status`, `bump`)

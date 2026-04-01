@@ -22,6 +22,7 @@ import { resolve } from "path";
 import { git, gitCheck } from "./git.js";
 import type { Phase } from "./types";
 import { isValidPhase } from "./types";
+import { renameTags } from "./phase-tags.js";
 
 // --- Types ---
 
@@ -396,6 +397,10 @@ export async function rename(
       allowFailure: false,
     });
     completedSteps.push("branch");
+
+    // Step 3b: Rename phase tags (beastmode/<hex>/* → beastmode/<slug>/*)
+    await renameTags(hexSlug, finalSlug, { cwd: projectRoot });
+    completedSteps.push("tags");
 
     // Step 4: Move worktree directory + repair git metadata
     renameSync(hexWorktree, realWorktree);
