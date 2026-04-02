@@ -7,6 +7,7 @@
  */
 
 import type { SessionResult } from "./watch-types.js";
+import type { SessionEmitter } from "./sdk-streaming.js";
 
 /** Options for creating a new session. */
 export interface SessionCreateOpts {
