@@ -177,7 +177,7 @@ export function scanPlanFeatures(
  * Process a single artifact file: parse frontmatter, build output,
  * write output.json if the artifact is newer.
  */
-export function processArtifact(artifactPath: string, artifactsDir: string): boolean {
+export function processArtifact(artifactPath: string, artifactsDir: string, worktreeSlug?: string): boolean {
   let content: string;
   try {
     content = readFileSync(artifactPath, "utf-8");
@@ -189,7 +189,20 @@ export function processArtifact(artifactPath: string, artifactsDir: string): boo
   if (!fm.phase || !WORKFLOW_PHASES.includes(fm.phase)) return false;
 
   const artBasename = basename(artifactPath, ".md");
-  const outputPath = join(artifactsDir, fm.phase, `${artBasename}.output.json`);
+
+  let outputBasename: string;
+  if (worktreeSlug) {
+    // Derive output filename from worktree name (CLI-controlled, not skill-controlled).
+    // During design the worktree is still the hex slug; after rename it's the epic name.
+    const dateMatch = artBasename.match(/^(\d{4}-\d{2}-\d{2})-/);
+    const date = dateMatch ? dateMatch[1] : new Date().toISOString().slice(0, 10);
+    const featureSuffix = fm.feature ? `-${fm.feature}` : "";
+    outputBasename = `${date}-${worktreeSlug}${featureSuffix}`;
+  } else {
+    outputBasename = artBasename;
+  }
+
+  const outputPath = join(artifactsDir, fm.phase, `${outputBasename}.output.json`);
 
   // Skip if output.json exists and is newer than the artifact
   if (existsSync(outputPath)) {
@@ -227,11 +240,11 @@ export function processArtifact(artifactPath: string, artifactsDir: string): boo
  *
  * Returns the number of files generated/updated.
  */
-export function generateAll(artifactsDir: string, scope?: "changed" | "all"): number {
+export function generateAll(artifactsDir: string, scope?: "changed" | "all", worktreeSlug?: string): number {
   if (!existsSync(artifactsDir)) return 0;
 
   if (scope === "changed") {
-    return generateChanged(artifactsDir);
+    return generateChanged(artifactsDir, worktreeSlug);
   }
 
   let count = 0;
@@ -242,7 +255,7 @@ export function generateAll(artifactsDir: string, scope?: "changed" | "all"): nu
     for (const filename of readdirSync(phaseDir)) {
       if (!filename.endsWith(".md")) continue;
       const filePath = join(phaseDir, filename);
-      if (processArtifact(filePath, artifactsDir)) {
+      if (processArtifact(filePath, artifactsDir, worktreeSlug)) {
         count++;
       }
     }
@@ -255,7 +268,7 @@ export function generateAll(artifactsDir: string, scope?: "changed" | "all"): nu
  * modified. Uses `git diff HEAD --name-only` (committed changes on branch)
  * plus `git diff --name-only` (uncommitted changes).
  */
-function generateChanged(artifactsDir: string): number {
+function generateChanged(artifactsDir: string, worktreeSlug?: string): number {
   const repoRoot = resolve(artifactsDir, "..", "..");
   const artifactsPrefix = ".beastmode/artifacts/";
 
@@ -282,14 +295,14 @@ function generateChanged(artifactsDir: string): number {
     );
   } catch {
     // git diff failed — fall back to full scan
-    return generateAll(artifactsDir, "all");
+    return generateAll(artifactsDir, "all", worktreeSlug);
   }
 
   let count = 0;
   for (const relPath of changedFiles) {
     const filePath = resolve(repoRoot, relPath);
     if (existsSync(filePath)) {
-      if (processArtifact(filePath, artifactsDir)) count++;
+      if (processArtifact(filePath, artifactsDir, worktreeSlug)) count++;
     }
   }
   return count;
@@ -310,7 +323,8 @@ if (import.meta.main) {
     } catch {
       // not a worktree
     }
-    generateAll(artifactsDir, isWorktree ? "changed" : "all");
+    const worktreeSlug = isWorktree ? basename(repoRoot) : undefined;
+    generateAll(artifactsDir, isWorktree ? "changed" : "all", worktreeSlug);
   } catch {
     // Silent exit — hook failure must never block Claude
   }
