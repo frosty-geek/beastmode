@@ -8,10 +8,8 @@ import type {
   SDKHumanTurnMessage,
 } from "../sdk-message-types";
 import type {
-  TextEntry,
   ToolCallEntry,
   CompletionEntry,
-  HeartbeatEntry,
 } from "../sdk-message-mapper";
 
 // --- Partial assistant messages (streaming) ---
