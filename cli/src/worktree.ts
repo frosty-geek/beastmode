@@ -15,7 +15,10 @@
 
 import { resolve } from "node:path";
 import { copyFile, mkdir } from "node:fs/promises";
+import { readdirSync, unlinkSync, existsSync } from "node:fs";
 import { git, gitCheck } from "./git.js";
+
+const ARTIFACT_PHASES = ["design", "plan", "implement", "validate", "release"];
 
 const WORKTREE_DIR = ".claude/worktrees";
 
@@ -169,10 +172,35 @@ export async function create(
 
   const absWtPath = resolve(cwd ?? process.cwd(), wtPath);
 
+  // Clean stale output.json files inherited from main — git checkout sets
+  // mtime to now, which defeats startTime filters in session factories.
+  cleanArtifactOutputs(absWtPath);
+
   // Copy .claude/settings.local.json so plugins are enabled in the worktree
   await copySettingsLocal(cwd ?? process.cwd(), absWtPath);
 
   return { slug, path: absWtPath, branch, mainBranch, forkPoint };
+}
+
+/**
+ * Remove all *.output.json files from a worktree's artifact directories.
+ * Called once on new worktree creation to purge stale files inherited from main.
+ */
+export function cleanArtifactOutputs(worktreePath: string): void {
+  const artifactsDir = resolve(worktreePath, ".beastmode", "artifacts");
+  for (const phase of ARTIFACT_PHASES) {
+    const dir = resolve(artifactsDir, phase);
+    try {
+      if (!existsSync(dir)) continue;
+      for (const f of readdirSync(dir)) {
+        if (f.endsWith(".output.json")) {
+          unlinkSync(resolve(dir, f));
+        }
+      }
+    } catch {
+      // Directory unreadable — skip
+    }
+  }
 }
 
 /**

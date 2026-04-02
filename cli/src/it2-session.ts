@@ -54,7 +54,7 @@ export class ITermSessionFactory implements SessionFactory {
     this.client = client;
     this.createWorktree =
       opts?.createWorktree ?? ((slug, o) => worktree.create(slug, o));
-    this.watchTimeoutMs = opts?.watchTimeoutMs ?? 600_000; // 10 min default
+    this.watchTimeoutMs = opts?.watchTimeoutMs ?? 3_600_000; // 60 min default
   }
 
   /**
@@ -148,9 +148,6 @@ export class ITermSessionFactory implements SessionFactory {
       "artifacts",
       opts.phase,
     );
-
-    // Clean stale output.json files
-    this.cleanStaleOutputFiles(artifactDir);
 
     // Build the expected output.json suffix for this specific session.
     const outputSuffix = featureSlug
@@ -427,20 +424,6 @@ export class ITermSessionFactory implements SessionFactory {
       };
     } catch {
       return null;
-    }
-  }
-
-  /** Remove pre-existing output.json files to prevent stale matches after git checkout. */
-  private cleanStaleOutputFiles(dir: string): void {
-    try {
-      const files = readdirSync(dir);
-      for (const f of files) {
-        if (f.endsWith(".output.json")) {
-          unlinkSync(resolve(dir, f));
-        }
-      }
-    } catch {
-      // Directory doesn't exist yet — nothing to clean
     }
   }
 

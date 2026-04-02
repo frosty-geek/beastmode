@@ -38,7 +38,7 @@ export class CmuxSessionFactory implements SessionFactory {
   ) {
     this.client = client;
     this.createWorktree = opts?.createWorktree ?? ((slug, o) => worktree.create(slug, o));
-    this.watchTimeoutMs = opts?.watchTimeoutMs ?? 600_000; // 10 min default
+    this.watchTimeoutMs = opts?.watchTimeoutMs ?? 3_600_000; // 60 min default
   }
 
   async create(opts: SessionCreateOpts): Promise<SessionHandle> {
@@ -83,10 +83,6 @@ export class CmuxSessionFactory implements SessionFactory {
     const outputSuffix = featureSlug
       ? `-${epicSlug}-${featureSlug}.output.json`
       : `-${epicSlug}.output.json`;
-
-    // Clean stale output.json files — git checkout sets mtime to now,
-    // which defeats the startTime filter and causes instant false matches.
-    this.cleanStaleOutputFiles(artifactDir);
 
     // Set up promise that resolves when output.json appears
     const promise = this.watchForMarker(id, artifactDir, startTime, opts.signal, outputSuffix, epicSlug);
@@ -331,20 +327,6 @@ export class CmuxSessionFactory implements SessionFactory {
       };
     } catch {
       return null;
-    }
-  }
-
-  /** Remove pre-existing output.json files to prevent stale matches after git checkout. */
-  private cleanStaleOutputFiles(dir: string): void {
-    try {
-      const files = readdirSync(dir);
-      for (const f of files) {
-        if (f.endsWith(".output.json")) {
-          unlinkSync(resolve(dir, f));
-        }
-      }
-    } catch {
-      // Directory doesn't exist yet — nothing to clean
     }
   }
 
