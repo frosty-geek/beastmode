@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: f0b08c
+slug: remove-gates
 epic: remove-gates
 ---
 
