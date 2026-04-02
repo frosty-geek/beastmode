@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: a407ac
+slug: dashboard-drilldown
 epic: dashboard-drilldown
 ---
 
