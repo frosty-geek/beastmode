@@ -5,6 +5,7 @@
 .beastmode/pipeline/
 .claude/worktrees/
 .claude/settings.local.json
+.beastmode/artifacts/**/*.output.json
 .beastmode-runs.json
 .beastmode-watch.lock
 .DS_Store
