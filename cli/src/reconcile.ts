@@ -9,9 +9,6 @@
  * and runPostDispatch (post-dispatch.ts).
  */
 
-import { createActor } from "xstate";
-import { epicMachine } from "./pipeline-machine/index.js";
-import type { EpicContext } from "./pipeline-machine/index.js";
 import type { PipelineManifest } from "./manifest-store.js";
 import * as store from "./manifest-store.js";
 import type { Phase } from "./types.js";
@@ -20,6 +17,9 @@ import {
   loadWorktreePhaseOutput,
   loadWorktreeFeatureOutput,
 } from "./phase-output.js";
+import { hydrateEpicActor } from "./hydrate-actor.js";
+import type { HydratedActor } from "./hydrate-actor.js";
+import type { EpicContext } from "./pipeline-machine/index.js";
 
 // --- Result type ---
 
@@ -32,22 +32,12 @@ export interface ReconcileResult {
 // --- Shared helpers ---
 
 /** Hydrate an ephemeral XState actor at the manifest's current phase. */
-function hydrateActor(manifest: PipelineManifest) {
-  const epicContext = manifest as unknown as EpicContext;
-  const resolvedSnapshot = epicMachine.resolveState({
-    value: manifest.phase,
-    context: epicContext,
-  });
-  const actor = createActor(epicMachine, {
-    snapshot: resolvedSnapshot,
-    input: epicContext,
-  });
-  actor.start();
-  return actor;
+function hydrateActor(manifest: PipelineManifest): HydratedActor {
+  return hydrateEpicActor(manifest.phase, manifest as unknown as EpicContext);
 }
 
 /** Extract the manifest from an actor snapshot. */
-function extractManifest(actor: ReturnType<typeof hydrateActor>): PipelineManifest {
+function extractManifest(actor: HydratedActor): PipelineManifest {
   const snapshot = actor.getSnapshot();
   const phase = (typeof snapshot.value === "string"
     ? snapshot.value
@@ -111,7 +101,7 @@ export async function reconcileDesign(
   const output = loadWorktreePhaseOutput(wtPath, "design", slug);
   if (!output || output.status !== "completed") return undefined;
 
-  const artifacts = output.artifacts as Record<string, unknown> | undefined;
+  const artifacts = output.artifacts as unknown as Record<string, unknown> | undefined;
   const realSlug = artifacts?.slug as string | undefined;
   const summary = artifacts?.summary as { problem: string; solution: string } | undefined;
 

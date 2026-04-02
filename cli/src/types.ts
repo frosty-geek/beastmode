@@ -8,18 +8,6 @@ export type Phase = "design" | "plan" | "implement" | "validate" | "release" | "
 /** Valid top-level CLI commands: phases + utilities */
 export type Command = Phase | "watch" | "status" | "cancel" | "compact" | "dashboard" | "help";
 
-/** A single entry in .beastmode-runs.json */
-export interface RunLogEntry {
-  epic: string | null;
-  phase: Phase;
-  feature: string | null;
-  cost_usd: number | null;
-  duration_ms: number;
-  exit_status: "success" | "error" | "cancelled";
-  timestamp: string;
-  session_id: string | null;
-}
-
 /** Result from a phase execution */
 export interface PhaseResult {
   exit_status: "success" | "error" | "cancelled";

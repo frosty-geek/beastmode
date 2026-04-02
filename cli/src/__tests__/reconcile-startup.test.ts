@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { reconcileStartup, parseSurfaceTitle } from "../src/reconcile-startup.js";
-import type { ReconcileResult } from "../src/reconcile-startup.js";
-import type { CmuxClientLike, CmuxWorkspace } from "../src/cmux-types.js";
-import { DispatchTracker } from "../src/dispatch-tracker.js";
+import { reconcileStartup, parseSurfaceTitle } from "../reconcile-startup.js";
+import type { ReconcileResult } from "../reconcile-startup.js";
+import type { CmuxClientLike, CmuxWorkspace } from "../cmux-types.js";
+import { DispatchTracker } from "../dispatch-tracker.js";
 
-const TEST_ROOT = resolve(import.meta.dir, ".test-reconcile-tmp");
+const TEST_ROOT = resolve(import.meta.dir, "../../.test-reconcile-tmp");
 
 function setupTestRoot(): void {
   rmSync(TEST_ROOT, { recursive: true, force: true });

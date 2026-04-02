@@ -34,7 +34,7 @@ function callsTo(fn: string): { fn: string; args: unknown[] }[] {
 }
 
 // Mock the gh module BEFORE importing github-sync
-mock.module("../src/gh", () => ({
+mock.module("../gh", () => ({
   ghIssueCreate: async (...args: unknown[]) => {
     trackCall("ghIssueCreate", ...args);
     if (mockErrors.ghIssueCreate) return undefined;
@@ -88,10 +88,10 @@ mock.module("../src/gh", () => ({
 }));
 
 // NOW import the module under test
-import { syncGitHub, type SyncResult } from "../src/github-sync";
-import type { PipelineManifest, ManifestFeature } from "../src/manifest";
-import type { BeastmodeConfig } from "../src/config";
-import type { ResolvedGitHub } from "../src/github-discovery";
+import { syncGitHub, type SyncResult } from "../github-sync";
+import type { PipelineManifest, ManifestFeature } from "../manifest";
+import type { BeastmodeConfig } from "../config";
+import type { ResolvedGitHub } from "../github-discovery";
 
 // --- Test helpers ---
 

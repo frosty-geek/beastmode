@@ -9,10 +9,11 @@
  * `warned[]` rather than aborting the sequence.
  */
 
-import { existsSync, readdirSync, unlinkSync } from "fs";
+import { readdirSync, unlinkSync } from "fs";
 import { resolve } from "path";
 import { remove as removeWorktree } from "../worktree.js";
 import { git } from "../git.js";
+import { gh } from "../gh.js";
 import { deleteAllTags } from "../phase-tags.js";
 import * as store from "../manifest-store.js";
 import type { Logger } from "../logger.js";
@@ -133,8 +134,12 @@ export async function cancelEpic(config: CancelConfig): Promise<CancelResult> {
     let count = 0;
     for (const phase of ARTIFACT_PHASES) {
       const dir = resolve(projectRoot, ".beastmode", "artifacts", phase);
-      if (!existsSync(dir)) continue;
-      const files = readdirSync(dir);
+      let files: string[];
+      try {
+        files = readdirSync(dir);
+      } catch {
+        continue;
+      }
       for (const file of files) {
         if (file.includes(`-${epic}-`) || file.includes(`-${epic}.`)) {
           unlinkSync(resolve(dir, file));
@@ -154,21 +159,12 @@ export async function cancelEpic(config: CancelConfig): Promise<CancelResult> {
   // --- Step 5: Close GitHub epic ---
   if (githubEnabled && githubEpicNumber !== undefined) {
     try {
-      const proc = Bun.spawn(
-        [
-          "gh",
-          "issue",
-          "close",
-          String(githubEpicNumber),
-          "--reason",
-          "not planned",
-        ],
-        { cwd: projectRoot, stdout: "pipe", stderr: "pipe" },
+      const result = await gh(
+        ["issue", "close", String(githubEpicNumber), "--reason", "not planned"],
+        { cwd: projectRoot },
       );
-      const exitCode = await proc.exited;
-      if (exitCode !== 0) {
-        const stderr = await new Response(proc.stderr).text();
-        throw new Error(`gh issue close exited ${exitCode}: ${stderr.trim()}`);
+      if (!result) {
+        throw new Error("gh issue close returned no result");
       }
       logger.detail(`Closed GitHub issue #${githubEpicNumber}`);
       cleaned.push("github-issue");

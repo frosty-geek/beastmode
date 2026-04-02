@@ -49,7 +49,6 @@ function makeDeps(overrides?: Partial<WatchDeps>): WatchDeps {
         };
       },
     },
-    logRun: async () => {},
     logger: createNullLogger(),
     ...overrides,
   };

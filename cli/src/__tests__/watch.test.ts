@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { WatchLoop } from "../src/watch.js";
-import type { WatchDeps } from "../src/watch.js";
-import type { EnrichedManifest } from "../src/state-scanner.js";
-import type { SessionResult } from "../src/watch-types.js";
-import { SdkSessionFactory } from "../src/session.js";
-import { DispatchTracker } from "../src/dispatch-tracker.js";
-import { acquireLock, releaseLock, readLockfile } from "../src/lockfile.js";
+import { WatchLoop } from "../watch.js";
+import type { WatchDeps } from "../watch.js";
+import type { EnrichedManifest } from "../state-scanner.js";
+import type { SessionResult } from "../watch-types.js";
+import { SdkSessionFactory } from "../session.js";
+import { DispatchTracker } from "../dispatch-tracker.js";
+import { acquireLock, releaseLock, readLockfile } from "../lockfile.js";
 
-const TEST_ROOT = resolve(import.meta.dir, ".test-watch-tmp");
+const TEST_ROOT = resolve(import.meta.dir, "../../.test-watch-tmp");
 
 function setupTestRoot(): void {
   rmSync(TEST_ROOT, { recursive: true, force: true });
@@ -163,7 +163,6 @@ describe("WatchLoop", () => {
           durationMs: 500,
         }),
       })),
-      logRun: async () => {},
       ...overrides,
     };
   }
@@ -344,7 +343,7 @@ describe("WatchLoop", () => {
 
   it("no merge coordination after fan-out completion", async () => {
     let scanCount = 0;
-    const loggedRuns: Array<{ phase: string; featureSlug?: string }> = [];
+    const completed: Array<{ phase: string }> = [];
 
     const implementEpic: EnrichedManifest = {
       slug: "my-epic",
@@ -381,15 +380,13 @@ describe("WatchLoop", () => {
           durationMs: 500,
         }),
       })),
-      logRun: async (opts) => {
-        loggedRuns.push({ phase: opts.phase, featureSlug: opts.featureSlug });
-      },
     });
 
     const loop = new WatchLoop(
       { intervalSeconds: 999, projectRoot: TEST_ROOT },
       deps,
     );
+    loop.on("session-completed", (evt) => completed.push({ phase: evt.phase }));
     loop.setRunning(true);
 
     await loop.tick();
@@ -397,9 +394,9 @@ describe("WatchLoop", () => {
     // Wait for all sessions to complete
     await new Promise((r) => setTimeout(r, 100));
 
-    // Sessions completed and were logged — no merge step occurred
-    expect(loggedRuns).toHaveLength(2);
-    expect(loggedRuns.every((r) => r.phase === "implement")).toBe(true);
+    // Sessions completed — no merge step occurred
+    expect(completed).toHaveLength(2);
+    expect(completed.every((r) => r.phase === "implement")).toBe(true);
 
     // Tracker should be clean — no lingering merge sessions
     expect(loop.getTracker().size).toBe(0);
@@ -556,58 +553,6 @@ describe("WatchLoop", () => {
     await loop.stop();
   });
 
-  it("logs runs on session completion", async () => {
-    const loggedRuns: Array<{
-      epicSlug: string;
-      phase: string;
-      featureSlug?: string;
-    }> = [];
-    let scanCount = 0;
-
-    const readyEpic: EnrichedManifest = {
-      slug: "my-epic",
-      manifestPath: "pipeline/my-epic.manifest.json",
-      phase: "design",
-      nextAction: { phase: "plan", args: ["my-epic"], type: "single" },
-      features: [],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-      blocked: null,
-    };
-
-    const deps = mockDeps({
-      scanEpics: async () => {
-        scanCount++;
-        if (scanCount === 1) return [readyEpic];
-        return [{ ...readyEpic, nextAction: null }];
-      },
-      logRun: async (opts) => {
-        loggedRuns.push({
-          epicSlug: opts.epicSlug,
-          phase: opts.phase,
-          featureSlug: opts.featureSlug,
-        });
-      },
-    });
-
-    const loop = new WatchLoop(
-      { intervalSeconds: 999, projectRoot: TEST_ROOT },
-      deps,
-    );
-    loop.setRunning(true);
-
-    await loop.tick();
-
-    // Wait for session to complete and log
-    await new Promise((r) => setTimeout(r, 100));
-
-    expect(loggedRuns).toHaveLength(1);
-    expect(loggedRuns[0].epicSlug).toBe("my-epic");
-    expect(loggedRuns[0].phase).toBe("plan");
-
-    await loop.stop();
-  });
-
   it("skips epics with no next action", async () => {
     const dispatched: string[] = [];
 
@@ -651,7 +596,7 @@ describe("WatchLoop", () => {
   });
 
   it("processes release phase completion and re-scans", async () => {
-    const loggedRuns: Array<{ phase: string; epicSlug: string }> = [];
+    const completed: Array<{ phase: string; epicSlug: string }> = [];
     let scanCount = 0;
 
     const releaseEpic: EnrichedManifest = {
@@ -684,25 +629,23 @@ describe("WatchLoop", () => {
           }),
         };
       }),
-      logRun: async (opts) => {
-        loggedRuns.push({ phase: opts.phase, epicSlug: opts.epicSlug });
-      },
     });
 
     const loop = new WatchLoop(
       { intervalSeconds: 999, projectRoot: TEST_ROOT },
       deps,
     );
+    loop.on("session-completed", (evt) => completed.push({ phase: evt.phase, epicSlug: evt.epicSlug }));
     loop.setRunning(true);
 
     await loop.tick();
 
-    // Wait for session to complete and log
+    // Wait for session to complete
     await new Promise((r) => setTimeout(r, 100));
 
-    expect(loggedRuns).toHaveLength(1);
-    expect(loggedRuns[0].phase).toBe("release");
-    expect(loggedRuns[0].epicSlug).toBe("release-epic");
+    expect(completed).toHaveLength(1);
+    expect(completed[0].phase).toBe("release");
+    expect(completed[0].epicSlug).toBe("release-epic");
 
     // Verify the session was cleaned up from tracker
     expect(loop.getTracker().size).toBe(0);
@@ -767,7 +710,7 @@ describe("WatchLoop", () => {
 
   it("strategy cleanup failure does not fail the release", async () => {
     let scanCount = 0;
-    const loggedRuns: Array<{ phase: string; result: { success: boolean } }> = [];
+    const completed: Array<{ phase: string; success: boolean }> = [];
 
     const failingCleanup = async (_epicSlug: string) => {
       throw new Error("cmux is down");
@@ -811,29 +754,27 @@ describe("WatchLoop", () => {
           })(),
         };
       }),
-      logRun: async (opts) => {
-        loggedRuns.push({ phase: opts.phase, result: opts.result });
-      },
     });
 
     const loop = new WatchLoop(
       { intervalSeconds: 999, projectRoot: TEST_ROOT },
       deps,
     );
+    loop.on("session-completed", (evt) => completed.push({ phase: evt.phase, success: evt.success }));
     loop.setRunning(true);
 
     await loop.tick();
     await new Promise((r) => setTimeout(r, 100));
 
     // Release should still be logged as successful despite cleanup failure
-    expect(loggedRuns).toHaveLength(1);
-    expect(loggedRuns[0].result.success).toBe(true);
+    expect(completed).toHaveLength(1);
+    expect(completed[0].success).toBe(true);
 
     await loop.stop();
   });
 
   it("does not teardown on failed release", async () => {
-    const loggedRuns: Array<{ phase: string; result: { success: boolean } }> = [];
+    const completed: Array<{ phase: string; success: boolean }> = [];
     let scanCount = 0;
 
     const releaseEpic: EnrichedManifest = {
@@ -864,23 +805,21 @@ describe("WatchLoop", () => {
           durationMs: 5000,
         }),
       })),
-      logRun: async (opts) => {
-        loggedRuns.push({ phase: opts.phase, result: opts.result });
-      },
     });
 
     const loop = new WatchLoop(
       { intervalSeconds: 999, projectRoot: TEST_ROOT },
       deps,
     );
+    loop.on("session-completed", (evt) => completed.push({ phase: evt.phase, success: evt.success }));
     loop.setRunning(true);
 
     await loop.tick();
     await new Promise((r) => setTimeout(r, 100));
 
-    // The failed release should still be logged
-    expect(loggedRuns).toHaveLength(1);
-    expect(loggedRuns[0].result.success).toBe(false);
+    // The failed release should still be tracked
+    expect(completed).toHaveLength(1);
+    expect(completed[0].success).toBe(false);
 
     // Session should be cleaned up
     expect(loop.getTracker().size).toBe(0);

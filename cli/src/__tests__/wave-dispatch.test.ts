@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import { WatchLoop } from "../src/watch.js";
-import type { WatchDeps } from "../src/watch.js";
-import type { EnrichedManifest } from "../src/state-scanner.js";
-import { SdkSessionFactory } from "../src/session.js";
+import { WatchLoop } from "../watch.js";
+import type { WatchDeps } from "../watch.js";
+import type { EnrichedManifest } from "../state-scanner.js";
+import { SdkSessionFactory } from "../session.js";
 
-const TEST_ROOT = resolve(import.meta.dir, ".test-wave-dispatch-tmp");
+const TEST_ROOT = resolve(import.meta.dir, "../../.test-wave-dispatch-tmp");
 
 function setupTestRoot(): void {
   rmSync(TEST_ROOT, { recursive: true, force: true });
@@ -31,7 +31,6 @@ function mockDeps(overrides: Partial<WatchDeps> = {}): WatchDeps {
         durationMs: 500,
       }),
     })),
-    logRun: async () => {},
     ...overrides,
   };
 }

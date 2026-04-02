@@ -13,7 +13,6 @@
  */
 
 import type { Phase } from "./types";
-import type { PipelineManifest } from "./manifest-store";
 import type { Logger } from "./logger";
 import * as store from "./manifest-store";
 import { loadWorktreePhaseOutput } from "./phase-output";

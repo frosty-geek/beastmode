@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 
-const PHASE_TS_PATH = resolve(import.meta.dir, "../src/commands/phase.ts");
+const PHASE_TS_PATH = resolve(import.meta.dir, "../commands/phase.ts");
 const phaseSource = readFileSync(PHASE_TS_PATH, "utf-8");
 
 describe("uniform dispatch — all phases use interactive runner", () => {
@@ -79,10 +79,10 @@ describe("release teardown simplified", () => {
   });
 });
 
-describe("SDK runner preserved for watch loop", () => {
-  test("sdk-runner.ts still exists", () => {
-    const sdkRunnerPath = resolve(import.meta.dir, "../src/runners/sdk-runner.ts");
-    expect(existsSync(sdkRunnerPath)).toBe(true);
+describe("SDK runner removed", () => {
+  test("sdk-runner.ts is deleted", () => {
+    const sdkRunnerPath = resolve(import.meta.dir, "../runners/sdk-runner.ts");
+    expect(existsSync(sdkRunnerPath)).toBe(false);
   });
 
   test("sdk-runner is NOT referenced by phase.ts", () => {
@@ -92,17 +92,17 @@ describe("SDK runner preserved for watch loop", () => {
 
 describe("backwards compatibility", () => {
   test("slugify is still exported", async () => {
-    const mod = await import("../src/commands/phase");
+    const mod = await import("../commands/phase");
     expect(typeof mod.slugify).toBe("function");
   });
 
   test("phaseCommand is still exported", async () => {
-    const mod = await import("../src/commands/phase");
+    const mod = await import("../commands/phase");
     expect(typeof mod.phaseCommand).toBe("function");
   });
 
   test("slugify produces correct output", async () => {
-    const { slugify } = await import("../src/commands/phase");
+    const { slugify } = await import("../commands/phase");
     expect(slugify("My Cool Topic")).toBe("my-cool-topic");
     expect(slugify("TypeScript's Pipeline!")).toBe("typescripts-pipeline");
     expect(slugify("foo  --  bar")).toBe("foo-bar");

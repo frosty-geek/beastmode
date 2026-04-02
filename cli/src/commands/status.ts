@@ -359,6 +359,6 @@ export async function statusCommand(_config: BeastmodeConfig, args: string[] = [
     return;
   }
 
-  const { epics } = await scanEpics(projectRoot);
+  const { epics } = listEnriched(projectRoot);
   process.stdout.write(renderStatusScreen(epics, { all }) + "\n");
 }

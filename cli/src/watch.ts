@@ -8,7 +8,6 @@
 import type { EnrichedManifest, ScanResult } from "./manifest-store.js";
 import type {
   DispatchedSession,
-  SessionResult,
   WatchConfig,
   WatchLoopEventMap,
 } from "./watch-types.js";
@@ -42,14 +41,6 @@ export interface WatchDeps {
   scanEpics: (projectRoot: string) => Promise<ScanResult | EnrichedManifest[]>;
   /** Factory for creating phase sessions. */
   sessionFactory: SessionFactory;
-  /** Log a run entry to .beastmode-runs.json. */
-  logRun: (opts: {
-    epicSlug: string;
-    phase: string;
-    featureSlug?: string;
-    result: SessionResult;
-    projectRoot: string;
-  }) => Promise<void>;
   /** Scoped logger. Falls back to createLogger(0, "watch") if omitted. */
   logger?: Logger;
 }
@@ -340,19 +331,6 @@ export class WatchLoop extends EventEmitter {
           durationMs: result.durationMs,
           costUsd: result.costUsd,
         });
-
-        // Log the run
-        try {
-          await this.deps.logRun({
-            epicSlug: session.epicSlug,
-            phase: session.phase,
-            featureSlug: session.featureSlug,
-            result,
-            projectRoot: this.config.projectRoot,
-          });
-        } catch (err) {
-          this.logger.warn(`Failed to log run: ${err}`);
-        }
 
         // Create phase tag for regression support (mirrors post-dispatch in CLI path)
         if (result.success) {

@@ -81,7 +81,7 @@ describe("watch dispatch race prevention", () => {
         ];
       },
       sessionFactory,
-      logRun: async () => {},
+
     };
 
     const loop = new WatchLoop(
@@ -151,7 +151,7 @@ describe("watch dispatch race prevention", () => {
         makeEpic([{ slug: "feat-x", status: "pending" }]),
       ],
       sessionFactory,
-      logRun: async () => {},
+
     };
 
     const loop = new WatchLoop(

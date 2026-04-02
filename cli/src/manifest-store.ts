@@ -634,6 +634,7 @@ export async function transact(
     return updated;
   } finally {
     release();
+    locks.delete(slug);
   }
 }
 

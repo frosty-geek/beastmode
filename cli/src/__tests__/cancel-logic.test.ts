@@ -2,8 +2,7 @@
  * Tests for shared cancel-logic module.
  *
  * Strategy: real filesystem for artifacts (step 4) and manifest (step 6),
- * mock.module for git-dependent operations (steps 1-3), spyOn(Bun, "spawn")
- * for GitHub close (step 5).
+ * mock.module for git-dependent operations (steps 1-3) and gh CLI (step 5).
  */
 import { describe, test, expect, beforeEach, afterEach, mock, spyOn } from "bun:test";
 import { existsSync, rmSync, mkdirSync, writeFileSync, readdirSync } from "fs";
@@ -16,6 +15,7 @@ import { resolve } from "path";
 const mockRemoveWorktree = mock(async () => {});
 const mockGit = mock(async () => ({ stdout: "", stderr: "", exitCode: 0 }));
 const mockDeleteAllTags = mock(async () => {});
+const mockGh = mock(async () => ({ stdout: "", stderr: "", exitCode: 0 }));
 
 mock.module("../worktree.js", () => ({
   remove: mockRemoveWorktree,
@@ -25,6 +25,9 @@ mock.module("../git.js", () => ({
 }));
 mock.module("../phase-tags.js", () => ({
   deleteAllTags: mockDeleteAllTags,
+}));
+mock.module("../gh.js", () => ({
+  gh: mockGh,
 }));
 
 // Import AFTER mocking
@@ -109,10 +112,12 @@ describe("cancelEpic", () => {
     mockRemoveWorktree.mockReset();
     mockGit.mockReset();
     mockDeleteAllTags.mockReset();
+    mockGh.mockReset();
     // Restore default success behavior after reset
     mockRemoveWorktree.mockImplementation(async () => {});
     mockGit.mockImplementation(async () => ({ stdout: "", stderr: "", exitCode: 0 }));
     mockDeleteAllTags.mockImplementation(async () => {});
+    mockGh.mockImplementation(async () => ({ stdout: "", stderr: "", exitCode: 0 }));
   });
   afterEach(() => cleanup());
 
@@ -136,24 +141,6 @@ describe("cancelEpic", () => {
   test("full cleanup with github enabled — all 6 steps succeed", async () => {
     seedManifest("my-epic", { github: { epic: 42, repo: "org/repo" } });
 
-    // Mock Bun.spawn for the gh CLI call
-    const mockProc = {
-      exited: Promise.resolve(0),
-      stdout: new ReadableStream(),
-      stderr: new ReadableStream(),
-      pid: 1234,
-      exitCode: null,
-      signalCode: null,
-      killed: false,
-      stdin: undefined as unknown,
-      readable: new ReadableStream(),
-      kill: () => {},
-      ref: () => {},
-      unref: () => {},
-      [Symbol.dispose]: () => {},
-    };
-    const spawnSpy = spyOn(Bun, "spawn").mockReturnValue(mockProc as unknown as ReturnType<typeof Bun.spawn>);
-
     const result = await cancelEpic(
       baseConfig({ githubEnabled: true }),
     );
@@ -167,13 +154,11 @@ describe("cancelEpic", () => {
     expect(result.warned).toHaveLength(0);
     expect(result.cleaned).toHaveLength(6);
 
-    // Verify gh CLI was called correctly
-    expect(spawnSpy).toHaveBeenCalledWith(
-      ["gh", "issue", "close", "42", "--reason", "not planned"],
+    // Verify gh() was called correctly
+    expect(mockGh).toHaveBeenCalledWith(
+      ["issue", "close", "42", "--reason", "not planned"],
       expect.objectContaining({ cwd: TEST_ROOT }),
     );
-
-    spawnSpy.mockRestore();
   });
 
   // -----------------------------------------------------------------------
@@ -337,25 +322,17 @@ describe("cancelEpic", () => {
   test("githubEnabled=false skips GitHub close even with epic number", async () => {
     seedManifest("my-epic", { github: { epic: 99, repo: "org/repo" } });
 
-    const spawnSpy = spyOn(Bun, "spawn");
-
     const result = await cancelEpic(
       baseConfig({ githubEnabled: false }),
     );
 
     expect(result.cleaned).not.toContain("github-issue");
     expect(result.warned).not.toContain("github-issue");
-    // Bun.spawn should not have been called for gh
-    expect(spawnSpy).not.toHaveBeenCalled();
-
-    spawnSpy.mockRestore();
   });
 
   test("githubEnabled=true but no epic number — skips GitHub close", async () => {
     // Manifest without github.epic
     seedManifest("my-epic");
-
-    const spawnSpy = spyOn(Bun, "spawn");
 
     const result = await cancelEpic(
       baseConfig({ githubEnabled: true }),
@@ -363,9 +340,6 @@ describe("cancelEpic", () => {
 
     expect(result.cleaned).not.toContain("github-issue");
     expect(result.warned).not.toContain("github-issue");
-    expect(spawnSpy).not.toHaveBeenCalled();
-
-    spawnSpy.mockRestore();
   });
 
   // -----------------------------------------------------------------------

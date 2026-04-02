@@ -2,8 +2,8 @@ import { describe, test, expect } from "bun:test";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
-const PHASE_TS = readFileSync(resolve(import.meta.dir, "../src/commands/phase.ts"), "utf-8");
-const POST_DISPATCH_TS = readFileSync(resolve(import.meta.dir, "../src/post-dispatch.ts"), "utf-8");
+const PHASE_TS = readFileSync(resolve(import.meta.dir, "../commands/phase.ts"), "utf-8");
+const POST_DISPATCH_TS = readFileSync(resolve(import.meta.dir, "../post-dispatch.ts"), "utf-8");
 
 describe("design abandon guard — primary gate in phase.ts", () => {
   test("imports loadWorktreePhaseOutput from phase-output", () => {
@@ -82,7 +82,7 @@ describe("design abandon guard — secondary guard in post-dispatch.ts", () => {
 
 describe("manifest store.remove() idempotency", () => {
   test("store module exports remove function", async () => {
-    const store = await import("../src/manifest-store");
+    const store = await import("../manifest-store");
     expect(typeof store.remove).toBe("function");
   });
 });

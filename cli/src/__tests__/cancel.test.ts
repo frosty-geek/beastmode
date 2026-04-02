@@ -1,8 +1,8 @@
 import { describe, test, expect } from "bun:test";
-import { parseArgs } from "../src/args";
-import { cancelEpic } from "../src/shared/cancel-logic";
-import type { CancelConfig } from "../src/shared/cancel-logic";
-import type { Logger } from "../src/logger";
+import { parseArgs } from "../args";
+import { cancelEpic } from "../shared/cancel-logic";
+import type { CancelConfig } from "../shared/cancel-logic";
+import type { Logger } from "../logger";
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readdirSync } from "fs";
 import { resolve } from "path";
 import os from "os";

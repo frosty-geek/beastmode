@@ -6,7 +6,7 @@
  */
 
 import { resolve } from "node:path";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { loadConfig } from "./config.js";
 import { createLogger } from "./logger.js";
 import type { Logger } from "./logger.js";
@@ -256,42 +256,6 @@ export async function dispatchPhase(opts: {
   return { id, worktreeSlug, promise };
 }
 
-/** Append a run entry to .beastmode-runs.json. */
-async function logRun(opts: {
-  epicSlug: string;
-  phase: string;
-  featureSlug?: string;
-  result: SessionResult;
-  projectRoot: string;
-}): Promise<void> {
-  const runsPath = resolve(opts.projectRoot, ".beastmode-runs.json");
-
-  let runs: unknown[] = [];
-  if (existsSync(runsPath)) {
-    try {
-      runs = JSON.parse(readFileSync(runsPath, "utf-8"));
-    } catch {
-      runs = [];
-    }
-  }
-
-  runs.push({
-    epic: opts.epicSlug,
-    phase: opts.phase,
-    feature: opts.featureSlug ?? null,
-    cost_usd: opts.result.costUsd,
-    duration_ms: opts.result.durationMs,
-    exit_status: opts.result.exitCode,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Ensure directory exists
-  const dir = resolve(opts.projectRoot);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
-  writeFileSync(runsPath, JSON.stringify(runs, null, 2));
-}
-
 /** Result of strategy selection — which strategy was chosen and why. */
 export interface StrategySelection {
   strategy: "iterm2" | "cmux" | "sdk";
@@ -387,7 +351,6 @@ export async function watchCommand(_args: string[], verbosity: number = 0): Prom
   const deps: WatchDeps = {
     scanEpics: async (root: string) => listEnriched(root),
     sessionFactory,
-    logRun,
     logger,
   };
 

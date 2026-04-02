@@ -7,13 +7,11 @@
  * dispatch through the interactive runner. No phase-specific branching except
  * release teardown (remove worktree on success).
  *
- * The SDK runner is preserved for the watch loop — it is not used here.
  */
 
 import type { BeastmodeConfig } from "../config";
 import type { Phase } from "../types";
 import { runInteractive } from "../runners/interactive-runner";
-import { appendRunLog } from "../utils/run-log";
 import {
   ensureWorktree,
   enter as enterWorktree,
@@ -84,8 +82,6 @@ export async function phaseCommand(
   logger.log(`Worktree: ${cwd}`);
 
   const result = await runInteractive({ phase, args, cwd });
-
-  await appendRunLog(projectRoot, phase, args, result);
 
   // Design abandon guard: if design phase produced no PRD, clean up everything
   if (!inWorktree && phase === "design") {

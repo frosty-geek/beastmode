@@ -15,7 +15,6 @@ import {
   readdirSync,
   mkdirSync,
   statSync,
-  unlinkSync,
 } from "node:fs";
 import { resolve } from "node:path";
 import type { IIt2Client, It2Session } from "./it2-client.js";

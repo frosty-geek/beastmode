@@ -7,7 +7,7 @@
  */
 
 import { watch, type FSWatcher } from "node:fs";
-import { readFileSync, readdirSync, mkdirSync, statSync, unlinkSync } from "node:fs";
+import { readFileSync, readdirSync, mkdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ICmuxClient } from "./cmux-client.js";
 import type {

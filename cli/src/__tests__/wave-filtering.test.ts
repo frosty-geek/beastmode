@@ -1,10 +1,10 @@
 import { describe, it, expect } from "bun:test";
 import { createActor } from "xstate";
-import { epicMachine } from "../src/pipeline-machine/epic.js";
-import type { EpicContext } from "../src/pipeline-machine/types.js";
-import type { PipelineManifest, ManifestFeature } from "../src/manifest-store.js";
-import type { NextAction } from "../src/state-scanner.js";
-import type { DispatchType } from "../src/pipeline-machine/types.js";
+import { epicMachine } from "../pipeline-machine/epic.js";
+import type { EpicContext } from "../pipeline-machine/types.js";
+import type { PipelineManifest, ManifestFeature } from "../manifest-store.js";
+import type { NextAction } from "../state-scanner.js";
+import type { DispatchType } from "../pipeline-machine/types.js";
 
 /**
  * Inline version of deriveNextActionFromMachine for unit testing.

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { loadConfig, resolveGateMode } from "../src/config";
+import { loadConfig, resolveGateMode } from "../config";
 import { mkdtempSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
