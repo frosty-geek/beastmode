@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: 5472ca
+slug: gh-error-diagnostics
 epic: gh-error-diagnostics
 ---
 
