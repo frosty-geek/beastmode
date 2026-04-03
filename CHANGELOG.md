@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.64.0 — GH Error Diagnostics (Apr 2026)
+
+- **Endpoint in error messages** — `gh()` error messages now show `args.slice(0, 2)` instead of just the verb, surfacing the actual API endpoint on failure
+- **Logger threading** — All 11 `gh*` helper functions in `gh.ts` accept optional `logger?: Logger` for epic-scoped context propagation
+- **Sync layer wiring** — `syncGitHub()` and `syncGitHubForEpic()` thread logger through all GitHub API call sites
+
+---
+
 ### v0.63.0 — HITL Config (Apr 2026)
 
 - **Per-phase HITL config** — Prose config in `config.yaml` under `hitl:` key with "always defer to human" defaults for all phases
