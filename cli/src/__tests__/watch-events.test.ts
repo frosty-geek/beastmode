@@ -291,7 +291,7 @@ describe("WatchLoop event emission", () => {
       phase: "design",
       sessionId: "sess-1",
     });
-    expect(logged.some((m) => m.includes("my-epic") && m.includes("design"))).toBe(true);
+    expect(logged.some((m) => m.includes("dispatching") && m.includes("design"))).toBe(true);
 
     loop.emit("session-completed", {
       epicSlug: "my-epic",

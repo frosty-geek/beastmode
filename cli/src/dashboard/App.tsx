@@ -103,7 +103,7 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
         projectRoot,
         tracker: l.getTracker(),
         githubEnabled: config.github.enabled,
-        logger: createLogger(verbosity, "dashboard"),
+        logger: createLogger(verbosity, {}),
       });
       pushEvent("error", `cancelled ${slug}`);
     },

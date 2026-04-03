@@ -75,28 +75,30 @@ export class ReconcilingFactory implements SessionFactory {
       handle.worktreeSlug,
     );
 
+    const scopedLogger = logger.child({ phase: opts.phase, epic: opts.epicSlug, ...(opts.featureSlug ? { feature: opts.featureSlug } : {}) });
+
     const wrappedPromise = handle.promise.then(async (result) => {
       let sessionResult = result;
 
       // Release teardown: archive, remove on success
       if (opts.phase === "release" && sessionResult.success) {
         try {
-          logger.log(`${opts.epicSlug}: release teardown — archiving branch...`);
+          scopedLogger.log("release teardown — archiving branch...");
           const tagName = await worktree.archive(handle.worktreeSlug, { cwd: projectRoot });
-          logger.log(`${opts.epicSlug}: archived as ${tagName}`);
+          scopedLogger.log(`archived as ${tagName}`);
 
           await worktree.remove(handle.worktreeSlug, { cwd: projectRoot });
-          logger.log(`${opts.epicSlug}: worktree removed`);
+          scopedLogger.log("worktree removed");
 
           // Mark manifest as done so scanner skips it
           const doneManifest = store.load(projectRoot, opts.epicSlug);
           if (doneManifest) {
             store.save(projectRoot, opts.epicSlug, { ...doneManifest, phase: "done", lastUpdated: new Date().toISOString() });
           }
-          logger.log(`${opts.epicSlug}: manifest marked done`);
+          scopedLogger.log("manifest marked done");
         } catch (err) {
-          logger.error(`${opts.epicSlug}: release teardown failed: ${err}`);
-          logger.error(`${opts.epicSlug}: worktree preserved for manual cleanup`);
+          scopedLogger.error(`release teardown failed: ${err}`);
+          scopedLogger.error("worktree preserved for manual cleanup");
           sessionResult = { ...sessionResult, success: false };
         }
       }
@@ -132,7 +134,7 @@ export class ReconcilingFactory implements SessionFactory {
 
           progress = result?.progress;
         } catch (err) {
-          logger.error(`${opts.epicSlug}: reconciliation failed: ${err}`);
+          scopedLogger.error(`reconciliation failed: ${err}`);
         }
       }
 
@@ -143,10 +145,10 @@ export class ReconcilingFactory implements SessionFactory {
             projectRoot,
             epicSlug: opts.epicSlug,
             resolved: this.resolved,
-            logger: createLogger(0, `watch:${opts.epicSlug}`),
+            logger: this.logger.child({ epic: opts.epicSlug }),
           });
         } catch (err) {
-          logger.warn(`${opts.epicSlug}: GitHub sync failed: ${err}`);
+          scopedLogger.warn(`GitHub sync failed: ${err}`);
         }
       }
 
@@ -323,7 +325,7 @@ export async function selectStrategy(
     checkIterm2: typeof iterm2Available;
     checkCmux: typeof cmuxAvailable;
   } = { checkIterm2: iterm2Available, checkCmux: cmuxAvailable },
-  logger: Logger = createLogger(0, "watch"),
+  logger: Logger = createLogger(0, {}),
 ): Promise<StrategySelection> {
   if (configured === "iterm2") {
     const result = await deps.checkIterm2();
@@ -368,7 +370,7 @@ export async function selectStrategy(
 export async function watchCommand(_args: string[], verbosity: number = 0): Promise<void> {
   const projectRoot = findProjectRoot();
   const config = loadConfig(projectRoot);
-  const logger = createLogger(verbosity, "watch");
+  const logger = createLogger(verbosity, {});
 
   const selected = await selectStrategy(config.cli["dispatch-strategy"] ?? "sdk", undefined, logger);
   let innerFactory: SessionFactory;
