@@ -1,96 +1,238 @@
-import { describe, test, expect } from "bun:test";
-import { composeHitlSettings, writeHitlSettings } from "../hitl-settings";
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync } from "fs";
+import { describe, test, expect, beforeEach } from "bun:test";
+import { writeHitlSettings, cleanHitlSettings } from "../hitl-settings";
+import type { WriteSettingsOptions } from "../hitl-settings";
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
-// --- composeHitlSettings ---
+function makeTempClaudeDir(): string {
+  const tempDir = mkdtempSync(join(tmpdir(), "hitl-settings-test-"));
+  const claudeDir = join(tempDir, ".claude");
+  mkdirSync(claudeDir, { recursive: true });
+  return claudeDir;
+}
 
-describe("composeHitlSettings", () => {
-  test("preserves enabledPlugins from existing settings", () => {
-    const existing = { enabledPlugins: { "commons@overrides": true } };
-    const result = composeHitlSettings("design", existing);
-    expect(result.enabledPlugins).toEqual({ "commons@overrides": true });
+function readSettings(claudeDir: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(join(claudeDir, "settings.local.json"), "utf-8"));
+}
+
+const mockPreToolUseHook = {
+  matcher: "AskUserQuestion",
+  hooks: [
+    {
+      type: "prompt" as const,
+      prompt: "You are a HITL hook...",
+      model: "haiku",
+      timeout: 30,
+    },
+  ],
+};
+
+describe("writeHitlSettings", () => {
+  test("creates settings.local.json when none exists", () => {
+    const claudeDir = makeTempClaudeDir();
+    // Remove any auto-created file
+    const settingsPath = join(claudeDir, "settings.local.json");
+
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "design",
+    });
+
+    const settings = readSettings(claudeDir);
+    expect(settings.hooks).toBeDefined();
+    const hooks = settings.hooks as Record<string, unknown[]>;
+    expect(hooks.PreToolUse).toHaveLength(1);
+    expect(hooks.PostToolUse).toHaveLength(1);
   });
 
-  test("adds PostToolUse hook for AskUserQuestion", () => {
-    const result = composeHitlSettings("implement", {});
-    const hooks = result.hooks as Record<string, unknown[]>;
-    expect(hooks.PostToolUse).toHaveLength(1);
-    expect(hooks.PostToolUse[0]).toEqual({
-      matcher: "AskUserQuestion",
-      hooks: [
-        {
-          type: "command",
-          command: expect.stringContaining("hitl-log.ts"),
+  test("preserves existing enabledPlugins", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeFileSync(
+      join(claudeDir, "settings.local.json"),
+      JSON.stringify({
+        enabledPlugins: {
+          "commons@overrides": true,
+          "beastmode@beastmode-marketplace": true,
         },
-      ],
+      }),
+    );
+
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "implement",
+    });
+
+    const settings = readSettings(claudeDir);
+    expect(settings.enabledPlugins).toEqual({
+      "commons@overrides": true,
+      "beastmode@beastmode-marketplace": true,
     });
   });
 
-  test("templates phase into hook command", () => {
-    const result = composeHitlSettings("validate", {});
-    const hooks = result.hooks as Record<string, unknown[]>;
-    const hook = hooks.PostToolUse[0] as any;
-    expect(hook.hooks[0].command).toContain("validate");
+  test("PreToolUse hook targets AskUserQuestion", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "plan",
+    });
+
+    const settings = readSettings(claudeDir);
+    const hooks = settings.hooks as Record<string, Array<{matcher: string}>>;
+    expect(hooks.PreToolUse[0].matcher).toBe("AskUserQuestion");
   });
 
-  test("replaces hooks on each call (clean slate)", () => {
-    const existing = { hooks: { SomeOtherHook: ["old"] } };
-    const result = composeHitlSettings("plan", existing);
-    const hooks = result.hooks as Record<string, unknown[]>;
-    expect(hooks).not.toHaveProperty("SomeOtherHook");
+  test("PostToolUse hook calls hitl-log.ts with phase", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "validate",
+    });
+
+    const settings = readSettings(claudeDir);
+    const hooks = settings.hooks as Record<string, Array<{matcher: string; hooks: Array<{command?: string}>}>>;
+    expect(hooks.PostToolUse[0].matcher).toBe("AskUserQuestion");
+    expect(hooks.PostToolUse[0].hooks[0].command).toContain("hitl-log.ts");
+    expect(hooks.PostToolUse[0].hooks[0].command).toContain("validate");
+  });
+
+  test("replaces existing HITL hooks on re-write", () => {
+    const claudeDir = makeTempClaudeDir();
+
+    // First write
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "design",
+    });
+
+    // Second write with different phase
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "plan",
+    });
+
+    const settings = readSettings(claudeDir);
+    const hooks = settings.hooks as Record<string, Array<{matcher: string; hooks: Array<{command?: string}>}>>;
+    // Should have exactly one PreToolUse and one PostToolUse — not duplicated
+    expect(hooks.PreToolUse).toHaveLength(1);
+    expect(hooks.PostToolUse).toHaveLength(1);
+    // PostToolUse should have the latest phase
+    expect(hooks.PostToolUse[0].hooks[0].command).toContain("plan");
+  });
+
+  test("preserves non-HITL hooks", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeFileSync(
+      join(claudeDir, "settings.local.json"),
+      JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            { matcher: "SomeOtherTool", hooks: [{ type: "command", command: "echo hi" }] },
+          ],
+        },
+      }),
+    );
+
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "design",
+    });
+
+    const settings = readSettings(claudeDir);
+    const hooks = settings.hooks as Record<string, Array<{matcher: string}>>;
+    expect(hooks.PreToolUse).toHaveLength(2);
+    const matchers = hooks.PreToolUse.map((h) => h.matcher);
+    expect(matchers).toContain("SomeOtherTool");
+    expect(matchers).toContain("AskUserQuestion");
+  });
+
+  test("handles malformed existing JSON gracefully", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeFileSync(join(claudeDir, "settings.local.json"), "not json{{{");
+
+    // Should not throw
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "design",
+    });
+
+    const settings = readSettings(claudeDir);
+    expect(settings.hooks).toBeDefined();
   });
 });
 
-// --- writeHitlSettings ---
-
-describe("writeHitlSettings", () => {
-  test("writes settings.local.json to worktree", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-hitl-"));
-    mkdirSync(join(tempDir, ".claude"), { recursive: true });
-
-    writeHitlSettings(tempDir, "design");
-
-    const raw = readFileSync(
-      join(tempDir, ".claude", "settings.local.json"),
-      "utf-8",
-    );
-    const parsed = JSON.parse(raw);
-    expect(parsed.hooks).toBeDefined();
-    expect(parsed.hooks.PostToolUse).toHaveLength(1);
-  });
-
-  test("preserves existing settings.local.json content", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-hitl-"));
-    mkdirSync(join(tempDir, ".claude"), { recursive: true });
+describe("cleanHitlSettings", () => {
+  test("removes HITL hooks, preserves enabledPlugins", () => {
+    const claudeDir = makeTempClaudeDir();
     writeFileSync(
-      join(tempDir, ".claude", "settings.local.json"),
-      JSON.stringify({ enabledPlugins: { "my-plugin": true } }),
+      join(claudeDir, "settings.local.json"),
+      JSON.stringify({
+        enabledPlugins: { "beastmode@beastmode-marketplace": true },
+        hooks: {
+          PreToolUse: [
+            { matcher: "AskUserQuestion", hooks: [{ type: "prompt", prompt: "test" }] },
+          ],
+          PostToolUse: [
+            { matcher: "AskUserQuestion", hooks: [{ type: "command", command: "test" }] },
+          ],
+        },
+      }),
     );
 
-    writeHitlSettings(tempDir, "implement");
+    cleanHitlSettings(claudeDir);
 
-    const raw = readFileSync(
-      join(tempDir, ".claude", "settings.local.json"),
-      "utf-8",
-    );
-    const parsed = JSON.parse(raw);
-    expect(parsed.enabledPlugins).toEqual({ "my-plugin": true });
-    expect(parsed.hooks.PostToolUse).toHaveLength(1);
+    const settings = readSettings(claudeDir);
+    expect(settings.enabledPlugins).toEqual({ "beastmode@beastmode-marketplace": true });
+    expect(settings.hooks).toBeUndefined();
   });
 
-  test("creates .claude directory if missing", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-hitl-"));
-    // No .claude/ directory created
-
-    writeHitlSettings(tempDir, "plan");
-
-    const raw = readFileSync(
-      join(tempDir, ".claude", "settings.local.json"),
-      "utf-8",
+  test("preserves non-HITL hooks", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeFileSync(
+      join(claudeDir, "settings.local.json"),
+      JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            { matcher: "AskUserQuestion", hooks: [{ type: "prompt", prompt: "hitl" }] },
+            { matcher: "OtherTool", hooks: [{ type: "command", command: "other" }] },
+          ],
+        },
+      }),
     );
-    const parsed = JSON.parse(raw);
-    expect(parsed.hooks.PostToolUse).toHaveLength(1);
+
+    cleanHitlSettings(claudeDir);
+
+    const settings = readSettings(claudeDir);
+    const hooks = settings.hooks as Record<string, Array<{matcher: string}>>;
+    expect(hooks.PreToolUse).toHaveLength(1);
+    expect(hooks.PreToolUse[0].matcher).toBe("OtherTool");
+  });
+
+  test("no-op when file does not exist", () => {
+    const claudeDir = makeTempClaudeDir();
+    // Should not throw
+    cleanHitlSettings(claudeDir);
+  });
+
+  test("no-op when no hooks section", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeFileSync(
+      join(claudeDir, "settings.local.json"),
+      JSON.stringify({ enabledPlugins: {} }),
+    );
+
+    cleanHitlSettings(claudeDir);
+
+    const settings = readSettings(claudeDir);
+    expect(settings.enabledPlugins).toEqual({});
+    expect(settings.hooks).toBeUndefined();
   });
 });

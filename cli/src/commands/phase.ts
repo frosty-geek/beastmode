@@ -11,6 +11,7 @@
 
 import type { BeastmodeConfig } from "../config";
 import type { Phase } from "../types";
+import { resolve } from "node:path";
 import { runInteractive } from "../runners/interactive-runner";
 import {
   ensureWorktree,
@@ -25,7 +26,8 @@ import { createLogger } from "../logger";
 import { loadWorktreePhaseOutput } from "../phase-output";
 import { loadConfig } from "../config";
 import { cancelEpic } from "../shared/cancel-logic.js";
-import { writeHitlSettings } from "../hitl-settings";
+import { writeHitlSettings, cleanHitlSettings } from "../hitl-settings";
+import { buildPreToolUseHook, getPhaseHitlProse } from "../hitl-prompt";
 
 /**
  * Execute a phase command. Called directly from the top-level router.
@@ -82,8 +84,12 @@ export async function phaseCommand(
   logger.log(`Phase: ${phase}`);
   logger.log(`Worktree: ${cwd}`);
 
-  // Write HITL hooks to settings.local.json before dispatch
-  writeHitlSettings(cwd, phase);
+  // Clean stale HITL hooks, then write fresh ones before dispatch
+  const claudeDir = resolve(cwd, ".claude");
+  cleanHitlSettings(claudeDir);
+  const hitlProse = getPhaseHitlProse(_config.hitl, phase);
+  const preToolUseHook = buildPreToolUseHook(hitlProse, _config.hitl.model, _config.hitl.timeout);
+  writeHitlSettings({ claudeDir, preToolUseHook, phase });
 
   const result = await runInteractive({ phase, args, cwd });
 
