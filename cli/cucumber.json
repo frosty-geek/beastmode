@@ -1,0 +1,22 @@
+{
+  "default": {
+    "paths": ["features/pipeline-happy-path.feature"],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "watch": {
+    "paths": ["features/watch-loop-happy-path.feature"],
+    "import": [
+      "features/step_definitions/watch-loop.steps.ts",
+      "features/support/watch-world.ts",
+      "features/support/watch-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  }
+}
