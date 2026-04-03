@@ -187,7 +187,7 @@ Wave 3: feature-d (integration — cross-cutting)
 
 ### 5. Executive Summary
 
-Present a consolidated view before approval:
+Present a consolidated view for debugging:
 
 ```
 ### Feature Plan Summary
@@ -258,8 +258,6 @@ STOP. No additional output.
 
 **You MUST NOT call `EnterPlanMode` or `ExitPlanMode` at any point during this skill.**
 
-This skill operates in normal mode and manages its own completion flow via `AskUserQuestion`.
-
 - Calling `EnterPlanMode` traps the session in plan mode where Write/Edit are restricted
 - Calling `ExitPlanMode` breaks the workflow and skips the user's execution choice
 
@@ -309,10 +307,3 @@ wave: <N>
 - **Self-contained** — each feature should be implementable without reading other feature plans
 - **Linked** — always reference the parent PRD and shared architectural decisions
 - **Wave field** — stamped by validate phase, indicates execution order (1 = foundation, higher = later)
-
-### Task Format Reference
-
-> **Moved:** Detailed task format (waves, file lists, code steps) is now created by /implement during its Decompose step.
-> See the Task Format section in `/implement`'s SKILL.md for the specification.
->
-> /plan produces **feature plans** instead. See the Feature Plan Format section above.
