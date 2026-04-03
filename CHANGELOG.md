@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.60.2 — Skill Doc Restructure (Apr 2026)
+
+- **Uniform section ordering** — All 5 phase skills (design, plan, implement, validate, release) restructured to follow Title > HARD-GATE > Guiding Principles > Phase 0-3 > Constraints > Reference ordering
+- **3-level heading hierarchy** — Enforced `#` title, `##` major sections, `###` subsections max across all skill files
+- **Guiding Principles sections** — Each skill gets 2-4 skill-specific operating principles extracted from existing prose
+- **Constraints sections** — All anti-pattern rules ("NEVER", "do NOT") collected into dedicated `## Constraints` sections
+- **Reference sections** — Templates, formats, and reference material moved to `## Reference` at the end of each skill
+
+---
+
 ### v0.60.1 — Remove Task Runner (Apr 2026)
 
 - **Skill flattening** — All 5 phase skills (design, plan, implement, validate, release) collapsed from multi-file `phases/` + `references/` structure into single self-contained SKILL.md files with inline phase sections
