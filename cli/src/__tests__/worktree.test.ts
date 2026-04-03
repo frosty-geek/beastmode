@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { git, gitCheck, create, enter, remove, ensureWorktree, exists, resolveMainBranch, rebase } from "../git/worktree.js";
+import { git, gitCheck, create, enter, remove, ensureWorktree, exists, resolveMainBranch, rebase, implBranchName } from "../git/worktree.js";
 
 /**
  * Integration tests for the worktree manager.
@@ -421,5 +421,19 @@ describe("rebase", () => {
     expect(result.message).toContain("design phase");
     expect(logs.length).toBe(1);
     expect(warns.length).toBe(0);
+  });
+});
+
+describe("implBranchName", () => {
+  test("returns impl/<slug>--<feature> format", () => {
+    expect(implBranchName("abc123", "my-feature")).toBe("impl/abc123--my-feature");
+  });
+
+  test("handles slug with hyphens", () => {
+    expect(implBranchName("my-epic", "auth-flow")).toBe("impl/my-epic--auth-flow");
+  });
+
+  test("handles single-character components", () => {
+    expect(implBranchName("a", "b")).toBe("impl/a--b");
   });
 });

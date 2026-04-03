@@ -73,6 +73,16 @@ const ARTIFACT_PHASES = ["design", "plan", "implement", "validate", "release"];
 const WORKTREE_DIR = ".claude/worktrees";
 
 /**
+ * Return the canonical impl branch name for a feature.
+ * Single source of truth — all callers use this, never string interpolation.
+ *
+ * Format: `impl/<slug>--<feature>`
+ */
+export function implBranchName(slug: string, feature: string): string {
+  return `impl/${slug}--${feature}`;
+}
+
+/**
  * Detect whether cwd is inside a git worktree (not the main checkout).
  *
  * Uses `git rev-parse --git-common-dir`: in the main checkout this returns
