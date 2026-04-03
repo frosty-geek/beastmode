@@ -168,6 +168,95 @@ describe("formatEpicBody", () => {
     expect(body).not.toContain("## Problem");
     expect(body).not.toContain("## Solution");
   });
+
+  // --- prdSections ---
+
+  test("renders prdSections.problem overriding summary.problem", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      summary: { problem: "short", solution: "sol" },
+      prdSections: { problem: "Rich PRD problem statement" },
+    });
+    expect(body).toContain("## Problem\n\nRich PRD problem statement");
+    expect(body).not.toContain("short");
+  });
+
+  test("falls back to summary.problem when prdSections.problem absent", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      summary: { problem: "short problem", solution: "sol" },
+      prdSections: { userStories: "stories" },
+    });
+    expect(body).toContain("## Problem\n\nshort problem");
+  });
+
+  test("renders prdSections.solution overriding summary.solution", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      summary: { problem: "p", solution: "short sol" },
+      prdSections: { solution: "Rich PRD solution" },
+    });
+    expect(body).toContain("## Solution\n\nRich PRD solution");
+    expect(body).not.toContain("short sol");
+  });
+
+  test("renders user stories section when prdSections.userStories present", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      prdSections: { userStories: "1. As a user..." },
+    });
+    expect(body).toContain("## User Stories\n\n1. As a user...");
+  });
+
+  test("omits user stories section when prdSections.userStories absent", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      prdSections: { problem: "p" },
+    });
+    expect(body).not.toContain("## User Stories");
+  });
+
+  test("renders decisions section when prdSections.decisions present", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      prdSections: { decisions: "- Decision 1\n- Decision 2" },
+    });
+    expect(body).toContain("## Decisions\n\n- Decision 1\n- Decision 2");
+  });
+
+  test("omits decisions section when prdSections absent", () => {
+    const body = formatEpicBody(makeManifest());
+    expect(body).not.toContain("## Decisions");
+  });
+
+  // --- artifactLinks ---
+
+  test("renders artifact links table with permalinks", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      artifactLinks: {
+        design: { repoPath: ".beastmode/artifacts/design/slug.md", permalink: "https://github.com/owner/repo/blob/abc123/.beastmode/artifacts/design/slug.md" },
+        plan: { repoPath: ".beastmode/artifacts/plan/slug.md" },
+      },
+    });
+    expect(body).toContain("## Artifacts");
+    expect(body).toContain("| Phase | Link |");
+    expect(body).toContain("[.beastmode/artifacts/design/slug.md](https://github.com/owner/repo/blob/abc123/.beastmode/artifacts/design/slug.md)");
+    expect(body).toContain("| plan | .beastmode/artifacts/plan/slug.md |");
+  });
+
+  test("omits artifact links section when artifactLinks absent", () => {
+    const body = formatEpicBody(makeManifest());
+    expect(body).not.toContain("## Artifacts");
+  });
+
+  test("omits artifact links section when artifactLinks is empty object", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      artifactLinks: {},
+    });
+    expect(body).not.toContain("## Artifacts");
+  });
 });
 
 // --- formatFeatureBody ---
@@ -204,5 +293,42 @@ describe("formatFeatureBody", () => {
 
     expect(body).toContain("feat-a");
     expect(body).toContain("**Epic:** #42");
+  });
+
+  // --- userStory ---
+
+  test("renders user story section when userStory present", () => {
+    const body = formatFeatureBody(
+      { slug: "feat-a", description: "desc", userStory: "As a user, I want..." },
+      42,
+    );
+    expect(body).toContain("## User Story\n\nAs a user, I want...");
+  });
+
+  test("omits user story section when userStory absent", () => {
+    const body = formatFeatureBody(
+      { slug: "feat-a", description: "desc" },
+      42,
+    );
+    expect(body).not.toContain("## User Story");
+  });
+
+  test("omits user story section when userStory is empty string", () => {
+    const body = formatFeatureBody(
+      { slug: "feat-a", description: "desc", userStory: "" },
+      42,
+    );
+    expect(body).not.toContain("## User Story");
+  });
+
+  test("user story appears before epic back-reference", () => {
+    const body = formatFeatureBody(
+      { slug: "feat-a", userStory: "As a user..." },
+      42,
+    );
+    const storyIdx = body.indexOf("## User Story");
+    const epicIdx = body.indexOf("**Epic:** #42");
+    expect(storyIdx).toBeGreaterThan(-1);
+    expect(epicIdx).toBeGreaterThan(storyIdx);
   });
 });

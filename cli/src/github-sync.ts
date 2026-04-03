@@ -15,7 +15,10 @@ import { discoverGitHub } from "./github-discovery";
 import type { Logger } from "./logger";
 import { loadConfig } from "./config";
 import * as store from "./manifest-store";
-import { formatEpicBody, formatFeatureBody } from "./body-format";
+import { formatEpicBody, formatFeatureBody, type EpicBodyInput } from "./body-format";
+import { extractSection, extractSections } from "./section-extractor.js";
+import { existsSync, readFileSync } from "fs";
+import { resolve } from "path";
 import {
   ghIssueCreate,
   ghIssueEdit,
@@ -93,6 +96,77 @@ const ALL_PHASE_LABELS = [
 ];
 
 /**
+ * Read PRD sections from the design artifact.
+ * Returns prdSections object for EpicBodyInput, or undefined if unavailable.
+ */
+function readPrdSections(
+  manifest: PipelineManifest,
+  projectRoot: string,
+): EpicBodyInput["prdSections"] | undefined {
+  const designPaths = manifest.artifacts?.["design"];
+  if (!designPaths || designPaths.length === 0) return undefined;
+
+  const designPath = resolve(projectRoot, designPaths[0]);
+  if (!existsSync(designPath)) return undefined;
+
+  try {
+    const content = readFileSync(designPath, "utf-8");
+    const sections = extractSections(content, [
+      "Problem Statement",
+      "Solution",
+      "User Stories",
+      "Implementation Decisions",
+    ]);
+
+    const result: EpicBodyInput["prdSections"] = {};
+    if (sections["Problem Statement"]) result.problem = sections["Problem Statement"];
+    if (sections["Solution"]) result.solution = sections["Solution"];
+    if (sections["User Stories"]) result.userStories = sections["User Stories"];
+    if (sections["Implementation Decisions"]) result.decisions = sections["Implementation Decisions"];
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve artifact links from the manifest — repo-relative paths + optional permalinks.
+ * Permalink uses phase tag SHA as commit anchor.
+ */
+function resolveArtifactLinks(
+  manifest: PipelineManifest,
+  repo: string,
+): EpicBodyInput["artifactLinks"] | undefined {
+  if (!manifest.artifacts || Object.keys(manifest.artifacts).length === 0) return undefined;
+
+  const links: Record<string, { repoPath: string; permalink?: string }> = {};
+
+  for (const [phase, paths] of Object.entries(manifest.artifacts)) {
+    if (!paths || paths.length === 0) continue;
+    const repoPath = paths[0];
+
+    let permalink: string | undefined;
+    const tagName = `beastmode/${manifest.slug}/${phase}`;
+    try {
+      const tagResult = Bun.spawnSync(["git", "rev-parse", "--verify", `refs/tags/${tagName}`]);
+      if (tagResult.exitCode === 0) {
+        const sha = tagResult.stdout.toString().trim();
+        if (sha) {
+          permalink = `https://github.com/${repo}/blob/${sha}/${repoPath}`;
+        }
+      }
+    } catch {
+      // No tag — permalink stays undefined
+    }
+
+    links[phase] = { repoPath, ...(permalink ? { permalink } : {}) };
+  }
+
+  return Object.keys(links).length > 0 ? links : undefined;
+}
+
+/**
  * Sync GitHub state to match the manifest. Stateless — reads manifest,
  * makes GitHub match. Returns SyncResult with mutations for the caller to apply.
  *
@@ -102,7 +176,7 @@ export async function syncGitHub(
   manifest: PipelineManifest,
   config: BeastmodeConfig,
   resolved: ResolvedGitHub,
-  opts: { logger?: Logger } = {},
+  opts: { logger?: Logger; projectRoot?: string } = {},
 ): Promise<SyncResult> {
   const result: SyncResult = {
     epicCreated: false,
@@ -126,6 +200,12 @@ export async function syncGitHub(
   const repo = resolved.repo;
   const [owner] = repo.split("/");
 
+  // Compute enrichment data if projectRoot available
+  const prdSections = opts.projectRoot
+    ? readPrdSections(manifest, opts.projectRoot)
+    : undefined;
+  const artifactLinks = resolveArtifactLinks(manifest, repo);
+
   // --- Epic Sync ---
 
   // Resolve or create the epic number — track locally, never mutate manifest
@@ -138,6 +218,8 @@ export async function syncGitHub(
       phase: manifest.phase,
       summary: manifest.summary,
       features: manifest.features,
+      prdSections,
+      artifactLinks,
     });
     epicNumber = await ghIssueCreate(
       repo,
@@ -169,6 +251,8 @@ export async function syncGitHub(
       phase: manifest.phase,
       summary: manifest.summary,
       features: manifest.features,
+      prdSections,
+      artifactLinks,
     });
     const epicBodyHash = hashBody(epicBody);
     const storedEpicHash = manifest.github?.bodyHash;
@@ -246,15 +330,30 @@ async function syncFeature(
   feature: ManifestFeature,
   resolved: ResolvedGitHub,
   result: SyncResult,
-  opts: { logger?: Logger } = {},
+  opts: { logger?: Logger; projectRoot?: string } = {},
 ): Promise<void> {
+  // Read user story from feature plan (if projectRoot available)
+  let userStory: string | undefined;
+  if (opts.projectRoot && feature.plan) {
+    const planPath = resolve(opts.projectRoot, feature.plan);
+    try {
+      if (existsSync(planPath)) {
+        const planContent = readFileSync(planPath, "utf-8");
+        const section = extractSection(planContent, "User Stories");
+        if (section) userStory = section;
+      }
+    } catch {
+      // Graceful degradation
+    }
+  }
+
   // Resolve or create the feature issue number — track locally, never mutate feature
   let featureNumber = feature.github?.issue;
   let featureJustCreated = false;
 
   if (!featureNumber) {
     const featureBody = formatFeatureBody(
-      { slug: feature.slug, description: feature.description },
+      { slug: feature.slug, description: feature.description, userStory },
       epicNumber,
     );
     featureNumber = await ghIssueCreate(
@@ -313,7 +412,7 @@ async function syncFeature(
   // --- Feature Body Update ---
   if (!featureJustCreated) {
     const featureBody = formatFeatureBody(
-      { slug: feature.slug, description: feature.description },
+      { slug: feature.slug, description: feature.description, userStory },
       epicNumber,
     );
     const featureBodyHash = hashBody(featureBody);
@@ -456,7 +555,10 @@ export async function syncGitHubForEpic(opts: {
       return;
     }
 
-    const result = await syncGitHub(manifest, config, resolved, { logger: opts.logger });
+    const result = await syncGitHub(manifest, config, resolved, {
+      logger: opts.logger,
+      projectRoot: opts.projectRoot,
+    });
     for (const w of result.warnings) {
       opts.logger?.warn(`GitHub sync: ${w}`);
     }

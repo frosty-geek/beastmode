@@ -92,6 +92,9 @@ import { syncGitHub, type SyncResult } from "../github-sync";
 import type { PipelineManifest, ManifestFeature } from "../manifest";
 import type { BeastmodeConfig } from "../config";
 import type { ResolvedGitHub } from "../github-discovery";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 // --- Test helpers ---
 
@@ -1175,6 +1178,246 @@ describe("syncGitHub", () => {
       const result = await syncGitHub(manifest, config, resolved);
 
       expect(result.warnings).toContain("Failed to update body for feature feat-a");
+    });
+  });
+
+  // -------------------------------------------------------
+  // Body enrichment (PRD sections, artifact links, user stories)
+  // -------------------------------------------------------
+  describe("body enrichment", () => {
+    let tempDir: string;
+
+    function setupArtifacts(opts: {
+      designContent?: string;
+      planContent?: string;
+      planPath?: string;
+    }) {
+      tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+      if (opts.designContent) {
+        const designDir = join(tempDir, ".beastmode", "artifacts", "design");
+        mkdirSync(designDir, { recursive: true });
+        writeFileSync(join(designDir, "test-epic.md"), opts.designContent);
+      }
+      if (opts.planContent && opts.planPath) {
+        const planDir = join(tempDir, ...opts.planPath.split("/").slice(0, -1));
+        mkdirSync(planDir, { recursive: true });
+        writeFileSync(join(tempDir, opts.planPath), opts.planContent);
+      }
+    }
+
+    function cleanupArtifacts() {
+      if (tempDir) {
+        try { rmSync(tempDir, { recursive: true, force: true }); } catch {}
+      }
+    }
+
+    test("epic body includes PRD problem section from design artifact", async () => {
+      setupArtifacts({
+        designContent: [
+          "---",
+          "phase: design",
+          "slug: test-epic",
+          "---",
+          "",
+          "## Problem Statement",
+          "",
+          "This is the rich PRD problem description.",
+          "",
+          "## Solution",
+          "",
+          "This is the rich PRD solution.",
+          "",
+          "## User Stories",
+          "",
+          "1. As a user, I want X",
+          "",
+          "## Implementation Decisions",
+          "",
+          "- Decision A",
+        ].join("\n"),
+      });
+
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/test-epic.md"],
+        },
+        // No stored body hash — forces an update
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      // Verify the body passed to ghIssueEdit includes PRD sections
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(c => (c.args[2] as any)?.body);
+      expect(bodyEdit).toBeDefined();
+      const body = (bodyEdit!.args[2] as any).body as string;
+      expect(body).toContain("## Problem");
+      expect(body).toContain("This is the rich PRD problem description.");
+      expect(body).toContain("## Solution");
+      expect(body).toContain("This is the rich PRD solution.");
+      expect(body).toContain("## User Stories");
+      expect(body).toContain("1. As a user, I want X");
+      expect(body).toContain("## Decisions");
+      expect(body).toContain("- Decision A");
+
+      cleanupArtifacts();
+    });
+
+    test("epic body includes artifact links section", async () => {
+      setupArtifacts({
+        designContent: "## Problem Statement\n\nSome problem",
+      });
+
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/test-epic.md"],
+          plan: [".beastmode/artifacts/plan/test-epic.md"],
+        },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(c => (c.args[2] as any)?.body);
+      expect(bodyEdit).toBeDefined();
+      const body = (bodyEdit!.args[2] as any).body as string;
+      expect(body).toContain("## Artifacts");
+      expect(body).toContain("design");
+      expect(body).toContain(".beastmode/artifacts/design/test-epic.md");
+
+      cleanupArtifacts();
+    });
+
+    test("feature body includes user story from plan artifact", async () => {
+      const planPath = ".beastmode/artifacts/plan/test-feature.md";
+      setupArtifacts({
+        designContent: "## Problem Statement\n\nSome problem",
+        planContent: [
+          "---",
+          "phase: plan",
+          "---",
+          "",
+          "## User Stories",
+          "",
+          "As a developer, I want to enrich bodies.",
+        ].join("\n"),
+        planPath,
+      });
+
+      const feature = makeFeature({
+        slug: "feat-enrich",
+        plan: planPath,
+        status: "pending",
+      });
+      const manifest = makeManifest({
+        features: [feature],
+        artifacts: { design: [".beastmode/artifacts/design/test-epic.md"] },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      // Feature is created since it has no github.issue
+      const createCalls = callsTo("ghIssueCreate");
+      const featureCreate = createCalls.find(c => c.args[1] === "feat-enrich");
+      expect(featureCreate).toBeDefined();
+      const body = featureCreate!.args[2] as string;
+      expect(body).toContain("## User Story");
+      expect(body).toContain("As a developer, I want to enrich bodies.");
+
+      cleanupArtifacts();
+    });
+
+    test("gracefully degrades when design artifact is missing", async () => {
+      tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/missing.md"],
+        },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      // Should not throw
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      // Body still renders (just without enrichment)
+      expect(result.warnings).not.toContain(expect.stringMatching(/error/i));
+
+      cleanupArtifacts();
+    });
+
+    test("gracefully degrades when feature plan is missing", async () => {
+      tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+
+      const feature = makeFeature({
+        slug: "feat-noplan",
+        plan: ".beastmode/artifacts/plan/nonexistent.md",
+        status: "pending",
+      });
+      const manifest = makeManifest({
+        features: [feature],
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      // Feature is created without user story — no crash
+      const createCalls = callsTo("ghIssueCreate");
+      const featureCreate = createCalls.find(c => c.args[1] === "feat-noplan");
+      expect(featureCreate).toBeDefined();
+      const body = featureCreate!.args[2] as string;
+      expect(body).not.toContain("## User Story");
+
+      cleanupArtifacts();
+    });
+
+    test("no enrichment when projectRoot not provided", async () => {
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/test-epic.md"],
+        },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      // No projectRoot — enrichment disabled
+      await syncGitHub(manifest, config, resolved);
+
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(c => (c.args[2] as any)?.body);
+      if (bodyEdit) {
+        const body = (bodyEdit!.args[2] as any).body as string;
+        // No PRD sections without projectRoot
+        expect(body).not.toContain("## User Stories");
+        expect(body).not.toContain("## Decisions");
+      }
     });
   });
 });

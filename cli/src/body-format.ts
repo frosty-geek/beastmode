@@ -18,12 +18,23 @@ export interface EpicBodyInput {
     status: "pending" | "in-progress" | "completed" | "blocked" | "cancelled";
     github?: { issue: number };
   }>;
+  /** PRD sections extracted from design artifact. */
+  prdSections?: {
+    problem?: string;
+    solution?: string;
+    userStories?: string;
+    decisions?: string;
+  };
+  /** Artifact links per phase — repo path + optional permalink. */
+  artifactLinks?: Record<string, { repoPath: string; permalink?: string }>;
 }
 
 /** Minimal feature input — decoupled from full ManifestFeature. */
 export interface FeatureBodyInput {
   slug: string;
   description?: string;
+  /** User story text extracted from the feature plan. */
+  userStory?: string;
 }
 
 /**
@@ -39,12 +50,36 @@ export function formatEpicBody(input: EpicBodyInput): string {
   // Phase badge
   sections.push(`**Phase:** ${input.phase}`);
 
-  // Problem/solution sections (only if summary exists)
-  if (input.summary?.problem) {
-    sections.push(`## Problem\n\n${input.summary.problem}`);
+  // Problem/solution — prdSections override summary when present
+  const problem = input.prdSections?.problem ?? input.summary?.problem;
+  if (problem) {
+    sections.push(`## Problem\n\n${problem}`);
   }
-  if (input.summary?.solution) {
-    sections.push(`## Solution\n\n${input.summary.solution}`);
+  const solution = input.prdSections?.solution ?? input.summary?.solution;
+  if (solution) {
+    sections.push(`## Solution\n\n${solution}`);
+  }
+
+  // PRD user stories and decisions (only from prdSections)
+  if (input.prdSections?.userStories) {
+    sections.push(`## User Stories\n\n${input.prdSections.userStories}`);
+  }
+  if (input.prdSections?.decisions) {
+    sections.push(`## Decisions\n\n${input.prdSections.decisions}`);
+  }
+
+  // Artifact links table
+  if (input.artifactLinks) {
+    const entries = Object.entries(input.artifactLinks);
+    if (entries.length > 0) {
+      const rows = entries.map(([phase, { repoPath, permalink }]) => {
+        const link = permalink ? `[${repoPath}](${permalink})` : repoPath;
+        return `| ${phase} | ${link} |`;
+      });
+      sections.push(
+        `## Artifacts\n\n| Phase | Link |\n|-------|------|\n${rows.join("\n")}`,
+      );
+    }
   }
 
   // Feature checklist — exclude cancelled
@@ -79,6 +114,11 @@ export function formatFeatureBody(
     sections.push(input.description);
   } else {
     sections.push(`## ${input.slug}`);
+  }
+
+  // User story (optional, from feature plan)
+  if (input.userStory) {
+    sections.push(`## User Story\n\n${input.userStory}`);
   }
 
   sections.push(`**Epic:** #${epicNumber}`);
