@@ -11,7 +11,7 @@ export interface WatchTreeAppProps {
   verbosity: number;
 }
 
-export default function WatchTreeApp({ loop, verbosity }: WatchTreeAppProps) {
+export default function WatchTreeApp({ loop }: WatchTreeAppProps) {
   const stateRef = useRef<TreeState>(createTreeState());
   const [, setRevision] = useState(0);
 

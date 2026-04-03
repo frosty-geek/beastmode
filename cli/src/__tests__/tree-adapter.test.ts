@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { toFlatTreeState } from "../tree-view/adapter.js";
 import { createTreeState, addEntry, openPhase } from "../tree-view/tree-state.js";
-import type { TreeState as DashboardTreeState } from "../dashboard/tree-types.js";
+
 
 describe("toFlatTreeState", () => {
   test("converts empty state", () => {

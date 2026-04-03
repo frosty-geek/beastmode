@@ -3,7 +3,7 @@ import { attachTreeSubscriber } from "../commands/watch-tree-subscriber.js";
 import { WatchLoop } from "../commands/watch-loop.js";
 import type { WatchDeps } from "../commands/watch-loop.js";
 import { createTreeState } from "../tree-view/tree-state.js";
-import type { TreeState } from "../tree-view/types.js";
+
 import { createNullLogger } from "../logger.js";
 import type { SessionHandle, SessionCreateOpts } from "../dispatch/factory.js";
 
