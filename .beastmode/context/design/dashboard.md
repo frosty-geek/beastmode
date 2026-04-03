@@ -37,7 +37,13 @@
 - ALWAYS allocate a ring buffer per dispatched SDK session (~100 recent log entries)
 - Buffers collect continuously even when the user is viewing a different session — no subscribe-on-demand gaps
 - Merge on render for aggregate views — no pre-merged buffers
-- Only visible lines rendered, not the full buffer
+- Ring buffer entries feed into the TreeView component via `useDashboardTreeState` adapter — adapter transforms flat entries + session events into tree state
+
+## Log Panel Tree View
+- ALWAYS use shared `<TreeView />` component for log panel rendering — same component used by `beastmode watch`
+- Tree hierarchy: epic > phase > feature with vertical line connectors and phase-based coloring
+- `useDashboardTreeState` adapter hook bridges existing data sources (ring buffers + session events) to tree state — rendering layer swap, data flow unchanged
+- Tree trimming for auto-follow within alternate screen buffer — newest entries visible at bottom
 
 ## Watch Loop Integration
 - ALWAYS embed WatchLoop directly in the dashboard process — dashboard IS the orchestrator
