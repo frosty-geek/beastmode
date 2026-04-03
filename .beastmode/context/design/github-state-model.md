@@ -3,13 +3,17 @@
 ## Issue Hierarchy
 - ALWAYS use two-level hierarchy: Epic (capability) > Feature (work unit) -- keeps automation simple while matching design/plan decomposition
 - ALWAYS use labels for type, phase, and status -- universal across all GitHub plans, no org-level setup required
-- NEVER store design docs or plans in issue bodies -- GitHub tracks status/lifecycle, repo stores detailed content
-- ALWAYS format issue bodies from manifest summary fields during sync — epic bodies include phase badge, problem/solution text, and feature checklist with completion status; feature bodies include description and epic back-reference
+- ALWAYS enrich epic bodies progressively with artifact content — PRD sections (problem, solution, user stories, decisions) extracted from design artifact at sync time, artifact permalink table, git metadata (branch, tags, version, merge commit)
+- ALWAYS enrich feature bodies with user stories extracted from feature plan artifacts at sync time
+- ALWAYS use presence-based rendering for issue body sections — present field = render section, absent field = omit, no phase-conditional logic in body-format.ts
+- ALWAYS extract artifact content at sync time via section-extractor — never store extracted PRD/plan content in the manifest; manifest stays lean, artifact files are the content source
 - ALWAYS use hash-compare before writing issue bodies — `github.bodyHash` in the manifest github block stores the last-written hash, sync skips the API call if content unchanged
 - ALWAYS show unlinked features as plain text in epic checklists — features without issue numbers yet still appear in scope
 - ALWAYS hide cancelled features from epic checklists — active scope only
 - ALWAYS follow manifest array order for feature checklists — stable, intentional plan-order sequencing
 - ALWAYS produce fallback body format when summary fields are missing — phase badge and feature checklist render regardless, richer than a stub
+- ALWAYS post a closing comment on epic issues when phase transitions to done — includes version, release tag, and merge commit link
+- ALWAYS prevent duplicate closing comments via content scanning — check existing comments for the version string before posting
 
 ## Epic State Machine
 - ALWAYS track Epic phase via mutually exclusive `phase/*` labels: backlog, design, plan, implement, validate, release, done -- lifecycle state is visible and queryable
@@ -23,8 +27,7 @@
 
 ## Source of Truth Split
 - ALWAYS use manifest JSON as operational authority for feature lifecycle — GitHub is a one-way mirror, CLI never reads GitHub to update the manifest
-- ALWAYS use repo files for content — design docs, plans, validation reports remain in artifacts/
-- NEVER duplicate content between issue bodies and state files — issue bodies are formatted from manifest summary fields, not copied from artifact files
+- ALWAYS use repo files for content — design docs, plans, validation reports remain in artifacts/; the CLI reads artifacts at sync time to extract content for issue bodies but never stores extracted content in the manifest
 - ALWAYS sync GitHub after every phase dispatch in the CLI — `syncGitHub(manifest, config)` is a post-dispatch step, not a skill checkpoint step
 - Bootstrap write-back is the sole exception to one-way sync — when sync creates an Epic or Feature issue, it writes the issue number back to the manifest github block
 
