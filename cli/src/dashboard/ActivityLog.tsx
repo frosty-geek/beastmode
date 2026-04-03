@@ -12,6 +12,8 @@ function eventTypeToLevel(type: DashboardEvent["type"]): LogLevel {
     case "scan":
     case "held":
       return "info";
+    default:
+      return "info";
   }
 }
 
