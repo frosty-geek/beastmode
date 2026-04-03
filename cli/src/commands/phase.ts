@@ -25,6 +25,7 @@ import { createLogger } from "../logger";
 import { loadWorktreePhaseOutput } from "../phase-output";
 import { loadConfig } from "../config";
 import { cancelEpic } from "../shared/cancel-logic.js";
+import { writeHitlSettings } from "../hitl-settings";
 
 /**
  * Execute a phase command. Called directly from the top-level router.
@@ -80,6 +81,9 @@ export async function phaseCommand(
 
   logger.log(`Phase: ${phase}`);
   logger.log(`Worktree: ${cwd}`);
+
+  // Write HITL hooks to settings.local.json before dispatch
+  writeHitlSettings(cwd, phase);
 
   const result = await runInteractive({ phase, args, cwd });
 
