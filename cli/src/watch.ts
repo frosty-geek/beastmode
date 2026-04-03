@@ -175,15 +175,6 @@ export class WatchLoop extends EventEmitter {
   private async dispatchSingle(epic: EnrichedManifest): Promise<number> {
     const action = epic.nextAction!;
 
-    // Release serialization — only one release at a time across all epics
-    if (action.phase === 'release' && this.tracker.hasAnyReleaseSession()) {
-      const blockingSlug = this.tracker.getActiveReleaseSlug();
-      if (blockingSlug !== epic.slug) {
-        this.emitTyped('release:held', { waitingSlug: epic.slug, blockingSlug: blockingSlug ?? 'unknown' });
-        return 0;
-      }
-    }
-
     // Don't dispatch if the epic worktree is already in use by another phase
     if (this.tracker.hasPhaseSession(epic.slug, action.phase)) return 0;
     if (this.tracker.hasEpicWorktreeSession(epic.slug)) return 0;
@@ -242,7 +233,6 @@ export class WatchLoop extends EventEmitter {
     let featuresToDispatch = features;
 
     if (existsSync(worktreePath)) {
-      const epicName = epic.epic ?? epic.slug;
       const validFeatures = features.filter((featureSlug) => {
         const feature = epic.features.find((f) => f.slug === featureSlug);
         if (!feature?.plan) {
@@ -259,8 +249,8 @@ export class WatchLoop extends EventEmitter {
           const match = content.match(/^epic:\s*(.+)$/m);
           if (match) {
             const fileEpic = match[1].trim().replace(/^['"]|['"]$/g, "");
-            if (fileEpic !== epicName) {
-              this.logger.debug(`${epic.slug}: skipping feature ${featureSlug} — plan epic mismatch (expected ${epicName}, got ${fileEpic})`);
+            if (fileEpic !== epic.slug) {
+              this.logger.debug(`${epic.slug}: skipping feature ${featureSlug} — plan epic mismatch (expected ${epic.slug}, got ${fileEpic})`);
               return false;
             }
           }
@@ -341,6 +331,7 @@ export class WatchLoop extends EventEmitter {
           phase: session.phase,
           success: result.success,
           durationMs: result.durationMs,
+          costUsd: result.costUsd,
         });
 
         // Create phase tag for regression support (mirrors post-dispatch in CLI path)
@@ -416,23 +407,15 @@ export function attachLoggerSubscriber(loop: WatchLoop, logger: Logger): void {
 
   loop.on('session-started', ({ epicSlug, featureSlug, phase }) => {
     const child = logger.child({ phase, epic: epicSlug, ...(featureSlug ? { feature: featureSlug } : {}) });
-    if (featureSlug) {
-      child.log(`dispatching implement ${featureSlug}`);
-    } else {
-      child.log(`dispatching ${phase}`);
-    }
+    child.log("dispatching");
   });
 
-  loop.on('session-completed', ({ epicSlug, featureSlug, phase, success, durationMs }) => {
+  loop.on('session-completed', ({ epicSlug, featureSlug, phase, success, durationMs, costUsd }) => {
     const child = logger.child({ phase, epic: epicSlug, ...(featureSlug ? { feature: featureSlug } : {}) });
     const status = success ? 'completed' : 'failed';
-    child.log(
-      `${status} (${(durationMs / 1000).toFixed(0)}s)`,
-    );
-  });
-
-  loop.on('release:held', ({ waitingSlug, blockingSlug }) => {
-    logger.child({ epic: waitingSlug }).log(`release held: ${waitingSlug} waiting for ${blockingSlug}`);
+    const dur = `${(durationMs / 1000).toFixed(0)}s`;
+    const detail = costUsd != null ? `$${costUsd.toFixed(2)}, ${dur}` : dur;
+    child.log(`${status} (${detail})`);
   });
 
   loop.on('error', ({ epicSlug, message }) => {

@@ -18,7 +18,7 @@ import { createLogger } from "../logger.js";
 /** Activity log event for the dashboard. */
 export interface DashboardEvent {
   timestamp: string;
-  type: "dispatched" | "completed" | "error" | "scan" | "held";
+  type: "dispatched" | "completed" | "error" | "scan";
   detail: string;
   phase?: string;
   epic?: string;
@@ -55,7 +55,6 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [watchRunning, setWatchRunning] = useState(false);
   const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set());
-  const [heldEpics, setHeldEpics] = useState<Map<string, string>>(new Map());
   const loopRef = useRef(loop);
   loopRef.current = loop;
 
@@ -230,13 +229,6 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
 
     const onSessionStarted = (ev: WatchLoopEventMap["session-started"][0]) => {
       setActiveSessions((prev) => new Set([...prev, ev.epicSlug]));
-      // Clear held indicator when epic actually dispatches
-      setHeldEpics((prev) => {
-        if (!prev.has(ev.epicSlug)) return prev;
-        const next = new Map(prev);
-        next.delete(ev.epicSlug);
-        return next;
-      });
       const target = ev.featureSlug ? `${ev.epicSlug}/${ev.featureSlug}` : ev.epicSlug;
       pushEvent("dispatched", `${ev.phase} for ${target}`, { phase: ev.phase, epic: ev.epicSlug, feature: ev.featureSlug });
     };
@@ -251,9 +243,10 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       const target = ev.featureSlug ? `${ev.epicSlug}/${ev.featureSlug}` : ev.epicSlug;
       const status = ev.success ? "completed" : "failed";
       const dur = `${(ev.durationMs / 1000).toFixed(0)}s`;
+      const detail = ev.costUsd != null ? `${dur}, $${ev.costUsd.toFixed(2)}` : dur;
       pushEvent(
         ev.success ? "completed" : "error",
-        `${ev.phase} ${status} for ${target} (${dur})`,
+        `${ev.phase} ${status} for ${target} (${detail})`,
         { phase: ev.phase, epic: ev.epicSlug, feature: ev.featureSlug },
       );
     };
@@ -276,18 +269,6 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       pushEvent("error", `${ev.epicSlug} cancelled`, { epic: ev.epicSlug });
     };
 
-    const onReleaseHeld = (ev: WatchLoopEventMap["release:held"][0]) => {
-      setHeldEpics((prev) => {
-        const next = new Map(prev);
-        next.set(ev.waitingSlug, ev.blockingSlug);
-        return next;
-      });
-      pushEvent("held", `${ev.waitingSlug} queued (waiting for ${ev.blockingSlug})`, {
-        epic: ev.waitingSlug,
-        phase: "release",
-      });
-    };
-
     loop.on("started", onStarted);
     loop.on("stopped", onStopped);
     loop.on("session-started", onSessionStarted);
@@ -295,7 +276,6 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
     loop.on("scan-complete", onScanComplete);
     loop.on("error", onError);
     loop.on("epic-cancelled", onEpicCancelled);
-    loop.on("release:held", onReleaseHeld);
 
     return () => {
       loop.off("started", onStarted);
@@ -305,7 +285,6 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       loop.off("scan-complete", onScanComplete);
       loop.off("error", onError);
       loop.off("epic-cancelled", onEpicCancelled);
-      loop.off("release:held", onReleaseHeld);
     };
   }, [loop, pushEvent]);
 
@@ -359,7 +338,6 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
             activeSessions={activeSessions}
             selectedIndex={keyboard.nav.selectedIndex}
             cancelConfirmingSlug={cancelConfirmingSlug}
-            heldEpics={heldEpics}
           />
         );
       case "feature-list": {

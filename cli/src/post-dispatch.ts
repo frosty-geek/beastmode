@@ -64,7 +64,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     // Exception: validate failures must reach the machine so REGRESS
     // fires and regresses the epic back to implement.
     if (!opts.success && opts.phase !== "validate") {
-      logger.log(`Phase ${opts.phase} failed for ${opts.epicSlug} — skipping updates`);
+      logger.log("failed — skipping updates");
       return;
     }
 
@@ -72,7 +72,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     if (opts.phase === "design") {
       const designOutput = loadWorktreePhaseOutput(opts.worktreePath, "design", opts.epicSlug);
       if (!designOutput) {
-        logger.log(`Design phase produced no output for ${opts.epicSlug} — skipping post-dispatch`);
+        logger.log("no output — skipping post-dispatch");
         return;
       }
     }
@@ -103,7 +103,7 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
     }
 
     if (result) {
-      logger.log(`Reconciled ${opts.phase} for ${opts.epicSlug} → ${result.phase}`);
+      logger.log(`reconciled → ${result.phase}`);
     }
 
     // Create phase tag at current HEAD for regression support
@@ -121,9 +121,8 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
           opts.worktreePath,
         );
         if (renameResult.renamed) {
-          const oldSlug = opts.epicSlug;
           opts.epicSlug = renameResult.finalSlug;
-          logger.log(`Renamed ${oldSlug} → ${renameResult.finalSlug}`);
+          logger.log(`renamed → ${renameResult.finalSlug}`);
         } else if (renameResult.error) {
           logger.warn(`Slug rename failed: ${renameResult.error}`);
         }

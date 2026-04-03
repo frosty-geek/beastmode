@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.69.0 — Watch Log Format (Apr 2026)
+
+- **Fixed-width phase column** — Extracts phase as a 9-character column for vertical alignment across all log lines
+- **Scope truncation** — 32-character budget with trailing ellipsis for long epic/feature names
+- **Message deduplication** — Strips phase/epic/feature info from message text when already present in structured prefix
+- **costUsd guard** — Omits cost from completion messages when undefined instead of crashing on `.toFixed()`
+- **Dashboard parity** — Activity log inherits new format automatically via shared `formatLogLine`
+
+---
+
 ### v0.68.0 — Release Serialization (Apr 2026)
 
 - **Release gate** — Serializes release phase dispatch so only one epic releases at a time, preventing squash-merge conflicts on main; FIFO ordering by manifest creation date
