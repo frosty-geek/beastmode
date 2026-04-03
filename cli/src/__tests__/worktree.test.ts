@@ -472,7 +472,7 @@ describe("createImplBranch", () => {
   });
 
   test("does not conflict with feature/<slug> worktree branch", async () => {
-    const info = await create("test-no-conflict", { cwd: repoDir });
+    await create("test-no-conflict", { cwd: repoDir });
 
     const branchName = await createImplBranch("test-no-conflict", "feat-c", { cwd: repoDir });
     expect(branchName).toBe("impl/test-no-conflict--feat-c");
