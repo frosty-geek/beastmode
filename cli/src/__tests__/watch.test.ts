@@ -141,6 +141,59 @@ describe("DispatchTracker", () => {
     expect(tracker.hasPhaseSession("e1", "plan")).toBe(true);
     expect(tracker.hasPhaseSession("e1", "implement")).toBe(false);
   });
+
+  it("hasAnyReleaseSession returns false when no release sessions", () => {
+    const tracker = new DispatchTracker();
+    tracker.add({
+      id: "s1",
+      epicSlug: "e1",
+      phase: "plan",
+      worktreeSlug: "e1-plan",
+      abortController: new AbortController(),
+      promise: Promise.resolve({ success: true, exitCode: 0, durationMs: 0 }),
+      startedAt: Date.now(),
+    });
+
+    expect(tracker.hasAnyReleaseSession()).toBe(false);
+  });
+
+  it("hasAnyReleaseSession returns true when a release session exists", () => {
+    const tracker = new DispatchTracker();
+    tracker.add({
+      id: "s1",
+      epicSlug: "e1",
+      phase: "release",
+      worktreeSlug: "e1-release",
+      abortController: new AbortController(),
+      promise: Promise.resolve({ success: true, exitCode: 0, durationMs: 0 }),
+      startedAt: Date.now(),
+    });
+
+    expect(tracker.hasAnyReleaseSession()).toBe(true);
+  });
+
+  it("hasAnyReleaseSession returns true when a release reservation exists", () => {
+    const tracker = new DispatchTracker();
+    tracker.reserve("e1", "release");
+
+    expect(tracker.hasAnyReleaseSession()).toBe(true);
+  });
+
+  it("hasAnyReleaseSession returns false after release session removed", () => {
+    const tracker = new DispatchTracker();
+    tracker.add({
+      id: "s1",
+      epicSlug: "e1",
+      phase: "release",
+      worktreeSlug: "e1-release",
+      abortController: new AbortController(),
+      promise: Promise.resolve({ success: true, exitCode: 0, durationMs: 0 }),
+      startedAt: Date.now(),
+    });
+
+    tracker.remove("s1");
+    expect(tracker.hasAnyReleaseSession()).toBe(false);
+  });
 });
 
 // --- WatchLoop tests ---
