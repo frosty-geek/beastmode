@@ -62,18 +62,18 @@ Store the baseline file list. Spec checks in execute will diff against this base
 
 ### 6. Verify Implementation Branch
 
-The CLI creates and checks out `feature/<slug>/<feature-name>` before dispatch. Verify:
+The CLI creates and checks out `impl/<slug>--<feature-name>` before dispatch. Verify:
 
 ```bash
 current_branch=$(git branch --show-current)
-expected_branch="feature/${epic}/${feature}"
+expected_branch="impl/${epic}--${feature}"
 if [ "$current_branch" != "$expected_branch" ]; then
   echo "ERROR: Expected branch '$expected_branch' but on '$current_branch'"
   exit 1
 fi
 ```
 
-If the branch check fails, error: "Implementation branch not found. The CLI must create and check out `feature/<slug>/<feature-name>` before running /implement."
+If the branch check fails, error: "Implementation branch not found. The CLI must create and check out `impl/<slug>--<feature-name>` before running /implement."
 
 ### 7. Prepare Environment
 
@@ -354,7 +354,7 @@ Rebase the impl branch onto the worktree branch:
 ```bash
 # Variables (already known from Prime)
 worktree_branch="feature/${slug}"
-impl_branch="feature/${slug}/${feature}"
+impl_branch="impl/${slug}--${feature}"
 
 # Rebase impl branch onto worktree branch
 git rebase "$worktree_branch" "$impl_branch"
@@ -398,7 +398,7 @@ git diff --name-only --diff-filter=U
    - path/to/file1.ts
    - path/to/file2.ts
 
-   The impl branch (feature/<slug>/<feature>) has all task commits intact.
+   The impl branch (impl/<slug>--<feature>) has all task commits intact.
    Manual resolution needed before checkpoint can complete.
    ```
 
@@ -438,7 +438,7 @@ STOP. No additional output.
 
 - Spawn ONE agent per task (never parallel implementer agents on the same wave — file conflicts)
 - Controller stays in the working directory — agents inherit it
-- Agents commit per task on the impl branch (`feature/<slug>/<feature-name>`) only — never push, switch branches, or commit to the worktree branch
+- Agents commit per task on the impl branch (`impl/<slug>--<feature-name>`) only — never push, switch branches, or commit to the worktree branch
 - Agents must NOT read the plan file — controller provides task text
 - Agents must NOT modify files outside their task's file list
 - If an agent returns BLOCKED, controller assesses and either re-dispatches or escalates to user
