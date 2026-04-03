@@ -274,6 +274,7 @@ describe("WatchLoop event emission", () => {
       trace: () => {},
       warn: () => {},
       error: (msg: string) => errors.push(msg),
+      child: () => mockLogger,
     };
 
     attachLoggerSubscriber(loop, mockLogger);
