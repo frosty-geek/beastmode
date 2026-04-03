@@ -68,6 +68,16 @@ context/implement/write-plan.md
 
 context/implement/agent-review-pipeline.md
 
+## Model Escalation
+- Three-tier ladder: haiku -> sonnet -> opus — implementer agents only, reviewers stay on default model
+- Per-task reset: each new task starts at haiku regardless of prior task's final tier
+- 2 retries per tier, max 6 total attempts per task before BLOCKED
+- Escalation triggers: implementer BLOCKED (after tier retry exhaustion), quality NOT_APPROVED Critical/Important (after review-fix cycle exhaustion at tier)
+- Non-triggers: NEEDS_CONTEXT, spec review FAIL, quality NOT_APPROVED Minor — these are context/requirement issues, not model capability
+- Implementation report shows model tier per completed task and escalation count in status summary
+
+context/implement/agent-review-pipeline.md
+
 ## Branch Isolation
 - CLI creates `feature/<slug>/<feature-name>` branch before dispatch; agents commit per task on the impl branch
 - Checkpoint rebases impl branch onto worktree branch — fast-forward on success, conflict resolution agent on failure
