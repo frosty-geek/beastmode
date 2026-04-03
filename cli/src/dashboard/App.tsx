@@ -2,9 +2,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Text, useApp } from "ink";
 import type { BeastmodeConfig } from "../config.js";
 import type { EnrichedManifest } from "../manifest-store.js";
-import type { WatchLoopEventMap } from "../watch-types.js";
+import type { DispatchedSession, WatchLoopEventMap } from "../watch-types.js";
 import type { WatchLoop } from "../watch.js";
+import ThreePanelLayout from "./ThreePanelLayout.js";
 import EpicsPanel from "./EpicsPanel.js";
+import DetailsPanel from "./DetailsPanel.js";
+import LogPanel from "./LogPanel.js";
+import { useLogEntries } from "./hooks/use-log-entries.js";
 import { getKeyHints } from "./key-hints.js";
 import { useDashboardKeyboard } from "./hooks/use-dashboard-keyboard.js";
 import { cancelEpicAction } from "./actions/cancel-epic.js";
@@ -66,6 +70,7 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
   const [filterString, setFilterString] = useState("");
   const loopRef = useRef(loop);
   loopRef.current = loop;
+  const [trackedSessions, setTrackedSessions] = useState<DispatchedSession[]>([]);
 
   // --- Ref for filteredEpics (breaks circular dep with slugAtIndex) ---
   const filteredEpicsRef = useRef<EnrichedManifest[]>([]);
@@ -89,6 +94,13 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
     },
     [],
   );
+
+  // --- Refresh tracked sessions from dispatch tracker ---
+  const refreshSessions = useCallback(() => {
+    if (loopRef.current) {
+      setTrackedSessions(loopRef.current.getTracker().getAll());
+    }
+  }, []);
 
   // --- Cancel epic action ---
   const handleCancelEpic = useCallback(
@@ -183,6 +195,7 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
 
     const onSessionStarted = (ev: WatchLoopEventMap["session-started"][0]) => {
       setActiveSessions((prev) => new Set([...prev, ev.epicSlug]));
+      refreshSessions();
       const target = ev.featureSlug ? `${ev.epicSlug}/${ev.featureSlug}` : ev.epicSlug;
       pushEvent("dispatched", `${ev.phase} for ${target}`, { phase: ev.phase, epic: ev.epicSlug, feature: ev.featureSlug });
     };
@@ -201,11 +214,13 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
         `${ev.phase} ${status} for ${target} (${dur})`,
         { phase: ev.phase, epic: ev.epicSlug, feature: ev.featureSlug },
       );
+      refreshSessions();
     };
 
     const onScanComplete = (ev: WatchLoopEventMap["scan-complete"][0]) => {
       const activeEpicSlugs = new Set(loop.getTracker().getAll().map((s) => s.epicSlug));
       setActiveSessions(activeEpicSlugs);
+      refreshSessions();
       if (ev.dispatched > 0) {
         pushEvent("scan", `scanned ${ev.epicsScanned} epics, dispatched ${ev.dispatched}`);
       }
@@ -237,7 +252,7 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       loop.off("error", onError);
       loop.off("epic-cancelled", onEpicCancelled);
     };
-  }, [loop, pushEvent]);
+  }, [loop, pushEvent, refreshSessions]);
 
   // --- Refresh epics from state scanner ---
   useEffect(() => {
@@ -281,47 +296,46 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
     filterInput: keyboard.filterInput,
   });
 
+  // --- Selected epic slug for log filtering ---
+  const selectedEpicSlug = slugAtIndex(keyboard.nav.selectedIndex);
+
+  // --- Log entries from active sessions ---
+  const { entries: logEntries } = useLogEntries({
+    sessions: trackedSessions,
+    selectedEpicSlug,
+  });
+
   return (
-    <Box flexDirection="column" width="100%">
-      {/* Header zone */}
-      <Box flexDirection="row" justifyContent="space-between" paddingX={1}>
-        <Text bold color="green">beastmode dashboard</Text>
-        <Box>
-          <Text dimColor={!watchRunning} color={watchRunning ? "green" : undefined}>
-            {watchRunning ? "watch: running" : "watch: stopped"}
-          </Text>
-          <Text> </Text>
-          <Text dimColor>{clock}</Text>
-        </Box>
-      </Box>
-
-      <Box paddingX={1}>
-        <Text dimColor>{"─".repeat(78)}</Text>
-      </Box>
-
-      {/* Epics panel */}
-      <Box flexDirection="column" flexGrow={1} paddingX={1}>
+    <ThreePanelLayout
+      watchRunning={watchRunning}
+      clock={clock}
+      epicsSlot={
         <EpicsPanel
           epics={filteredEpics}
           activeSessions={activeSessions}
           selectedIndex={keyboard.nav.selectedIndex}
           cancelConfirmingSlug={cancelConfirmingSlug}
         />
-      </Box>
-
-      {/* Separator */}
-      <Box paddingX={1}>
-        <Text dimColor>{"─".repeat(78)}</Text>
-      </Box>
-
-      {/* Footer — mode-sensitive key hints */}
-      <Box paddingX={1}>
-        {keyboard.shutdown.isShuttingDown ? (
-          <Text color="yellow">shutting down...</Text>
-        ) : (
-          <Text dimColor>{keyHintText}</Text>
-        )}
-      </Box>
-    </Box>
+      }
+      detailsSlot={
+        <DetailsPanel
+          epics={filteredEpics}
+          selectedIndex={keyboard.nav.selectedIndex}
+          activeSessions={activeSessions}
+        />
+      }
+      logSlot={<LogPanel entries={logEntries} />}
+      keyHints={keyHintText}
+      isShuttingDown={keyboard.shutdown.isShuttingDown}
+      cancelPrompt={
+        cancelConfirmingSlug ? (
+          <Box paddingX={1}>
+            <Text color="red" bold>
+              Cancel {cancelConfirmingSlug}? y confirm  n/esc abort
+            </Text>
+          </Box>
+        ) : undefined
+      }
+    />
   );
 }
