@@ -168,3 +168,9 @@ Two mechanisms prevent and clean up L3 bloat: a retro value-add gate that checks
 5. ALWAYS preserve `.gitkeep` in emptied L3 directories — structural invariant
 
 context/design/compaction.md
+
+## HITL Contract
+- All user input during phase sessions MUST go through `AskUserQuestion` — freeform print-and-wait is not interceptable by HITL hooks
+- HITL hooks use `PreToolUse` on `AskUserQuestion` to auto-answer or defer questions based on per-phase prose config in `config.yaml`
+- Skill authors MUST route every user-facing question through `AskUserQuestion`; direct prompting bypasses the HITL pipeline entirely
+- Runtime enforcement is out of scope — this is a documentation-enforced contract

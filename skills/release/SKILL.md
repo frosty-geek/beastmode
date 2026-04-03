@@ -17,6 +17,7 @@ No release without passing validation.
 - **Squash merge preserves archive tag** — always tag the feature branch before squash merge so detailed commit history survives
 - **Bump type auto-detected, not user-prompted** — commit message conventions determine major/minor/patch automatically
 - **Warn-and-continue for non-blocking failures** — report problems, attempt fixes, only hard-stop on critical validation failures
+- **All user input via `AskUserQuestion`** — freeform print-and-wait is invisible to HITL hooks; every question the user must answer goes through `AskUserQuestion`
 
 ## Phase 0: Prime
 

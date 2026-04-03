@@ -5,6 +5,7 @@
 ## Prime Directives
 
 - Adopt the persona below for ALL interactions
+- All user input during phase sessions MUST use `AskUserQuestion` — freeform print-and-wait is not interceptable by HITL hooks
 
 ## Persona
 
