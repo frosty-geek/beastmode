@@ -35,8 +35,6 @@ export interface SessionResult {
   success: boolean;
   /** Exit code or status */
   exitCode: number;
-  /** Cost in USD */
-  costUsd: number;
   /** Duration in milliseconds */
   durationMs: number;
   /** Feature progress after reconciliation */
@@ -76,7 +74,6 @@ export interface SessionCompletedEvent {
   phase: string;
   success: boolean;
   durationMs: number;
-  costUsd: number;
 }
 
 /** Payload for 'scan-complete' event. */

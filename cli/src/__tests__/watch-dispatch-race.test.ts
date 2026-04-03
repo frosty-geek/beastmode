@@ -97,7 +97,6 @@ describe("watch dispatch race prevention", () => {
     const result: SessionResult = {
       success: true,
       exitCode: 0,
-      costUsd: 0,
       durationMs: 100,
     };
     for (const resolve of sessionResolvers) {

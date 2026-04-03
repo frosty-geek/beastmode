@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.61.1 — Remove Cost Tracking (Apr 2026)
+
+- **Dead code removal** — Stripped all cost-tracking plumbing (`costUsd`, `cost_usd` fields, `$0.00` formatting) that always displayed zero because non-SDK dispatch strategies can't introspect cost data
+- **Type cleanup** — Removed `costUsd` from `SessionResult`, `CompletionEntry`, and `PhaseResult`; removed `cost_usd` from interactive runner
+- **Session adapter cleanup** — Removed `costUsd: 0` hardcodes from cmux and iTerm2 session adapters
+- **Watch loop cleanup** — Removed cost capture logic and `$X.XX` formatting from watch command output
+- **Docs cleanup** — Deleted `cost-tracking.md` and `cost-separation.md` context docs; removed cost references from DESIGN.md and CLI context
+- **Gitignore cleanup** — Removed `.beastmode-runs.json` entry
+
+---
+
 ### v0.61.0 — Exhaustive Gray Area Sweep (Apr 2026)
 
 - **Auto-continuation loop** — Gray area sweep in design skill now auto-continues until 0 gray areas remain, replacing the opt-in "3 more or satisfied?" prompt

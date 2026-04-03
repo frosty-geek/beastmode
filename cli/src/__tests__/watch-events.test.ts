@@ -42,7 +42,6 @@ function makeDeps(overrides?: Partial<WatchDeps>): WatchDeps {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 0.5,
             durationMs: 1000,
           }),
         };
@@ -148,7 +147,6 @@ describe("WatchLoop event emission", () => {
             promise: Promise.resolve({
               success: true,
               exitCode: 0,
-              costUsd: 0.5,
               durationMs: 1000,
             }),
           };
@@ -163,7 +161,6 @@ describe("WatchLoop event emission", () => {
       epicSlug: string;
       phase: string;
       success: boolean;
-      costUsd: number;
       durationMs: number;
     }> = [];
     loop.on("session-completed", (payload) => events.push(payload));
@@ -177,7 +174,6 @@ describe("WatchLoop event emission", () => {
     expect(events[0].epicSlug).toBe("test-epic");
     expect(events[0].phase).toBe("design");
     expect(events[0].success).toBe(true);
-    expect(events[0].costUsd).toBe(0.5);
     expect(events[0].durationMs).toBe(1000);
   });
 
@@ -297,9 +293,8 @@ describe("WatchLoop event emission", () => {
       phase: "design",
       success: true,
       durationMs: 5000,
-      costUsd: 1.23,
     });
-    expect(logged.some((m) => m.includes("completed") && m.includes("$1.23"))).toBe(true);
+    expect(logged.some((m) => m.includes("completed"))).toBe(true);
 
     loop.emit("error", { epicSlug: "my-epic", message: "something broke" });
     expect(errors.some((m) => m.includes("something broke"))).toBe(true);

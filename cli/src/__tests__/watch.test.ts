@@ -79,7 +79,6 @@ describe("DispatchTracker", () => {
       promise: Promise.resolve({
         success: true,
         exitCode: 0,
-        costUsd: 0.5,
         durationMs: 1000,
       }),
       startedAt: Date.now(),
@@ -135,7 +134,7 @@ describe("DispatchTracker", () => {
       phase: "plan",
       worktreeSlug: "e1-plan",
       abortController: new AbortController(),
-      promise: Promise.resolve({ success: true, exitCode: 0, costUsd: 0, durationMs: 0 }),
+      promise: Promise.resolve({ success: true, exitCode: 0, durationMs: 0 }),
       startedAt: Date.now(),
     });
 
@@ -159,7 +158,6 @@ describe("WatchLoop", () => {
         promise: Promise.resolve({
           success: true,
           exitCode: 0,
-          costUsd: 0.1,
           durationMs: 500,
         }),
       })),
@@ -197,7 +195,6 @@ describe("WatchLoop", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 0.1,
             durationMs: 500,
           }),
         };
@@ -258,7 +255,6 @@ describe("WatchLoop", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 0.1,
             durationMs: 500,
           }),
         };
@@ -319,7 +315,6 @@ describe("WatchLoop", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 0.1,
             durationMs: 500,
           }),
         };
@@ -376,7 +371,6 @@ describe("WatchLoop", () => {
         promise: Promise.resolve({
           success: true,
           exitCode: 0,
-          costUsd: 0.1,
           durationMs: 500,
         }),
       })),
@@ -487,7 +481,6 @@ describe("WatchLoop", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 0.1,
             durationMs: 500,
           }),
         };
@@ -533,7 +526,6 @@ describe("WatchLoop", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 0,
             durationMs: 0,
           }),
         };
@@ -580,7 +572,6 @@ describe("WatchLoop", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 1.5,
             durationMs: 30000,
           }),
         };
@@ -643,7 +634,6 @@ describe("WatchLoop", () => {
             return {
               success: true,
               exitCode: 0,
-              costUsd: 1.5,
               durationMs: 30000,
             };
           })(),
@@ -704,7 +694,6 @@ describe("WatchLoop", () => {
             return {
               success: true,
               exitCode: 0,
-              costUsd: 1.0,
               durationMs: 5000,
             };
           })(),
@@ -757,7 +746,6 @@ describe("WatchLoop", () => {
         promise: Promise.resolve({
           success: false,
           exitCode: 1,
-          costUsd: 0.5,
           durationMs: 5000,
         }),
       })),
@@ -813,7 +801,6 @@ describe("WatchLoop", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 1.0,
             durationMs: 5000,
           }),
         };

@@ -213,20 +213,6 @@ describe("interactive-runner", () => {
       expect(result.duration_ms).toBeGreaterThanOrEqual(0);
     });
 
-    test("cost_usd is null", async () => {
-      const { runInteractive } = await import(
-        "../runners/interactive-runner"
-      );
-      const promise = runInteractive({
-        phase: "design",
-        args: ["topic"],
-        cwd: "/test",
-      });
-      resolveExited(0);
-      const result = await promise;
-      expect(result.cost_usd).toBeNull();
-    });
-
     test("session_id is null", async () => {
       const { runInteractive } = await import(
         "../runners/interactive-runner"

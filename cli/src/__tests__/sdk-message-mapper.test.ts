@@ -214,7 +214,6 @@ describe("mapMessage — result", () => {
     expect(entries).toHaveLength(1);
     const entry = entries[0] as CompletionEntry;
     expect(entry.kind).toBe("completion");
-    expect(entry.costUsd).toBe(0.42);
     expect(entry.durationMs).toBe(12345);
     expect(entry.isError).toBe(false);
     expect(entry.sessionId).toBe("sess_123");

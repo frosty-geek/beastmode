@@ -12,7 +12,7 @@
 - designPath is optional on EpicState — epics discovered from manifest may not have a design file reference
 
 ## Status Display
-- Status table columns: Epic, Phase, Progress, Blocked, Last Activity — no cost column
+- Status table columns: Epic, Phase, Progress, Blocked, Last Activity
 - Sort by lastUpdated descending, then alphabetically by slug for ties
 - Progress shows completed/total only during implement phase, dash otherwise
 
