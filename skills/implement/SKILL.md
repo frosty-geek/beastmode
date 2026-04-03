@@ -18,6 +18,7 @@ No EnterPlanMode or ExitPlanMode.
 - **Two-stage review** — spec compliance first, code quality second
 - **Wave ordering drives sequencing** — foundation before consumers
 - **All user input via `AskUserQuestion`** — freeform print-and-wait is invisible to HITL hooks; every question the user must answer goes through `AskUserQuestion`
+- **Model escalation** — start cheap (haiku), escalate on failure (sonnet, then opus)
 
 ## Phase 0: Prime
 
@@ -81,6 +82,21 @@ If the branch check fails, error: "Implementation branch not found. The CLI must
     npm install  # or appropriate command from .beastmode/context/
 
 ## Phase 1: Execute
+
+### Escalation State
+
+The controller maintains per-task escalation state:
+
+- **Model ladder:** `["haiku", "sonnet", "opus"]`
+- **Current tier index:** starts at 0 (haiku) for each new task
+- **Tier retry counter:** starts at 0 for each new task, resets on escalation
+
+When a task begins, reset both to zero. The tier index selects the model passed to the Agent tool's `model` parameter for implementer dispatch. Reviewer agents (spec-reviewer, quality-reviewer) do not receive a model parameter — they use the default model.
+
+The following statuses do NOT trigger model escalation:
+- **NEEDS_CONTEXT** — a context problem, not a model capability limitation. Provide context and re-dispatch at the same tier.
+- **Spec review FAIL** — a requirement misunderstanding, not a model capability limitation. Re-dispatch implementer at the same tier.
+- **Quality review NOT_APPROVED with only Minor issues** — treated as approved. No retry needed.
 
 ### 0. Write Plan
 
@@ -152,7 +168,7 @@ For each wave (ascending order):
       - Append: full task text (all steps, files, verification)
       - Append: pre-read file contents
       - Append: project conventions from `.beastmode/context/IMPLEMENT.md`
-   2. Spawn: `Agent(subagent_type="general-purpose", prompt=<built prompt>)`
+   2. Spawn: `Agent(subagent_type="beastmode:implement-implementer", model=<current tier from escalation state>, prompt=<built prompt>)`
    3. Collect the agent's status report
 
    #### C. Handle Implementer Status
@@ -164,10 +180,10 @@ For each wave (ascending order):
      - If correctness or scope issue: re-dispatch implementer with specific fix instructions (max 2 retries, then BLOCKED)
      - If observation only: note the concern in the deviation log and proceed to spec review (step D)
    - **NEEDS_CONTEXT**: provide the missing context and re-dispatch the same task to a new implementer agent. Max 2 retries. After max retries: mark task as blocked, report to user.
-   - **BLOCKED**: assess the blocker.
-     - Can the controller provide more context? Re-dispatch with context.
-     - Can the task be broken smaller? Split and re-dispatch.
-     - Otherwise: mark task as blocked, report to user.
+   - **BLOCKED**: assess the blocker and attempt re-dispatch with context or a smaller split. Track retries against the current tier's budget (2 retries per tier).
+     - If retries at current tier < 2: re-dispatch with context or split at the same model tier.
+     - If retries at current tier exhausted (2 attempts) and a higher tier exists: **escalate** — increment the tier index, reset the tier retry counter to 0, re-dispatch at the new model tier.
+     - If retries exhausted at opus (top tier): mark task as BLOCKED, report to user. Maximum 6 total attempts reached.
 
    Never ignore an escalation or force retry without changes.
 
@@ -207,7 +223,9 @@ For each wave (ascending order):
    **If NOT_APPROVED with Critical or Important issues**: re-dispatch implementer to fix.
    - Provide the quality-reviewer's issue list as context
    - After fix: re-dispatch quality-reviewer
-   - Max 2 review cycles. After max: mark task as blocked, report to user
+   - Max 2 review-fix cycles at the current model tier. After exhausting cycles:
+     - If a higher tier exists: **escalate** — increment the tier index, reset the tier retry counter to 0, re-dispatch implementer at the new model tier, then re-run the full review pipeline (spec compliance + quality)
+     - If at opus (top tier): mark task as BLOCKED, report to user. Maximum quality review escalation reached.
 
    **If NOT_APPROVED with only Minor issues**: treat as approved — minor issues don't block.
 
@@ -291,6 +309,10 @@ Print the accumulated status log from the execute phase:
 
     Total: N tasks, M review cycles, K concerns
 
+    Escalations: N tasks escalated (X to sonnet, Y to opus)
+
+Omit the Escalations line if no tasks escalated.
+
 If all tasks completed with no concerns: "All tasks completed cleanly — no concerns or blockers."
 
 ### 7. Validation Failure Handling
@@ -321,7 +343,7 @@ suffix breaks the match and the watch loop never sees completion.
     **Concerns:** N
 
     ## Completed Tasks
-    - Task N: <description> — [clean | with concerns]
+    - Task N: <description> (<model tier>) — [clean | with concerns | escalated from <prior tier>: <reason>]
 
     ## Concerns
     - Task N: <description>
@@ -501,9 +523,9 @@ Review retry loop:
 Accumulated during execution, saved at checkpoint:
 
     ## Completed Tasks
-    - Task 0: Implementer agent — clean
-    - Task 1: Spec reviewer agent — clean
-    - Task 3: Controller update — with concerns (file size)
+    - Task 0: Implementer agent (haiku) — clean
+    - Task 1: Implementer agent (sonnet) — clean (escalated from haiku: BLOCKED)
+    - Task 3: Implementer agent (opus) — with concerns (escalated from sonnet: quality NOT_APPROVED)
 
     ## Concerns
     - Task 3: SKILL.md grew significantly during controller rewrite
@@ -511,7 +533,7 @@ Accumulated during execution, saved at checkpoint:
     ## Blocked Tasks
     None
 
-    **Summary:** 4 tasks completed (1 with concerns), 0 blocked, 6 review cycles
+    **Summary:** 4 tasks completed (1 with concerns), 0 blocked, 6 review cycles, 2 escalations
 
 If no concerns or blocks: "All tasks completed cleanly — no concerns or blockers."
 

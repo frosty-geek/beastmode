@@ -4,6 +4,18 @@ All notable changes to beastmode.
 
 ---
 
+### v0.74.0 — Model Escalation Ladder (Apr 2026)
+
+- **Three-tier escalation ladder** — Implementer agents start on haiku and automatically escalate to sonnet, then opus, when blocked or quality review fails with critical issues
+- **Per-task reset** — Each new task starts at haiku regardless of previous task's escalation; no sticky escalation across tasks
+- **Retry budget** — 2 retries per model tier, max 6 total attempts per task before marking BLOCKED
+- **BLOCKED handler escalation** — Retry exhaustion at current tier triggers escalation to next tier
+- **Quality review escalation** — NOT_APPROVED with Critical/Important severity issues triggers model escalation
+- **Non-escalation boundaries** — NEEDS_CONTEXT and spec review FAIL do not trigger escalation (context/requirement issues, not model capability)
+- **Report visibility** — Implementation report logs final model tier and escalation count per task
+
+---
+
 ### v0.73.0 — Tree Log View (Apr 2026)
 
 - **Shared TreeView component** — Hierarchical tree rendering (epic > phase > feature) with vertical line connectors and phase-based coloring, used by both `beastmode watch` and dashboard log panel
