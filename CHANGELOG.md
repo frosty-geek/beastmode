@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.73.0 — Tree Log View (Apr 2026)
+
+- **Shared TreeView component** — Hierarchical tree rendering (epic > phase > feature) with vertical line connectors and phase-based coloring, used by both `beastmode watch` and dashboard log panel
+- **TreeLogger** — Drop-in Logger interface replacement that routes messages into tree state for Ink rendering instead of stdout; `child()` creates scoped sub-loggers matching the tree hierarchy
+- **useTreeState hook** — React hook managing tree state with mutations for adding epics, phases, features, and log entries; shared between watch and dashboard
+- **Dashboard adoption** — `useDashboardTreeState` adapter transforms existing ring buffer entries + session events into tree state, swapping only the rendering layer while preserving data flow
+- **Watch integration** — `WatchTreeApp` Ink component with `attachTreeSubscriber` for WatchLoop-to-tree wiring; `--plain` flag and non-TTY detection fall back to flat format
+- **Tree format functions** — `formatTreeLogLine` simplified output (no phase/scope columns since tree position conveys hierarchy); tree data types with depth-aware prefix rendering
+
+---
+
 ### v0.72.0 — Implement v3: Write Plan, Agent Review Pipeline, Branch Isolation (Apr 2026)
 
 - **Write Plan** — Replaces implicit task decomposition with a visible `.tasks.md` document containing complete code, TDD cycles, file structure mapping, and strict no-placeholder rule; self-review pass scans for spec coverage, forbidden patterns, and naming consistency before dispatch

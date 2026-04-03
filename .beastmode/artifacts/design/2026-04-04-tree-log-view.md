@@ -1,0 +1,92 @@
+---
+phase: design
+slug: tree-log-view
+epic: tree-log-view
+---
+
+## Problem Statement
+
+Pipeline watch logs are flat lines with hierarchy encoded only in the scope column `(epic/feature)`. When multiple epics run through plan → implement → validate → release with per-feature fan-out, the flat log stream is hard to visually parse — there's no structural indication of which messages belong to which epic, phase, or feature.
+
+## Solution
+
+Replace the flat log output in `beastmode watch` with a live Ink/React tree view that renders the full pipeline hierarchy using vertical line connectors (`│`) and bullet markers (`·`). Three nesting levels — epic > phase > feature — with phase-based coloring and full scrollback. The tree component is shared with the dashboard's log panel. Non-TTY output falls back to the existing flat format via `--plain` flag.
+
+## User Stories
+
+1. As a developer running `beastmode watch`, I want to see pipeline output as a hierarchical tree grouped by epic, so that I can instantly identify which messages belong to which epic without parsing scope columns.
+
+2. As a developer watching multiple concurrent epics, I want each epic's output grouped together (not interleaved), so that I can follow one epic's progress without noise from others.
+
+3. As a developer, I want phase nodes (plan, implement, validate, release) indented under their epic with phase-specific coloring (blue/yellow/cyan/green), so that I can visually distinguish pipeline stages.
+
+4. As a developer, I want feature nodes (write-plan, agent-review, etc.) indented under their phase with `│ │ ·` connectors, so that implement fan-out is visually nested.
+
+5. As a developer, I want runner lifecycle messages (worktree prep, rebase, reconcile, GitHub sync) to appear as leaf nodes in the tree under the appropriate phase, so that all pipeline activity is captured in the hierarchy.
+
+6. As a developer, I want system-level messages (startup, shutdown, strategy selection) to render flat without tree prefix, so that pipeline chrome doesn't get confused with epic-scoped work.
+
+7. As a developer, I want the tree view to show full scrollback of all messages, so that I can review the complete pipeline history during a long run.
+
+8. As a developer piping `beastmode watch` output to a file or non-TTY, I want flat log output (no tree, no ANSI), so that logs remain grep-friendly and parseable.
+
+9. As a developer, I want the tree view to auto-derive phase boundaries from session events (session-started with a new phase auto-closes the prior phase node), so that no new WatchLoop events are needed.
+
+10. As a developer using `beastmode dashboard`, I want the dashboard's log panel to use the same tree component, so that the visual language is consistent across watch and dashboard.
+
+11. As a developer, I want the current `(scope)` and fixed-width `phase` columns dropped from tree-mode output, so that the tree structure replaces redundant metadata and message lines have more horizontal space.
+
+12. As a developer, I want duration information to remain in message text (e.g., "completed (202s)"), so that timing is preserved without adding new columns or annotations.
+
+13. As a developer, I want `--plain` to force flat log output even on a TTY, so that I can opt out of the tree view when needed.
+
+## Implementation Decisions
+
+- **TreeLogger wrapper**: A new `TreeLogger` class wraps the existing `Logger` interface. It maintains an active-node stack (epic, phase, feature) and intercepts `log`/`warn`/`error` calls to route messages to React state instead of stdout. The inner `formatLogLine` stays pure. `TreeLogger` implements the `Logger` interface so it can be injected into the pipeline runner via dependency injection.
+
+- **Ink/React rendering**: The tree view is an Ink component (`<TreeView />`) that receives tree state as props and renders `│ · ` prefixed lines with phase-based chalk coloring. Ink is already a dependency (dashboard). The watch command renders the Ink app when stdout is a TTY; falls back to `attachLoggerSubscriber` (flat output) for non-TTY or `--plain`.
+
+- **No alternate screen buffer**: Unlike the dashboard, the watch tree view runs in the normal terminal buffer so that scrollback history is preserved after Ctrl+C.
+
+- **Shared component**: `<TreeView />` is extracted as a reusable Ink component consumed by both `beastmode watch` (standalone) and `beastmode dashboard` (embedded in log panel). State management (tree node tracking, open/close) lives in a shared React hook (`useTreeState`).
+
+- **Phase auto-derivation**: Phase boundaries are detected when a `session-started` event arrives with a different phase than the current one for the same epic. The TreeLogger auto-closes the old phase node and opens a new one. No new WatchLoop events required.
+
+- **Multi-epic grouping**: Each epic maintains its own tree state. The Ink component renders all active epic trees sequentially (no interleaving). Epic ordering follows manifest creation date (same as the existing status display).
+
+- **Runner log injection**: The pipeline runner receives a `Logger` instance. When running in tree mode, this is a `TreeLogger` that updates React state. The runner code is unchanged — it calls `logger.log()` / `logger.warn()` as before. The `LogContext` already carries `{ phase, epic, feature }` which the TreeLogger uses for tree placement.
+
+- **Drop scope and phase columns**: In tree mode, the log line format simplifies to `[HH:MM:SS] LEVEL  tree-prefix message`. The scope column `(epic/feature)` and fixed-width phase column are omitted — the tree structure conveys this information visually. Flat mode retains the original format unchanged.
+
+- **Color scheme**: Tree nodes use the existing dashboard phase color convention: magenta (design), blue (plan), yellow (implement), cyan (validate), green (release), dim green (done), red (error). Level-based coloring (green info, yellow warn) is replaced by phase-based coloring in tree mode. Warn/error lines still get yellow/red full-line treatment as today.
+
+- **`--plain` flag**: Added to `beastmode watch`. Forces flat log output via `attachLoggerSubscriber` regardless of TTY detection. Auto-detected for non-TTY stdout.
+
+## Testing Decisions
+
+- Unit tests for the `TreeLogger` class: verify that open/close/log calls produce the correct tree prefix strings (`│ · `, `│ │ · `, etc.)
+- Unit tests for phase auto-derivation: verify that a session-started event with a new phase closes the prior phase node
+- Unit tests for multi-epic grouping: verify that trees for different epics render sequentially without interleaving
+- Snapshot tests for `<TreeView />` Ink component: render a known tree state and compare output
+- Integration test: pipe `beastmode watch --plain` output and verify it matches the existing flat format
+- Prior art: existing logger tests in `cli/src/__tests__/logger.test.ts` and `cli/src/__tests__/log-format.test.ts`
+
+## Out of Scope
+
+- Collapsible/interactive tree navigation (the dashboard handles interactive drill-down)
+- Ring buffer per node (full scrollback chosen over bounded buffers)
+- New WatchLoop events for phase lifecycle (phases auto-derived from sessions)
+- Changes to the dashboard's existing non-log panels (epic list, details)
+- Log file output (future feature — could write flat logs to file alongside tree TUI)
+
+## Further Notes
+
+- The dashboard currently uses ring buffers per session and a message mapper for SDK messages. When adopting the shared `<TreeView />` component, the dashboard can feed its ring buffer contents into the tree state. The message mapper can produce tree leaf entries instead of flat lines.
+- Long-running pipelines (hours) will accumulate potentially thousands of tree lines. Ink's React reconciliation should handle this, but performance testing with large tree states is advisable.
+
+## Deferred Ideas
+
+- Log file rotation for long-running watch sessions
+- Tree node collapsing/expanding in the watch view (currently only dashboard has interactivity)
+- Cost annotations per tree node
+- Filtered tree view (show only one epic or one phase)

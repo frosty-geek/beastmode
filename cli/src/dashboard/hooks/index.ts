@@ -15,3 +15,9 @@ export type { TerminalSize } from "./use-terminal-size.js";
 
 export { useDashboardKeyboard } from "./use-dashboard-keyboard.js";
 export type { DashboardMode, DashboardKeyboardDeps, DashboardKeyboardState } from "./use-dashboard-keyboard.js";
+
+export { useDashboardTreeState } from "./use-dashboard-tree-state.js";
+export type { UseDashboardTreeStateOptions, UseDashboardTreeStateResult } from "./use-dashboard-tree-state.js";
+
+export { useKeyboardController } from "./use-keyboard-controller.js";
+export type { UseKeyboardControllerOptions, UseKeyboardControllerResult } from "./use-keyboard-controller.js";

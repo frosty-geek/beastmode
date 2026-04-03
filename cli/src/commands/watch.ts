@@ -318,8 +318,18 @@ export async function selectStrategy(
   return { strategy: "sdk" };
 }
 
+/** Parse watch-specific arguments. */
+export function parseWatchArgs(args: string[]): { plain: boolean; remaining: string[] } {
+  const plain = args.includes("--plain");
+  const remaining = args.filter((a) => a !== "--plain");
+  return { plain, remaining };
+}
+
 /** Main entry point for `beastmode watch`. */
-export async function watchCommand(_args: string[], verbosity: number = 0): Promise<void> {
+export async function watchCommand(args: string[], verbosity: number = 0): Promise<void> {
+  const { plain } = parseWatchArgs(args);
+  const useTree = !plain && !!process.stdout.isTTY;
+
   const projectRoot = findProjectRoot();
   const config = loadConfig(projectRoot);
   const logger = createLogger(verbosity, {});
@@ -337,8 +347,6 @@ export async function watchCommand(_args: string[], verbosity: number = 0): Prom
 
   const sessionFactory = new ReconcilingFactory(innerFactory, projectRoot, logger);
 
-  // Pre-discover GitHub metadata once so all epics share the same resolved
-  // data. Failure is non-blocking — sync will gracefully skip if undefined.
   if (config.github.enabled) {
     try {
       const resolved = await discoverGitHub(projectRoot, config.github["project-name"], logger);
@@ -357,15 +365,49 @@ export async function watchCommand(_args: string[], verbosity: number = 0): Prom
     logger,
   };
 
-  const loop = new WatchLoop(
-    {
-      intervalSeconds: config.cli.interval ?? 60,
-      projectRoot,
-    },
-    deps,
-  );
+  if (useTree) {
+    // Tree mode: Ink handles signals, no alternate screen (full scrollback)
+    const loop = new WatchLoop(
+      {
+        intervalSeconds: config.cli.interval ?? 60,
+        projectRoot,
+        installSignalHandlers: false,
+      },
+      deps,
+    );
 
-  attachLoggerSubscriber(loop, logger);
+    const { render } = await import("ink");
+    const React = await import("react");
+    const { default: WatchTreeApp } = await import("./WatchTreeApp.js");
 
-  await loop.start();
+    const { waitUntilExit } = render(
+      React.createElement(WatchTreeApp, { loop, verbosity }),
+    );
+
+    try {
+      await loop.start();
+    } catch (err) {
+      logger.error(`${err}`);
+    }
+
+    try {
+      await waitUntilExit();
+    } finally {
+      if (loop.isRunning()) {
+        await loop.stop();
+      }
+    }
+  } else {
+    // Flat mode: existing behavior
+    const loop = new WatchLoop(
+      {
+        intervalSeconds: config.cli.interval ?? 60,
+        projectRoot,
+      },
+      deps,
+    );
+
+    attachLoggerSubscriber(loop, logger);
+    await loop.start();
+  }
 }

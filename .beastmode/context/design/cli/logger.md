@@ -9,6 +9,10 @@ Structured logging system with `createLogger(verbosity, { phase?, epic?, feature
 ## Rationale
 Centralized logging with verbosity gating gives operators quiet-by-default output while preserving full debug capability. Structured context objects replace flat slug strings for richer scoping. Child logger pattern enables hierarchical context merging without threading context through every call. Shared format function ensures CLI and dashboard have identical visual output. chalk with NO_COLOR detection follows modern CLI conventions.
 
+## Tree Mode Extension
+TreeLogger implements the same Logger interface and can be used as a drop-in replacement for createLogger. Instead of writing to stdout, it routes messages into tree state for Ink rendering. The `child()` method creates a new TreeLogger scoped to deeper context (epic, phase, feature). System-level messages (no epic in context) are stored as flat root-level entries. `formatTreeLogLine` produces simplified output: `[HH:MM:SS] LEVEL  message` — no phase column, no scope column, since tree position conveys that information. The watch command selects TreeLogger for TTY mode and falls back to createLogger for non-TTY or `--plain`.
+
 ## Source
 .beastmode/artifacts/design/2026-04-03-structured-logging.output.json
 .beastmode/artifacts/design/2026-04-03-watch-log-format.md
+.beastmode/artifacts/design/2026-04-04-tree-log-view.md
