@@ -67,34 +67,49 @@ Store the baseline file list. Spec checks in execute will diff against this base
 
 ## Phase 1: Execute
 
-### 0. Decompose Feature into Tasks
+### 0. Write Plan
 
-Before dispatching, create a detailed task breakdown from the architectural feature plan.
+Before dispatching, produce a detailed `.tasks.md` document from the feature plan. This is the inspection point between "plan says what to build" and "agent writes code."
 
 1. **Read feature plan** — user stories, what to build, acceptance criteria
 2. **Read architectural decisions** from the design doc — these are constraints
 3. **Explore codebase** — identify exact files, patterns, test structure, dependencies
-4. **Create tasks** using the Task Format (see below):
+4. **Create tasks** using the Task Format (see Reference section):
    - Map each aspect of "What to Build" to one or more tasks
    - Include exact file paths discovered from codebase exploration
-   - Include complete code in steps
+   - Include complete code in steps — no placeholders
    - Assign wave numbers based on dependencies
    - Include verification steps with expected output
-5. **Save internal plan** to `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.json`:
-   ```json
-   {
-     "featurePlan": "<path-to-feature-plan.md>",
-     "tasks": [
-       {"id": 0, "subject": "Task 0: ...", "status": "pending"},
-       {"id": 1, "subject": "Task 1: ...", "status": "pending"}
-     ],
-     "lastUpdated": "<timestamp>"
-   }
+5. **Write `.tasks.md`** to `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.md`:
+
+   The document has three sections and NO YAML frontmatter (the stop hook scans `artifacts/<phase>/` for `.md` files with frontmatter and generates `.output.json` — the `.tasks.md` must not trigger this):
+
+   **Header section** — goal, architecture, tech stack, duplicated from the feature plan (not referenced). Makes the document self-contained for agents.
+
+   **File Structure section** — every file to be created or modified with its responsibility. Decomposition decisions are locked here, before individual task definitions.
+
+   **Task definitions** — bite-sized TDD tasks following the Task Format (see Reference section). Each task uses checkbox tracking for cross-session resume:
+
+   ```markdown
+   - [ ] **Step 1: Write the failing test**
+   [complete test code]
+
+   - [ ] **Step 2: Run test to verify it fails**
+   Run: `[exact command]`
+   Expected: FAIL with "[message]"
    ```
+
+   The controller resumes from the first unchecked step (`- [ ]`).
+
+6. **Self-review pass** — before proceeding to dispatch, verify the `.tasks.md`:
+   - **Spec coverage**: every acceptance criterion from the feature plan maps to at least one task
+   - **Placeholder scan**: grep for TBD, TODO, "add appropriate", "similar to Task N", ellipsis (`...`) in code blocks — these are plan failures
+   - **Type/name consistency**: identifiers used across tasks are consistent (no typos, no renamed-but-not-updated references)
+   - Fix violations inline — no approval gate
 
 ### 1. Parse Waves
 
-Extract wave numbers and dependencies from the tasks created in Decompose:
+Extract wave numbers and dependencies from the `.tasks.md`:
 
 1. For each task, extract `**Wave:**` and `**Depends on:**` fields
 2. Group tasks by wave number (default wave = 1 if omitted)
@@ -107,7 +122,7 @@ For each wave (ascending order):
 1. **Identify Runnable Tasks** — From the wave map, select tasks where:
    - Task belongs to current wave
    - All dependencies are completed (or no dependencies)
-   - Task is not already completed (from .tasks.json resume)
+   - Task is not already completed (all checkboxes `- [x]` in .tasks.md)
 
 2. **Dispatch Subagents** — Check the wave's `**Parallel-safe:**` flag (appears after the first task's `**Wave:**` line).
 
@@ -155,9 +170,9 @@ For each wave (ascending order):
 
 5. **Update Task Persistence** — After each task completes (or is blocked):
 
-   1. Update `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.json`:
-      - Set task status to `completed` or `blocked`
-      - Set `lastUpdated` timestamp
+   1. Update `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.md`:
+      - Toggle completed steps from `- [ ]` to `- [x]`
+      - If task is blocked, add `**Status: BLOCKED**` after the task header
 
 6. **Wave Checkpoint** — After ALL tasks in the current wave complete:
 
@@ -418,7 +433,7 @@ If no deviations: `## Deviations\n\nNone — plan executed exactly as written.`
 
 ### Task Format
 
-> Used by /implement's Decompose step to create detailed task breakdowns from feature plans.
+> Used by /implement's Write Plan step to create the `.tasks.md` document from feature plans.
 
 ### Bite-Sized Granularity
 
@@ -466,10 +481,12 @@ def function(input):
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: PASS
 
-**Step 5: Verify**
+**Step 5: Commit**
 
-Run all related tests to confirm nothing broke.
-No commit needed — unified commit at /release.
+```bash
+git add [specific files]
+git commit -m "feat(<feature>): [specific message]"
+```
 ```
 
 ### Wave Rules
@@ -479,7 +496,7 @@ No commit needed — unified commit at /release.
 - `Depends on` creates ordering within a wave
 - Default wave is 1 if omitted
 
-**Parallel-Safe Flag** — After all tasks are written, /implement's Decompose step analyzes file overlap per wave and may add:
+**Parallel-Safe Flag** — After all tasks are written, /implement's Write Plan step analyzes file overlap per wave and may add:
 
 ```
 **Parallel-safe:** true
@@ -487,7 +504,7 @@ No commit needed — unified commit at /release.
 
 to the first task in a wave. This flag means no two tasks in the wave share a file, so dispatch can run agents in parallel.
 
-- Written by the Decompose step — not by the human planner
+- Written by the Write Plan step — not by the human planner
 - If two tasks in a wave share a file, auto-resequence the later task to Wave N+1
 - Single-task waves are not flagged (nothing to parallelize)
 - Verify the flag at runtime before parallel dispatch
