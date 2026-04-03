@@ -18,7 +18,6 @@
 ## Type Architecture
 - ALWAYS use PipelineManifest as the sole type — canonical for store, state machine, status command, and watch command
 - ALWAYS delete watch-types.ts — watch command imports from manifest-store.ts
-- ALWAYS remove costUsd from manifest types — cost tracking removed entirely
 
 ## Phase Source of Truth
 - ALWAYS use top-level `manifest.phase` as the single phase field — replaces both marker files and the `manifest.phases` map
@@ -34,6 +33,3 @@
 - ALWAYS skip the tick and retry on next poll when scanner errors occur — no retry limit, infinite retry with logging
 - ALWAYS handle missing or empty state directories gracefully — return empty array, no crash
 - ALWAYS warn on slug collisions via stderr — use newest (last sorted) manifest when duplicates exist
-
-## Cost Separation
-- NEVER aggregate costs in the scanner — cost tracking removed from scanner and status command entirely

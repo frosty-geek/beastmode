@@ -2,7 +2,7 @@
 Multiple competing type definitions existed: EpicState in state-scanner.ts, Manifest in state-scanner.ts, FeatureProgress, ScanResult. The blocked state was a boolean collapsing multiple fields.
 
 ## Decision
-PipelineManifest is the sole manifest type, exported from manifest-store.ts. EpicState, FeatureProgress, ScanResult, and the old Manifest interface are all deleted. watch-types.ts is deleted — watch command imports from manifest-store.ts. costUsd removed from all types.
+PipelineManifest is the sole manifest type, exported from manifest-store.ts. EpicState, FeatureProgress, ScanResult, and the old Manifest interface are all deleted. watch-types.ts is deleted — watch command imports from manifest-store.ts.
 
 ## Rationale
 One type, one truth. PipelineManifest unifies all consumers. Structured blocked field provides actionable information in status output without requiring additional lookups. Deleting competing types eliminates silent divergence.

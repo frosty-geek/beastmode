@@ -1,0 +1,12 @@
+{
+  "featurePlan": ".beastmode/artifacts/plan/2026-04-03-remove-cost-tracking-strip-cost-code.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Strip costUsd from types and interfaces", "status": "pending"},
+    {"id": 1, "subject": "Task 1: Strip cost from session factories and dispatch", "status": "pending"},
+    {"id": 2, "subject": "Task 2: Strip cost from display and watch loop", "status": "pending"},
+    {"id": 3, "subject": "Task 3: Strip cost from all test fixtures", "status": "pending"},
+    {"id": 4, "subject": "Task 4: Remove .beastmode-runs.json from .gitignore", "status": "pending"},
+    {"id": 5, "subject": "Task 5: Verify — grep + tsc", "status": "pending"}
+  ],
+  "lastUpdated": "2026-04-03T12:00:00Z"
+}

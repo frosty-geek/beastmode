@@ -331,7 +331,6 @@ export class WatchLoop extends EventEmitter {
           phase: session.phase,
           success: result.success,
           durationMs: result.durationMs,
-          costUsd: result.costUsd,
         });
 
         // Create phase tag for regression support (mirrors post-dispatch in CLI path)
@@ -413,11 +412,11 @@ export function attachLoggerSubscriber(loop: WatchLoop, logger: Logger): void {
     }
   });
 
-  loop.on('session-completed', ({ epicSlug, featureSlug, phase, success, durationMs, costUsd }) => {
+  loop.on('session-completed', ({ epicSlug, featureSlug, phase, success, durationMs }) => {
     const featureLabel = featureSlug ? ` (${featureSlug})` : '';
     const status = success ? 'completed' : 'failed';
     logger.log(
-      `${epicSlug}: ${phase}${featureLabel} ${status} ($${costUsd.toFixed(2)}, ${(durationMs / 1000).toFixed(0)}s)`,
+      `${epicSlug}: ${phase}${featureLabel} ${status} (${(durationMs / 1000).toFixed(0)}s)`,
     );
   });
 

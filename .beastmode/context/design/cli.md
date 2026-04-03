@@ -12,7 +12,7 @@
 
 ## Dispatch Abstraction
 - ALWAYS use `SessionStrategy` interface for phase dispatch — `dispatch()`, `isComplete()`, `cleanup()` methods decouple dispatch mechanism from orchestration logic
-- `SdkStrategy`: uses `@anthropic-ai/claude-agent-sdk` with `query()` invocation, `settingSources: ['project']`, `permissionMode: 'bypassPermissions'` — typed session management, streaming, cost tracking; reads output.json after query() iterator completes. With `includePartialMessages: true`, the `query()` async generator yields `SDKPartialAssistantMessage` (streaming text/tool deltas), `SDKAssistantMessage` (complete turns), `SDKToolProgressMessage` (heartbeats), and `SDKResultMessage` (completion). Dashboard subscribes via `SessionHandle.events` EventEmitter fed from the generator loop
+- `SdkStrategy`: uses `@anthropic-ai/claude-agent-sdk` with `query()` invocation, `settingSources: ['project']`, `permissionMode: 'bypassPermissions'` — typed session management, streaming; reads output.json after query() iterator completes. With `includePartialMessages: true`, the `query()` async generator yields `SDKPartialAssistantMessage` (streaming text/tool deltas), `SDKAssistantMessage` (complete turns), `SDKToolProgressMessage` (heartbeats), and `SDKResultMessage` (completion). Dashboard subscribes via `SessionHandle.events` EventEmitter fed from the generator loop
 - `CmuxStrategy`: creates cmux terminal surface via `cmux` CLI with `--json` flag, sends `beastmode <phase> <slug>` via `cmux send-surface` — CLI-in-surface execution, agents get full interactive terminal capability; detects completion via `fs.watch` on `artifacts/<phase>/` for `*.output.json`
 - `SessionFactory` reads `cli.dispatch-strategy` config (sdk | cmux | auto) + runtime state (cmux availability) to return the right strategy
 - AbortController for cancellation — clean shutdown on Ctrl+C
@@ -31,10 +31,6 @@
 - `cli.dispatch-strategy` controls dispatch mechanism (sdk | cmux | auto) — `auto` uses cmux if available, falls back to SDK
 - No per-notification or per-cleanup config knobs — notifications fixed at errors+blocks, cleanup fixed at on-release
 - Gates and other config sections are unchanged
-
-## Cost Tracking
-- Per-dispatch run log appended to `.beastmode-runs.json` — epic, phase, feature, cost_usd, duration_ms, exit_status, timestamp
-- Cost reporting removed from `beastmode status` — status shows pipeline state only, cost data remains in run log for external consumption
 
 ## Recovery Model
 - State files are the recovery point, not sessions — stateless session model

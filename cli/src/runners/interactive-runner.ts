@@ -53,7 +53,6 @@ export async function runInteractive(
 
     return {
       exit_status: exitStatus,
-      cost_usd: null,
       duration_ms: durationMs,
       session_id: null,
     };

@@ -11,7 +11,6 @@ export type Command = Phase | "watch" | "status" | "cancel" | "compact" | "dashb
 /** Result from a phase execution */
 export interface PhaseResult {
   exit_status: "success" | "error" | "cancelled";
-  cost_usd: number | null;
   duration_ms: number;
   session_id: string | null;
 }

@@ -8,7 +8,7 @@
 
 ## CLI Runtime
 - Runtime: Bun — native TypeScript execution, no compile step for development
-- SDK: `@anthropic-ai/claude-agent-sdk` for typed session management, streaming, cost tracking, AbortController cancellation
+- SDK: `@anthropic-ai/claude-agent-sdk` for typed session management, streaming, AbortController cancellation
 - CLI name: `beastmode` with commands `run`, `watch`, `status`
 - ALWAYS use markdown + YAML frontmatter for skill definitions — skills are not code
 

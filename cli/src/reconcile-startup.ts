@@ -70,7 +70,6 @@ function findAndReadOutput(artifactDir: string): SessionResult | null {
     return {
       success: output.status === "completed",
       exitCode: output.status === "completed" ? 0 : 1,
-      costUsd: 0,
       durationMs: 0,
     };
   } catch {

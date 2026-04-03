@@ -300,7 +300,6 @@ export class ITermSessionFactory implements SessionFactory {
               result ?? {
                 success: false,
                 exitCode: 1,
-                costUsd: 0,
                 durationMs: Date.now() - startTime,
               },
             );
@@ -318,7 +317,6 @@ export class ITermSessionFactory implements SessionFactory {
           resolvePromise({
             success: false,
             exitCode: 1,
-            costUsd: 0,
             durationMs: Date.now() - startTime,
           });
         }, this.watchTimeoutMs);
@@ -348,7 +346,6 @@ export class ITermSessionFactory implements SessionFactory {
         resolvePromise({
           success: false,
           exitCode: 1,
-          costUsd: 0,
           durationMs: Date.now() - startTime,
         });
       }, this.watchTimeoutMs);
@@ -422,7 +419,6 @@ export class ITermSessionFactory implements SessionFactory {
       return {
         success: output.status === "completed",
         exitCode: output.status === "completed" ? 0 : 1,
-        costUsd: 0,
         durationMs: Date.now() - startTime,
       };
     } catch {

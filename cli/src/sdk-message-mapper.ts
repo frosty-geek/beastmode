@@ -37,7 +37,6 @@ export interface ToolResultEntry {
 
 export interface CompletionEntry {
   kind: "completion";
-  costUsd: number;
   durationMs: number;
   isError: boolean;
   sessionId: string;
@@ -197,7 +196,6 @@ function mapResult(msg: SDKResultMessage): DisplayLogEntry[] {
   return [
     {
       kind: "completion",
-      costUsd: msg.cost_usd,
       durationMs: msg.duration_ms,
       isError: msg.is_error,
       sessionId: msg.session_id,

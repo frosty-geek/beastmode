@@ -24,7 +24,7 @@
 - ALWAYS discover epics from manifest files — never from design files or date heuristics
 - Scan artifacts/plan/ then state/ — state/ wins dedup
 - ALWAYS derive phase from the manifest.phases map — no filesystem marker sniffing
-- Status table: Epic, Phase, Progress, Blocked, Last Activity — no cost column
+- Status table: Epic, Phase, Progress, Blocked, Last Activity
 - Next action: fan-out at implement, single dispatch for all other phases, null for done epics
 
 ## Cmux Integration

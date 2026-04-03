@@ -205,7 +205,6 @@ export async function dispatchPhase(opts: {
       // Check if the result is an async iterable (streaming)
       if (queryResult && typeof queryResult === "object" && Symbol.asyncIterator in (queryResult as object)) {
         let exitCode = 1;
-        let costUsd = 0;
 
         for await (const message of queryResult as AsyncIterable<Record<string, unknown>>) {
           const now = Date.now();
@@ -226,7 +225,6 @@ export async function dispatchPhase(opts: {
             }
           } else if (type === "result") {
             exitCode = (message.exitCode as number) ?? 0;
-            costUsd = (message.costUsd as number) ?? 0;
             events.pushEntry({ timestamp: now, type: "result", text: `Exit ${exitCode}` });
           } else {
             // Heartbeat or unknown message type
@@ -237,18 +235,16 @@ export async function dispatchPhase(opts: {
         sessionResult = {
           success: exitCode === 0,
           exitCode,
-          costUsd,
           durationMs: Date.now() - startTime,
         };
       } else {
         // Non-streaming fallback: query() returned a promise
-        const result = await (queryResult as Promise<{ exitCode: number; costUsd?: number }>);
+        const result = await (queryResult as Promise<{ exitCode: number }>);
         events.pushEntry({ timestamp: Date.now(), type: "result", text: `Exit ${result.exitCode}` });
 
         sessionResult = {
           success: result.exitCode === 0,
           exitCode: result.exitCode,
-          costUsd: result.costUsd ?? 0,
           durationMs: Date.now() - startTime,
         };
       }
@@ -272,28 +268,18 @@ export async function dispatchPhase(opts: {
         signal: opts.signal,
       });
 
-      const [stdout] = await Promise.all([
+      await Promise.all([
         new Response(proc.stdout).text(),
         new Response(proc.stderr).text(),
       ]);
 
       const exitCode = await proc.exited;
 
-      // Try to parse cost from JSON output
-      let costUsd = 0;
-      try {
-        const output = JSON.parse(stdout);
-        costUsd = output.cost_usd ?? 0;
-      } catch {
-        // Non-JSON output — no cost info
-      }
-
       events.pushEntry({ timestamp: Date.now(), type: "result", text: `Exit ${exitCode}` });
 
       sessionResult = {
         success: exitCode === 0,
         exitCode,
-        costUsd,
         durationMs: Date.now() - startTime,
       };
     }
