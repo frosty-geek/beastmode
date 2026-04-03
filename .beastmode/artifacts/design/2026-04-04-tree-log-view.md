@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: 2de17f
+slug: tree-log-view
 epic: tree-log-view
 ---
 
