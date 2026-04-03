@@ -85,18 +85,24 @@ Rules:
 
 Second pass to catch big-picture blind spots the decision tree may have missed.
 
-1. Step back and analyze the full picture for decisions that would change the outcome
-2. Present the 3 most unclear areas + "Other"
-   - Use `AskUserQuestion` with `multiSelect: true`
+Maintain a session-scoped list of resolved gray areas. Never re-present areas discussed in previous batches.
+
+**Loop:**
+
+1. Step back and analyze the full picture for remaining ambiguity (excluding resolved areas)
+2. If 0 gray areas remain → declare sweep complete, proceed to step 3
+3. Present up to 3 most unclear areas using `AskUserQuestion` with `multiSelect: true`
+   - Options: the gray areas (up to 3) + "Skip — move to validation"
    - Annotate options with codebase context when relevant
-3. User multi-selects which to discuss
-4. Per selected area: one question at a time, recommendation included
+   - The built-in "Other" option remains available for user-raised concerns
+4. If "Skip — move to validation" is selected (regardless of other selections) → exit loop immediately
+5. User multi-selects which areas to discuss
+6. Per selected area: one question at a time, recommendation included
    - "You decide" option on every question (explicit discretion opt-in)
    - "Other" always available
    - Scope guardrail: defer new capabilities
-5. After batch resolved: "3 more areas, or satisfied with the level of detail?"
-   - "3 more" → loop back with next 3 most unclear
-   - "Satisfied" → exit loop
+7. Add resolved areas to the session-scoped list
+8. Loop back to step 1
 
 ### 3. Iterate Until Ready for Validation
 
