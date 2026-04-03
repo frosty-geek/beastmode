@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.67.0 — HITL Config Seed (Apr 2026)
+
+- **HITL config section** — Seeds `hitl:` into `.beastmode/config.yaml` for projects predating the HITL feature, making per-phase human-in-the-loop behavior visible and tunable
+- **Design stays human** — Design phase set to `"always defer to human"`, preserving collaborative interviews
+- **Pipeline stays auto** — Plan, implement, validate, release set to fully autonomous mode
+- **Init template parity** — Includes `model: haiku` and `timeout: 30` matching the init template defaults
+
+---
+
 ### v0.66.1 — Gray Area Sweep Simplify (Apr 2026)
 
 - **Serial gray-area sweep** — Replaced batched multi-select loop with one-at-a-time flow, presenting gray areas in priority order (most ambiguous first)
