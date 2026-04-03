@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: d5e6a9
+slug: cli-restructure
 epic: cli-restructure
 ---
 
