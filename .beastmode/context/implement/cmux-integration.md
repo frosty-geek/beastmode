@@ -31,3 +31,9 @@
 - mockProc() helper creates ReadableStream-based fakes matching exec()'s consumption via new Response(stream).text()
 - 33 unit tests covering: all 9 methods, all error classes, idempotent close logic, CLI argument construction, timeout config
 - cmuxAvailable() tested separately with spyOn(Bun, "spawn") since it uses the real default
+
+## Best-Effort Visual Cleanup
+- ALWAYS wrap visual cleanup and badge operations in try-catch with warn-and-continue — tab close or badge failure must never roll back a release or block error reporting
+- Visual surfaces are unreliable (manual close, session recycling, daemon restart) — authoritative state lives in manifest and worktree, not in terminal containers
+
+context/implement/cmux-integration/best-effort-visual-cleanup.md

@@ -10,3 +10,6 @@
 - ALWAYS follow the standard report structure for validation artifacts
 - ALWAYS trace custom gates back to design acceptance criteria
 - NEVER assert PASS without verifiable evidence
+
+## Known Pre-existing Failures
+- `state-scanner.test.ts` line 109: expects `design -> single` but v0.59.0 changed dispatch to `design -> skip` — not in scope for any current epic, do not triage repeatedly
