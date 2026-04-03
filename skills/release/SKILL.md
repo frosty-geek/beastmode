@@ -20,9 +20,9 @@ No release without passing validation.
 
 ## Phase 0: Prime
 
-### 1. Resolve Feature Name
+### 1. Resolve Epic Name
 
-The feature name comes from the skill arguments. Use it directly for all artifact paths in this phase.
+The epic name comes from the skill arguments. Use it directly for all artifact paths in this phase.
 
 ### 2. Announce Skill
 
@@ -39,9 +39,9 @@ Prior decisions, conventions, and learnings inform this phase — don't re-decid
 ### 4. Load Artifacts
 
 Locate:
-- Design doc path (`.beastmode/artifacts/design/YYYY-MM-DD-<feature>.md`)
-- Plan doc path (`.beastmode/artifacts/plan/YYYY-MM-DD-<feature>.md`)
-- Validation report path (`.beastmode/artifacts/validate/YYYY-MM-DD-<feature>.md`)
+- Design doc path (`.beastmode/artifacts/design/YYYY-MM-DD-<epic-name>.md`)
+- Plan doc path (`.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>.md`)
+- Validation report path (`.beastmode/artifacts/validate/YYYY-MM-DD-<epic-name>.md`)
 
 ## Phase 1: Execute
 
@@ -88,7 +88,7 @@ Group commits by type:
 
 ### 4. Generate Release Notes
 
-Save to `.beastmode/artifacts/release/YYYY-MM-DD-<feature>.md` using the Release Notes Template (see Reference section).
+Save to `.beastmode/artifacts/release/YYYY-MM-DD-<epic-name>.md` using the Release Notes Template (see Reference section).
 
 Omit empty sections (e.g., no Breaking Changes → skip that heading).
 
@@ -169,7 +169,7 @@ Before merging to main, commit all release artifacts to the feature branch:
 
 ```bash
 git add -A
-git commit -m "release(<feature>): checkpoint"
+git commit -m "release(<epic-name>): checkpoint"
 ```
 
 ### 3. Squash Merge to Main
@@ -209,8 +209,8 @@ Read the bump type from the release notes YAML frontmatter (written during execu
 ```yaml
 ---
 phase: release
-slug: <hex>
-epic: <feature>
+slug: <epic-id>
+epic: <epic-name>
 bump: minor
 ---
 ```
@@ -233,7 +233,7 @@ Update version in all files **on main**:
 ### 7. Update Release Artifacts
 
 Update the release notes **on main** to include the actual computed version:
-- `.beastmode/artifacts/release/YYYY-MM-DD-<feature>.md` → replace `**Bump:** type` with `**Version:** vX.Y.Z`
+- `.beastmode/artifacts/release/YYYY-MM-DD-<epic-name>.md` → replace `**Bump:** type` with `**Version:** vX.Y.Z`
 
 ### 8. Commit Release
 
@@ -273,7 +273,7 @@ claude plugin update beastmode@beastmode-marketplace --scope user
 ### Release Notes Template
 
 ```markdown
-# Release: <feature>
+# Release: <epic-name>
 
 **Bump:** minor
 **Date:** YYYY-MM-DD
@@ -313,8 +313,8 @@ git commit -m "Release vX.Y.Z — <Title from CHANGELOG>
 - <fix 1>
 
 ## Artifacts
-- Design: .beastmode/artifacts/design/YYYY-MM-DD-<feature>.md
-- Plan: .beastmode/artifacts/plan/YYYY-MM-DD-<feature>.md
-- Release: .beastmode/artifacts/release/YYYY-MM-DD-<feature>.md
+- Design: .beastmode/artifacts/design/YYYY-MM-DD-<epic-name>.md
+- Plan: .beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>.md
+- Release: .beastmode/artifacts/release/YYYY-MM-DD-<epic-name>.md
 "
 ```

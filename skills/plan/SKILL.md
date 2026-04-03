@@ -20,9 +20,9 @@ No EnterPlanMode or ExitPlanMode — this skill manages its own flow.
 
 ## Phase 0: Prime
 
-### 1. Resolve Feature Name
+### 1. Resolve Epic Name
 
-The feature name comes from the skill arguments. Use it directly for all artifact paths in this phase.
+The epic name comes from the skill arguments. Use it directly for all artifact paths in this phase.
 
 ### 2. Announce Skill
 
@@ -50,10 +50,10 @@ If triggered, spawn an Explore agent as the researcher. It receives the research
 Locate the design artifact by convention glob:
 
 ```bash
-matches=$(ls .beastmode/artifacts/design/*-$feature.md 2>/dev/null)
+matches=$(ls .beastmode/artifacts/design/*-$epic.md 2>/dev/null)
 ```
 
-If no matches, error: "No design artifact found for feature '$feature'". If multiple, take the latest (date prefix sorts chronologically).
+If no matches, error: "No design artifact found for epic '$epic'". If multiple, take the latest (date prefix sorts chronologically).
 
 Read the resolved file path.
 
@@ -95,7 +95,7 @@ Rules:
 7. Track deferred ideas internally
 
 For each feature, capture:
-- **Name:** short slug (lowercase, hyphenated)
+- **Name:** short identifier (lowercase, hyphenated)
 - **User Stories:** which PRD user stories this feature covers
 - **What to Build:** architectural description of what needs to happen (no file paths or code)
 - **Acceptance Criteria:** how to verify this feature is done
@@ -141,7 +141,7 @@ If any story shows `✗ MISSING`, go back to Execute phase and assign it to a fe
 ### 2. Feature Completeness Check
 
 Verify every feature has:
-- [ ] Name (slug format)
+- [ ] Name (lowercase, hyphenated)
 - [ ] At least one user story
 - [ ] What to Build section (non-empty)
 - [ ] At least one acceptance criterion
@@ -213,18 +213,18 @@ This is read-only — do NOT ask new questions here.
 
 ### 1. Write Feature Plan Files
 
-For each feature, save to `.beastmode/artifacts/plan/YYYY-MM-DD-<design>-<feature-slug>.md` using the feature plan format below.
+For each feature, save to `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-<feature-name>.md` using the feature plan format below.
 
-Where `<design>` is the epic slug and `<feature-slug>` is the feature's name slug.
+Where `<epic-name>` is the epic name and `<feature-name>` is the feature's name.
 
 Each feature plan file must begin with YAML frontmatter:
 
 ```
 ---
 phase: plan
-slug: <hex>
-epic: <design>
-feature: <feature-slug>
+slug: <epic-id>
+epic: <epic-name>
+feature: <feature-name>
 wave: <N>
 ---
 ```
@@ -235,7 +235,7 @@ Commit all work to the feature branch:
 
 ```bash
 git add -A
-git commit -m "plan(<feature>): checkpoint"
+git commit -m "plan(<epic-name>): checkpoint"
 ```
 
 Print features and their implement commands:
@@ -244,11 +244,11 @@ Print features and their implement commands:
 Features ready for implementation:
 
 Wave 1:
-  1. <feature-a> → beastmode implement <design> <feature-a>
-  2. <feature-b> → beastmode implement <design> <feature-b>
+  1. <feature-a> → beastmode implement <epic-name> <feature-a>
+  2. <feature-b> → beastmode implement <epic-name> <feature-b>
 
 Wave 2:
-  3. <feature-c> → beastmode implement <design> <feature-c>
+  3. <feature-c> → beastmode implement <epic-name> <feature-c>
 ```
 
 STOP. No additional output.
@@ -275,9 +275,9 @@ Each feature plan file follows this structure:
 ```markdown
 ---
 phase: plan
-slug: <hex>
-epic: <design>
-feature: <feature-slug>
+slug: <epic-id>
+epic: <epic-name>
+feature: <feature-name>
 wave: <N>
 ---
 

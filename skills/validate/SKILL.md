@@ -20,9 +20,9 @@ No release without passing validation.
 
 ## Phase 0: Prime
 
-### 1. Resolve Feature Name
+### 1. Resolve Epic Name
 
-The feature name comes from the skill arguments. Use it directly for all artifact paths in this phase.
+The epic name comes from the skill arguments. Use it directly for all artifact paths in this phase.
 
 ### 2. Announce Skill
 
@@ -41,7 +41,7 @@ Prior decisions, conventions, and learnings inform this phase — don't re-decid
 Scan for implementation artifacts to verify all features have been implemented:
 
 ```bash
-ls .beastmode/artifacts/implement/*-$design-*.md 2>/dev/null
+ls .beastmode/artifacts/implement/*-$epic-*.md 2>/dev/null
 ```
 
 Cross-reference against the feature plan files to determine completion status.
@@ -61,7 +61,7 @@ Result: BLOCKED — 1 feature still pending
 If any features are NOT completed:
 - Print which features are pending
 - STOP — do not proceed to test execution
-- Suggest: "Run `/beastmode:implement <design>-<pending-feature>` to complete remaining features."
+- Suggest: "Run `/beastmode:implement <epic-name>-<pending-feature>` to complete remaining features."
 
 If all completed: proceed to next step.
 
@@ -138,15 +138,15 @@ Check each gate:
 
 ### 1. Save Report
 
-Save to `.beastmode/artifacts/validate/YYYY-MM-DD-<feature>.md` where `<feature>` is the epic slug.
+Save to `.beastmode/artifacts/validate/YYYY-MM-DD-<epic-name>.md` where `<epic-name>` is the epic name.
 
 The validation report must begin with YAML frontmatter:
 
 ```
 ---
 phase: validate
-slug: <hex>
-epic: <feature>
+slug: <epic-id>
+epic: <epic-name>
 status: passed
 ---
 ```
@@ -158,7 +158,7 @@ Set `status` to `passed` or `failed` matching the validation result.
 If FAIL:
 ```
 Validation failed. Fix issues and re-run:
-beastmode validate <feature>
+beastmode validate <epic-name>
 ```
 STOP — do not proceed to commit.
 
@@ -168,13 +168,13 @@ Commit all work to the feature branch:
 
 ```bash
 git add -A
-git commit -m "validate(<feature>): checkpoint"
+git commit -m "validate(<epic-name>): checkpoint"
 ```
 
 Print:
 
 ```
-Next: beastmode release <feature>
+Next: beastmode release <epic-name>
 ```
 
 STOP. No additional output.

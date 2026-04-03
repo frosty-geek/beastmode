@@ -20,9 +20,9 @@ No EnterPlanMode or ExitPlanMode.
 
 ## Phase 0: Prime
 
-### 1. Resolve Feature Name
+### 1. Resolve Epic and Feature Name
 
-The argument is `<design>-<feature-slug>`. Parse the design name and feature slug from it. The feature name is used for all artifact paths in this phase.
+The argument is `<epic-name>-<feature-name>`. Parse the epic name and feature name from it. The feature name is used for all artifact paths in this phase.
 
 ### 2. Announce Skill
 
@@ -41,10 +41,10 @@ Prior decisions, conventions, and learnings inform this phase — don't re-decid
 1. Locate the feature plan by convention glob:
 
 ```bash
-matches=$(ls .beastmode/artifacts/plan/*-$design-$feature.md 2>/dev/null)
+matches=$(ls .beastmode/artifacts/plan/*-$epic-$feature.md 2>/dev/null)
 ```
 
-If no matches, error: "No feature plan found for '$design/$feature'". If multiple, take the latest (date prefix sorts chronologically).
+If no matches, error: "No feature plan found for '$epic/$feature'". If multiple, take the latest (date prefix sorts chronologically).
 
 2. Read the feature plan file
 3. Read the architectural decisions from the plan's design reference
@@ -79,7 +79,7 @@ Before dispatching, create a detailed task breakdown from the architectural feat
    - Include complete code in steps
    - Assign wave numbers based on dependencies
    - Include verification steps with expected output
-5. **Save internal plan** to `.beastmode/artifacts/plan/YYYY-MM-DD-<design>-<feature-slug>.tasks.json`:
+5. **Save internal plan** to `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.json`:
    ```json
    {
      "featurePlan": "<path-to-feature-plan.md>",
@@ -154,7 +154,7 @@ For each wave (ascending order):
 
 5. **Update Task Persistence** — After each task completes (or is blocked):
 
-   1. Update `.beastmode/artifacts/plan/YYYY-MM-DD-<design>-<feature-slug>.tasks.json`:
+   1. Update `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.json`:
       - Set task status to `completed` or `blocked`
       - Set `lastUpdated` timestamp
 
@@ -246,17 +246,17 @@ Do NOT proceed to next phase if critical tests fail.
 
 ### 1. Save Deviation Log
 
-Save to `.beastmode/artifacts/implement/YYYY-MM-DD-<design>-<feature-slug>.md`:
+Save to `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-name>-<feature-name>.md`:
 
-IMPORTANT: The filename MUST be exactly `YYYY-MM-DD-<design>-<feature-slug>.md` — no
+IMPORTANT: The filename MUST be exactly `YYYY-MM-DD-<epic-name>-<feature-name>.md` — no
 extra suffixes like `-deviations`. The stop hook derives the output.json filename from
 this basename, and the watch loop matches on `-<epic>-<feature>.output.json`. Any extra
 suffix breaks the match and the watch loop never sees completion.
 
-    # Implementation Deviations: <feature-slug>
+    # Implementation Deviations: <feature-name>
 
     **Date:** YYYY-MM-DD
-    **Feature Plan:** .beastmode/artifacts/plan/YYYY-MM-DD-<design>-<feature-slug>.md
+    **Feature Plan:** .beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-<feature-name>.md
     **Tasks completed:** N/M
     **Deviations:** N total
 
@@ -278,9 +278,9 @@ The artifact MUST begin with YAML frontmatter:
 ```yaml
 ---
 phase: implement
-slug: <hex>
-epic: <design>
-feature: <feature-slug>
+slug: <epic-id>
+epic: <epic-name>
+feature: <feature-name>
 status: completed
 ---
 ```
@@ -293,13 +293,13 @@ Commit all work to the feature branch:
 
 ```bash
 git add -A
-git commit -m "implement(<feature>): checkpoint"
+git commit -m "implement(<epic-name>-<feature-name>): checkpoint"
 ```
 
 Print:
 
 ```
-Next: beastmode validate <feature>
+Next: beastmode validate <epic-name>
 ```
 
 STOP. No additional output.
