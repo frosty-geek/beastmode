@@ -132,6 +132,8 @@ Run a context reconciliation pass across all phase artifacts before releasing.
 
    For each directory, collect all files matching the current feature slug. Build a flat list of all artifact paths.
 
+   Additionally, include any `hitl-log.md` files found in the phase artifact directories. These contain HITL decision logs from the pipeline run and do not follow the slug-naming convention.
+
    If no artifacts found, print "Retro: no artifacts found. Skipping." and proceed to Step 2.
 
 2. **Spawn Context Walker** — Spawn a general-purpose agent as the context walker. It receives the phase artifacts and L1 context path, analyzes for promotable learnings, and proposes hierarchy updates.
