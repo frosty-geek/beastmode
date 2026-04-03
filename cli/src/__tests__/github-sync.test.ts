@@ -757,6 +757,7 @@ describe("syncGitHub", () => {
   // -------------------------------------------------------
   describe("release closing comment", () => {
     let commentTempDir: string;
+    const releaseTagName = "beastmode/test-epic/release";
 
     function createPluginJson(ver: string) {
       commentTempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
@@ -775,8 +776,17 @@ describe("syncGitHub", () => {
       }
     }
 
-    test("posts release comment when phase is done and version available", async () => {
+    function createReleaseTag() {
+      Bun.spawnSync(["git", "tag", releaseTagName]);
+    }
+
+    function removeReleaseTag() {
+      Bun.spawnSync(["git", "tag", "-d", releaseTagName]);
+    }
+
+    test("posts release comment when phase is done with version and tag", async () => {
       createPluginJson("1.2.0");
+      createReleaseTag();
       const manifest = makeManifest({ phase: "done" });
       const config = makeConfig();
       const resolved = makeResolved();
@@ -792,11 +802,13 @@ describe("syncGitHub", () => {
       expect(calls[0].args[1]).toBe(10);
       expect(calls[0].args[2]).toContain("1.2.0");
 
+      removeReleaseTag();
       removePluginTemp();
     });
 
     test("does not post comment when phase is cancelled", async () => {
       createPluginJson("1.2.0");
+      createReleaseTag();
       const manifest = makeManifest({ phase: "cancelled" });
       const config = makeConfig();
       const resolved = makeResolved();
@@ -809,12 +821,13 @@ describe("syncGitHub", () => {
       const calls = callsTo("ghIssueComment");
       expect(calls).toHaveLength(0);
 
+      removeReleaseTag();
       removePluginTemp();
     });
 
-    test("skips comment when no release metadata available", async () => {
-      // Create empty temp dir with no plugin.json — version returns undefined
-      commentTempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+    test("skips comment when release tag is missing", async () => {
+      createPluginJson("1.2.0");
+      // No release tag — readReleaseTag returns undefined, guard fails
       const manifest = makeManifest({ phase: "done" });
       const config = makeConfig();
       const resolved = makeResolved();
@@ -823,18 +836,16 @@ describe("syncGitHub", () => {
         projectRoot: commentTempDir,
       });
 
-      // Even without version, git-based metadata (mergeCommit) may
-      // still produce a non-empty comment if git works in the test env.
-      // The key invariant: releaseCommentPosted reflects whether
-      // ghIssueComment was actually called.
+      expect(result.releaseCommentPosted).toBe(false);
       const calls = callsTo("ghIssueComment");
-      expect(result.releaseCommentPosted).toBe(calls.length > 0);
+      expect(calls).toHaveLength(0);
 
       removePluginTemp();
     });
 
     test("warns when comment posting fails", async () => {
       createPluginJson("1.2.0");
+      createReleaseTag();
       const manifest = makeManifest({ phase: "done" });
       mockErrors.ghIssueComment = true;
       const config = makeConfig();
@@ -847,11 +858,13 @@ describe("syncGitHub", () => {
       expect(result.releaseCommentPosted).toBe(false);
       expect(result.warnings).toContain("Failed to post release comment on epic");
 
+      removeReleaseTag();
       removePluginTemp();
     });
 
     test("still closes epic even when comment fails", async () => {
       createPluginJson("1.2.0");
+      createReleaseTag();
       const manifest = makeManifest({ phase: "done" });
       mockErrors.ghIssueComment = true;
       const config = makeConfig();
@@ -863,11 +876,13 @@ describe("syncGitHub", () => {
 
       expect(result.epicClosed).toBe(true);
 
+      removeReleaseTag();
       removePluginTemp();
     });
 
     test("does not post comment for non-terminal phases", async () => {
       createPluginJson("1.2.0");
+      createReleaseTag();
       const manifest = makeManifest({ phase: "implement" });
       const config = makeConfig();
       const resolved = makeResolved();
@@ -879,10 +894,31 @@ describe("syncGitHub", () => {
       const calls = callsTo("ghIssueComment");
       expect(calls).toHaveLength(0);
 
+      removeReleaseTag();
+      removePluginTemp();
+    });
+
+    test("uses fallback version when plugin.json is missing", async () => {
+      commentTempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+      createReleaseTag();
+      const manifest = makeManifest({ phase: "done" });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      expect(result.releaseCommentPosted).toBe(true);
+      const calls = callsTo("ghIssueComment");
+      expect(calls).toHaveLength(1);
+      // Body should contain fallback "unreleased" version
+      expect(calls[0].args[2]).toContain("unreleased");
+
+      removeReleaseTag();
       removePluginTemp();
     });
   });
-
   // -------------------------------------------------------
   // 12. Warn-and-continue — individual failures don't stop sync
   // -------------------------------------------------------
@@ -1599,6 +1635,7 @@ describe("syncGitHub", () => {
       tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
 
       const manifest = makeManifest({
+        slug: "no-tags-slug-xyz",
         // No worktree, no artifacts
         github: { epic: 10, repo: "org/repo" },
       });

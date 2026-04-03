@@ -266,6 +266,7 @@ export async function syncGitHub(
     projectUpdated: false,
     epicClosed: false,
     releaseCommentPosted: false,
+    commentsPosted: 0,
     warnings: [],
     mutations: [],
   };
@@ -397,17 +398,27 @@ export async function syncGitHub(
       const mergeCommitSha = readMergeCommit();
 
       if (releaseTag && mergeCommitSha) {
-        const commentBody = formatClosingComment({
-          version: version ?? "unreleased",
-          releaseTag,
-          mergeCommit: mergeCommitSha,
-          repo,
-        });
-        const commented = await ghIssueComment(repo, epicNumber, commentBody, { logger: opts.logger });
-        if (commented) {
-          result.releaseCommentPosted = true;
-        } else {
-          result.warnings.push("Failed to post release comment on epic");
+        // Duplicate check — scan existing comments for the version string
+        const existingComments = await ghIssueComments(repo, epicNumber, { logger: opts.logger });
+        const versionLabel = version ?? "unreleased";
+        const alreadyPosted = existingComments?.some(
+          (c) => c.body.includes(`Released: ${versionLabel}`),
+        ) ?? false;
+
+        if (!alreadyPosted) {
+          const commentBody = formatClosingComment({
+            version: versionLabel,
+            releaseTag,
+            mergeCommit: mergeCommitSha,
+            repo,
+          });
+          const commented = await ghIssueComment(repo, epicNumber, commentBody, { logger: opts.logger });
+          if (commented) {
+            result.commentsPosted++;
+            result.releaseCommentPosted = true;
+          } else {
+            result.warnings.push("Failed to post release comment on epic");
+          }
         }
       }
     }
