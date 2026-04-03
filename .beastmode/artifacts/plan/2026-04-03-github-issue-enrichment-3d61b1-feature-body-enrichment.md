@@ -1,7 +1,7 @@
 ---
 phase: plan
 slug: github-issue-enrichment-3d61b1
-epic: github-issue-enrichment
+epic: github-issue-enrichment-3d61b1
 feature: feature-body-enrichment
 wave: 2
 ---
