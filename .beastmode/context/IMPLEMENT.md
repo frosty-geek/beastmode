@@ -4,7 +4,7 @@
 - NEVER stash, switch branches, or modify worktrees without explicit user request
 - ALWAYS verify worktree context before modifying files
 - NEVER guess file paths — verify they exist first
-- Agents commit per task on the impl branch (`feature/<slug>/<feature-name>`) — never on the worktree branch
+- Agents commit per task on the impl branch (`impl/<slug>--<feature-name>`) — never on the worktree branch
 - Three agent roles: implementer (TDD execution), spec-reviewer (trust-nothing verification), quality-reviewer (self-contained quality checklist)
 - Four-status model: DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, BLOCKED — replaces three-tier deviation system
 
@@ -69,7 +69,7 @@ context/implement/write-plan.md
 context/implement/agent-review-pipeline.md
 
 ## Branch Isolation
-- CLI creates `feature/<slug>/<feature-name>` branch before dispatch; agents commit per task on the impl branch
+- CLI creates `impl/<slug>--<feature-name>` branch before dispatch; agents commit per task on the impl branch
 - Checkpoint rebases impl branch onto worktree branch — fast-forward on success, conflict resolution agent on failure
 - Max 2 conflict resolution attempts before aborting and reporting to user
 - Resume model: first unchecked task in .tasks.md; prior tasks have commits on impl branch

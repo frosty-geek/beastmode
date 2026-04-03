@@ -118,7 +118,7 @@ If any item fails, fix it before reporting. If you can't fix it, report BLOCKED 
 ## Constraints
 
 - Do NOT read the plan file — your task spec contains everything you need
-- Do NOT switch branches — you're on the impl branch (`feature/<slug>/<feature-name>`) and must stay on it
+- Do NOT switch branches — you're on the impl branch (`impl/<slug>--<feature-name>`) and must stay on it
 - Do NOT push to remote
 - Do NOT commit to any branch other than the current impl branch
 - Do NOT modify files outside your task's file list
