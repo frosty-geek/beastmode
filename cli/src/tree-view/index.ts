@@ -13,3 +13,6 @@ export { formatTreeLogLine } from "./format.js";
 // React hook
 export { useTreeState } from "./use-tree-state.js";
 export type { UseTreeStateResult } from "./use-tree-state.js";
+
+// Adapter
+export { toFlatTreeState } from "./adapter.js";
