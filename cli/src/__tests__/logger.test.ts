@@ -2,6 +2,8 @@ import { describe, test, expect } from "bun:test";
 import { createLogger, createNullLogger } from "../logger";
 import type { Logger, LogContext } from "../logger";
 
+const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
+
 function captureWith(verbosity: number, context: LogContext | undefined, fn: (logger: Logger) => void): { stdout: string[]; stderr: string[] } {
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -25,7 +27,7 @@ describe("createLogger", () => {
         l.log("visible"); l.detail("hidden"); l.debug("hidden"); l.trace("hidden");
       });
       expect(stdout.length).toBe(1);
-      expect(stdout[0]).toContain("visible");
+      expect(stripAnsi(stdout[0])).toContain("visible");
     });
 
     test("verbosity 1: log() and detail() write to stdout", () => {
@@ -33,7 +35,7 @@ describe("createLogger", () => {
         l.log("a"); l.detail("b"); l.debug("hidden"); l.trace("hidden");
       });
       expect(stdout.length).toBe(2);
-      expect(stdout[1]).toContain("b");
+      expect(stripAnsi(stdout[1])).toContain("b");
     });
 
     test("verbosity 2: log(), detail(), debug() write to stdout", () => {
@@ -41,7 +43,7 @@ describe("createLogger", () => {
         l.log("a"); l.detail("b"); l.debug("c"); l.trace("hidden");
       });
       expect(stdout.length).toBe(3);
-      expect(stdout[2]).toContain("c");
+      expect(stripAnsi(stdout[2])).toContain("c");
     });
 
     test("verbosity 3: all levels write to stdout", () => {
@@ -49,7 +51,7 @@ describe("createLogger", () => {
         l.log("a"); l.detail("b"); l.debug("c"); l.trace("d");
       });
       expect(stdout.length).toBe(4);
-      expect(stdout[3]).toContain("d");
+      expect(stripAnsi(stdout[3])).toContain("d");
     });
   });
 
@@ -58,44 +60,61 @@ describe("createLogger", () => {
       const { stdout, stderr } = captureWith(0, { phase: "test" }, (l) => { l.warn("w"); });
       expect(stdout.length).toBe(0);
       expect(stderr.length).toBe(1);
-      expect(stderr[0]).toContain("w");
+      expect(stripAnsi(stderr[0])).toContain("w");
     });
 
     test("error() always writes to stderr", () => {
       const { stdout, stderr } = captureWith(0, { phase: "test" }, (l) => { l.error("e"); });
       expect(stdout.length).toBe(0);
       expect(stderr.length).toBe(1);
-      expect(stderr[0]).toContain("e");
+      expect(stripAnsi(stderr[0])).toContain("e");
     });
   });
 
   describe("output format", () => {
-    test("full context: phase/epic/feature scope", () => {
+    test("full context: [HH:MM:SS] LEVEL  (phase/epic/feature):  msg", () => {
       const { stdout } = captureWith(0, { phase: "plan", epic: "my-epic", feature: "auth" }, (l) => {
         l.log("test message");
       });
-      expect(stdout[0]).toMatch(/^\d{2}:\d{2}:\d{2} plan\/my-epic\/auth: test message\n$/);
+      const line = stripAnsi(stdout[0]);
+      expect(line).toMatch(/^\[\d{2}:\d{2}:\d{2}\] INFO\s+\(plan\/my-epic\/auth\):\s+test message\n$/);
     });
 
-    test("phase+epic context: phase/epic scope", () => {
+    test("phase+epic context: (phase/epic) scope", () => {
       const { stdout } = captureWith(0, { phase: "plan", epic: "my-epic" }, (l) => {
         l.log("test message");
       });
-      expect(stdout[0]).toMatch(/^\d{2}:\d{2}:\d{2} plan\/my-epic: test message\n$/);
+      const line = stripAnsi(stdout[0]);
+      expect(line).toMatch(/^\[\d{2}:\d{2}:\d{2}\] INFO\s+\(plan\/my-epic\):\s+test message\n$/);
     });
 
-    test("phase-only context: phase scope", () => {
+    test("phase-only context: (phase) scope", () => {
       const { stdout } = captureWith(0, { phase: "plan" }, (l) => {
         l.log("test message");
       });
-      expect(stdout[0]).toMatch(/^\d{2}:\d{2}:\d{2} plan: test message\n$/);
+      const line = stripAnsi(stdout[0]);
+      expect(line).toMatch(/^\[\d{2}:\d{2}:\d{2}\] INFO\s+\(plan\):\s+test message\n$/);
     });
 
-    test("no context: no scope prefix", () => {
+    test("no context: falls back to (cli) scope", () => {
       const { stdout } = captureWith(0, undefined, (l) => {
         l.log("test message");
       });
-      expect(stdout[0]).toMatch(/^\d{2}:\d{2}:\d{2} test message\n$/);
+      const line = stripAnsi(stdout[0]);
+      expect(line).toMatch(/^\[\d{2}:\d{2}:\d{2}\] INFO\s+\(cli\):\s+test message\n$/);
+    });
+
+    test("each method uses its own level label", () => {
+      const { stdout, stderr } = captureWith(3, { phase: "test" }, (l) => {
+        l.log("a"); l.detail("b"); l.debug("c"); l.trace("d"); l.warn("e"); l.error("f");
+      });
+      const all = [...stdout, ...stderr].map(stripAnsi);
+      expect(all[0]).toContain("INFO ");
+      expect(all[1]).toContain("DETL ");
+      expect(all[2]).toContain("DEBUG");
+      expect(all[3]).toContain("TRACE");
+      expect(all[4]).toContain("WARN ");
+      expect(all[5]).toContain("ERR  ");
     });
 
     test("scope is included in all methods", () => {
@@ -103,7 +122,7 @@ describe("createLogger", () => {
         l.log("a"); l.detail("b"); l.debug("c"); l.trace("d"); l.warn("e"); l.error("f");
       });
       for (const line of [...stdout, ...stderr]) {
-        expect(line).toContain("plan/my-epic/auth:");
+        expect(stripAnsi(line)).toContain("(plan/my-epic/auth):");
       }
     });
   });
@@ -114,7 +133,8 @@ describe("createLogger", () => {
         const child = l.child({ feature: "auth" });
         child.log("test message");
       });
-      expect(stdout[0]).toMatch(/^\d{2}:\d{2}:\d{2} plan\/my-epic\/auth: test message\n$/);
+      const line = stripAnsi(stdout[0]);
+      expect(line).toMatch(/^\[\d{2}:\d{2}:\d{2}\] INFO\s+\(plan\/my-epic\/auth\):\s+test message\n$/);
     });
 
     test("child inherits parent verbosity", () => {
@@ -124,7 +144,7 @@ describe("createLogger", () => {
         child.detail("hidden");
       });
       expect(stdout.length).toBe(1);
-      expect(stdout[0]).toContain("visible");
+      expect(stripAnsi(stdout[0])).toContain("visible");
     });
 
     test("child context overrides parent fields", () => {
@@ -132,7 +152,8 @@ describe("createLogger", () => {
         const child = l.child({ epic: "new-epic" });
         child.log("test message");
       });
-      expect(stdout[0]).toMatch(/^\d{2}:\d{2}:\d{2} plan\/new-epic: test message\n$/);
+      const line = stripAnsi(stdout[0]);
+      expect(line).toMatch(/^\[\d{2}:\d{2}:\d{2}\] INFO\s+\(plan\/new-epic\):\s+test message\n$/);
     });
 
     test("child does not modify parent context", () => {
@@ -140,7 +161,8 @@ describe("createLogger", () => {
         l.child({ feature: "auth" });
         l.log("test message");
       });
-      expect(stdout[0]).toMatch(/^\d{2}:\d{2}:\d{2} plan\/my-epic: test message\n$/);
+      const line = stripAnsi(stdout[0]);
+      expect(line).toMatch(/^\[\d{2}:\d{2}:\d{2}\] INFO\s+\(plan\/my-epic\):\s+test message\n$/);
     });
   });
 });

@@ -8,6 +8,7 @@
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { createLogger } from "../logger";
 
 export async function compactCommand(): Promise<void> {
   const projectRoot = process.cwd();
@@ -18,7 +19,8 @@ export async function compactCommand(): Promise<void> {
     process.exit(1);
   }
 
-  console.log("Dispatching compaction agent...");
+  const logger = createLogger(0, { phase: "compact" });
+  logger.log("Dispatching compaction agent...");
 
   const proc = Bun.spawn(
     [
@@ -46,11 +48,11 @@ export async function compactCommand(): Promise<void> {
     const exitCode = await proc.exited;
 
     if (cancelled) {
-      console.log("\nCompaction cancelled.");
+      logger.warn("Compaction cancelled.");
     } else if (exitCode === 0) {
-      console.log("\nCompaction complete.");
+      logger.log("Compaction complete.");
     } else {
-      console.error(`\nCompaction failed (exit code ${exitCode}).`);
+      logger.error(`Compaction failed (exit code ${exitCode}).`);
       process.exit(exitCode ?? 1);
     }
   } finally {

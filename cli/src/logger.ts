@@ -1,9 +1,7 @@
-/** Structured context for scoped logging. */
-export interface LogContext {
-  phase?: string;
-  epic?: string;
-  feature?: string;
-}
+import { formatLogLine } from "./shared/log-format";
+import type { LogContext, LogLevel } from "./shared/log-format";
+
+export type { LogContext, LogLevel } from "./shared/log-format";
 
 /** Logger instance returned by createLogger. */
 export interface Logger {
@@ -23,60 +21,40 @@ export interface Logger {
   child(ctx: Partial<LogContext>): Logger;
 }
 
-function ts(): string {
-  return new Date().toISOString().slice(11, 19);
-}
-
-/**
- * Build a scope string from context fields.
- *
- * All three: `phase/epic/feature`
- * phase + epic: `phase/epic`
- * phase only: `phase`
- * No fields: empty string
- */
-function buildScope(ctx: LogContext): string {
-  const parts: string[] = [];
-  if (ctx.phase) parts.push(ctx.phase);
-  if (ctx.epic) parts.push(ctx.epic);
-  if (ctx.feature) parts.push(ctx.feature);
-  return parts.join("/");
-}
-
 /**
  * Create a scoped logger with verbosity gating.
  *
  * Messages at or below the verbosity level are shown.
  * warn() and error() always show regardless of verbosity.
  *
- * Output format: `HH:MM:SS scope: message` (when scope is non-empty)
- * or `HH:MM:SS message` (when scope is empty)
+ * Output uses the shared structured format:
+ * `[HH:MM:SS] LEVEL  (scope):  message`
  */
 export function createLogger(verbosity: number, context?: LogContext): Logger {
   const ctx = context ?? {};
-  const scope = buildScope(ctx);
-  const fmt = scope
-    ? (msg: string) => `${ts()} ${scope}: ${msg}`
-    : (msg: string) => `${ts()} ${msg}`;
+
+  function emit(stream: NodeJS.WriteStream, level: LogLevel, msg: string): void {
+    stream.write(formatLogLine(level, ctx, msg) + "\n");
+  }
 
   return {
     log(msg: string) {
-      if (verbosity >= 0) process.stdout.write(fmt(msg) + "\n");
+      if (verbosity >= 0) emit(process.stdout, "info", msg);
     },
     detail(msg: string) {
-      if (verbosity >= 1) process.stdout.write(fmt(msg) + "\n");
+      if (verbosity >= 1) emit(process.stdout, "detail", msg);
     },
     debug(msg: string) {
-      if (verbosity >= 2) process.stdout.write(fmt(msg) + "\n");
+      if (verbosity >= 2) emit(process.stdout, "debug", msg);
     },
     trace(msg: string) {
-      if (verbosity >= 3) process.stdout.write(fmt(msg) + "\n");
+      if (verbosity >= 3) emit(process.stdout, "trace", msg);
     },
     warn(msg: string) {
-      process.stderr.write(fmt(msg) + "\n");
+      emit(process.stderr, "warn", msg);
     },
     error(msg: string) {
-      process.stderr.write(fmt(msg) + "\n");
+      emit(process.stderr, "error", msg);
     },
     child(childCtx: Partial<LogContext>): Logger {
       return createLogger(verbosity, { ...ctx, ...childCtx });

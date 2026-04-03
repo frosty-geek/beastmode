@@ -27,6 +27,7 @@ import { renameTags } from "./phase-tags.js";
 import { basename } from "path";
 import { deriveNextAction } from "./manifest.js";
 import type { NextAction } from "./manifest.js";
+import { createLogger } from "./logger";
 
 // Re-export for consumers that previously imported from state-scanner
 export type { NextAction } from "./manifest.js";
@@ -351,8 +352,8 @@ export async function rename(
         error: `Both "${targetSlug}" and "${finalSlug}" collide with existing resources`,
       };
     }
-    process.stdout.write(
-      `[rename] Slug "${targetSlug}" collides, using "${finalSlug}" instead\n`,
+    createLogger(0, { phase: "rename" }).warn(
+      `Slug "${targetSlug}" collides, using "${finalSlug}" instead`,
     );
   }
 

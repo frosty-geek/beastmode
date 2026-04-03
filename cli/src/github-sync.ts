@@ -184,22 +184,24 @@ export async function syncGitHub(
     }
   }
 
-  // Blast-replace phase label on epic
-  const targetPhaseLabel = `phase/${manifest.phase}`;
-  const currentLabels = await ghIssueLabels(repo, epicNumber, { logger: opts.logger });
-  if (currentLabels) {
-    const currentPhaseLabels = currentLabels.filter((l) =>
-      l.startsWith("phase/"),
-    );
-    const needsUpdate =
-      currentPhaseLabels.length !== 1 ||
-      currentPhaseLabels[0] !== targetPhaseLabel;
-    if (needsUpdate) {
-      await ghIssueEdit(repo, epicNumber, {
-        removeLabels: ALL_PHASE_LABELS.filter((l) => currentLabels.includes(l)),
-        addLabels: [targetPhaseLabel],
-      }, { logger: opts.logger });
-      result.labelsUpdated++;
+  // Blast-replace phase label on epic (skip if just created — labels already set)
+  if (!epicJustCreated) {
+    const targetPhaseLabel = `phase/${manifest.phase}`;
+    const currentLabels = await ghIssueLabels(repo, epicNumber, { logger: opts.logger });
+    if (currentLabels) {
+      const currentPhaseLabels = currentLabels.filter((l) =>
+        l.startsWith("phase/"),
+      );
+      const needsUpdate =
+        currentPhaseLabels.length !== 1 ||
+        currentPhaseLabels[0] !== targetPhaseLabel;
+      if (needsUpdate) {
+        await ghIssueEdit(repo, epicNumber, {
+          removeLabels: ALL_PHASE_LABELS.filter((l) => currentLabels.includes(l)),
+          addLabels: [targetPhaseLabel],
+        }, { logger: opts.logger });
+        result.labelsUpdated++;
+      }
     }
   }
 

@@ -121,8 +121,9 @@ export async function runPostDispatch(opts: PostDispatchOptions): Promise<void> 
           opts.worktreePath,
         );
         if (renameResult.renamed) {
+          const oldSlug = opts.epicSlug;
           opts.epicSlug = renameResult.finalSlug;
-          logger.log(`Renamed ${opts.epicSlug} → ${renameResult.finalSlug}`);
+          logger.log(`Renamed ${oldSlug} → ${renameResult.finalSlug}`);
         } else if (renameResult.error) {
           logger.warn(`Slug rename failed: ${renameResult.error}`);
         }
