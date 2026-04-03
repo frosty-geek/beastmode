@@ -251,10 +251,9 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       const target = ev.featureSlug ? `${ev.epicSlug}/${ev.featureSlug}` : ev.epicSlug;
       const status = ev.success ? "completed" : "failed";
       const dur = `${(ev.durationMs / 1000).toFixed(0)}s`;
-      const cost = `$${ev.costUsd.toFixed(2)}`;
       pushEvent(
         ev.success ? "completed" : "error",
-        `${ev.phase} ${status} for ${target} (${dur}, ${cost})`,
+        `${ev.phase} ${status} for ${target} (${dur})`,
         { phase: ev.phase, epic: ev.epicSlug, feature: ev.featureSlug },
       );
     };
