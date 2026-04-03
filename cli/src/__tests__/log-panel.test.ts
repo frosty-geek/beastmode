@@ -187,7 +187,7 @@ describe("aggregate vs filtered mode", () => {
       { label: "feature-b", entries: [entry(0, 2000, "b1"), entry(1, 4000, "b2")] },
     ];
 
-    const merged: Array<{ text: string; label: string }> = [];
+    const merged: Array<{ text: string; label: string; timestamp: number }> = [];
     for (const session of sessionsData) {
       for (const e of session.entries) {
         merged.push({ ...e, label: session.label });

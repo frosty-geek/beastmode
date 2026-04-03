@@ -190,7 +190,7 @@ describe("DetailsPanel — implement detail", () => {
 
   test("feature without wave falls back to undefined", () => {
     const feat = mockFeature();
-    delete (feat as Record<string, unknown>).wave;
+    delete (feat as unknown as Record<string, unknown>).wave;
     expect(feat.wave).toBeUndefined();
   });
 });

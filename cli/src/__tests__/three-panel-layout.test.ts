@@ -6,15 +6,19 @@ import { describe, test, expect } from "bun:test";
 
 describe("terminal size logic", () => {
   test("falls back to 80x24 when stdout dimensions are undefined", () => {
-    const columns = undefined ?? 80;
-    const rows = undefined ?? 24;
+    const rawCols: number | undefined = undefined;
+    const rawRows: number | undefined = undefined;
+    const columns = rawCols ?? 80;
+    const rows = rawRows ?? 24;
     expect(columns).toBe(80);
     expect(rows).toBe(24);
   });
 
   test("uses actual dimensions when available", () => {
-    const columns = 120 ?? 80;
-    const rows = 40 ?? 24;
+    const rawCols: number | undefined = 120;
+    const rawRows: number | undefined = 40;
+    const columns = rawCols ?? 80;
+    const rows = rawRows ?? 24;
     expect(columns).toBe(120);
     expect(rows).toBe(40);
   });

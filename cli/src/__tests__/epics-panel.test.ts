@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { getKeyHints } from "../dashboard/key-hints.js";
-import type { KeyHintMode } from "../dashboard/key-hints.js";
+
 
 // ---------------------------------------------------------------------------
 // Group 1: EpicsPanel logic
