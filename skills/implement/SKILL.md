@@ -175,10 +175,10 @@ For each wave (ascending order):
      - If correctness or scope issue: re-dispatch implementer with specific fix instructions (max 2 retries, then BLOCKED)
      - If observation only: note the concern in the deviation log and proceed to spec review (step D)
    - **NEEDS_CONTEXT**: provide the missing context and re-dispatch the same task to a new implementer agent. Max 2 retries. After max retries: mark task as blocked, report to user.
-   - **BLOCKED**: assess the blocker.
-     - Can the controller provide more context? Re-dispatch with context.
-     - Can the task be broken smaller? Split and re-dispatch.
-     - Otherwise: mark task as blocked, report to user.
+   - **BLOCKED**: assess the blocker and attempt re-dispatch with context or a smaller split. Track retries against the current tier's budget (2 retries per tier).
+     - If retries at current tier < 2: re-dispatch with context or split at the same model tier.
+     - If retries at current tier exhausted (2 attempts) and a higher tier exists: **escalate** — increment the tier index, reset the tier retry counter to 0, re-dispatch at the new model tier.
+     - If retries exhausted at opus (top tier): mark task as BLOCKED, report to user. Maximum 6 total attempts reached.
 
    Never ignore an escalation or force retry without changes.
 
