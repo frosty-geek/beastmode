@@ -573,7 +573,7 @@ describe("WatchLoop", () => {
         // After release completes, epic has no next action
         return [{ ...releaseEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: new SdkSessionFactory(async (_opts) => {
         return {
           id: `release-${Date.now()}`,
           worktreeSlug: `release-epic-release`,
@@ -805,7 +805,7 @@ describe("WatchLoop", () => {
         // After successful release, manifest is removed — scanner returns empty
         return [];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: new SdkSessionFactory(async (_opts) => {
         dispatchCount++;
         return {
           id: `release-${Date.now()}`,
