@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: a089df
+slug: hitl-config
 epic: hitl-config
 ---
 
