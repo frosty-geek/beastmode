@@ -71,6 +71,8 @@ export interface EpicTableProps {
   selectedIndex?: number;
   /** Slug currently in cancel-confirmation state (if any) */
   cancelConfirmingSlug?: string;
+  /** Epics held for release serialization: waitingSlug -> blockingSlug */
+  heldEpics?: Map<string, string>;
 }
 
 export default function EpicTable({
@@ -79,6 +81,7 @@ export default function EpicTable({
   showAll = false,
   selectedIndex = -1,
   cancelConfirmingSlug,
+  heldEpics = new Map(),
 }: EpicTableProps) {
   const filtered = showAll
     ? epics
@@ -124,6 +127,8 @@ export default function EpicTable({
         const isActive = activeSessions.has(epic.slug);
         const isSelected = rowIndex === selectedIndex;
         const isConfirming = cancelConfirmingSlug === epic.slug;
+        const blockingSlug = heldEpics.get(epic.slug);
+        const isHeld = !!blockingSlug;
 
         return (
           <Box key={epic.slug}>
@@ -158,6 +163,8 @@ export default function EpicTable({
               {!isConfirming && (
                 isActive ? (
                   <Text color="yellow">running</Text>
+                ) : isHeld ? (
+                  <Text dimColor>queued <Text color="magenta">(waiting for {blockingSlug})</Text></Text>
                 ) : (
                   <Text dimColor>{epic.phase}</Text>
                 )
