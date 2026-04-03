@@ -19,7 +19,16 @@
 - Implement prime: set feature to `status/in-progress`, advance Epic to `phase/implement`
 - Implement checkpoint: close feature issue, check Epic completion, advance to `phase/validate` if 100%
 - Validate checkpoint: advance Epic to `phase/validate` (safety net)
-- Release checkpoint: advance Epic to `phase/done`, close Epic issue
+- Release checkpoint: advance Epic to `phase/done`, close Epic issue, post closing comment with version/tag/merge-commit
+
+## Body Enrichment
+- ALWAYS use presence-based rendering for issue body sections — present field = render section, absent field = omit, no phase-conditional logic in body-format.ts
+- ALWAYS extract artifact content at sync time via section-extractor.ts — PRD sections from design artifact, user stories from feature plan artifacts
+- ALWAYS resolve artifact paths via manifest.artifacts first, glob fallback second — artifact-reader.ts handles both strategies
+- NEVER store extracted artifact content in the manifest — read from artifact files at sync time, manifest stays lean
+- ALWAYS degrade gracefully when artifacts or sections are missing — return undefined up the call chain, body sections simply omit
+- ALWAYS post a release closing comment on epic issues when phase is done — duplicate prevention via existing comment content scanning
+- ALWAYS use `ghIssueComment()` and `ghIssueComments()` in gh.ts for comment operations — same warn-and-continue pattern as other gh functions
 
 ## API Boundary
 - ALL GitHub operations are CLI-owned via github-sync.ts — skills never call gh CLI or perform GitHub operations

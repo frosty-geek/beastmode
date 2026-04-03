@@ -50,6 +50,16 @@ mock.module("../gh", () => ({
     if (mockErrors.ghIssueClose) return false;
     return mockReturns.ghIssueClose ?? true;
   },
+  ghIssueComment: async (...args: unknown[]) => {
+    trackCall("ghIssueComment", ...args);
+    if (mockErrors.ghIssueComment) return false;
+    return mockReturns.ghIssueComment ?? true;
+  },
+  ghIssueComments: async (...args: unknown[]) => {
+    trackCall("ghIssueComments", ...args);
+    if (mockErrors.ghIssueComments) return undefined;
+    return mockReturns.ghIssueComments ?? [];
+  },
   ghIssueState: async (...args: unknown[]) => {
     trackCall("ghIssueState", ...args);
     if (mockErrors.ghIssueState) return undefined;
@@ -88,10 +98,13 @@ mock.module("../gh", () => ({
 }));
 
 // NOW import the module under test
-import { syncGitHub, type SyncResult } from "../github-sync";
+import { syncGitHub } from "../github-sync";
 import type { PipelineManifest, ManifestFeature } from "../manifest";
 import type { BeastmodeConfig } from "../config";
 import type { ResolvedGitHub } from "../github-discovery";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 // --- Test helpers ---
 
@@ -102,6 +115,7 @@ function makeConfig(overrides: Partial<BeastmodeConfig["github"]> = {}): Beastmo
       ...overrides,
     },
     cli: { interval: 60 },
+    hitl: { model: "haiku", timeout: 30 },
   };
 }
 
@@ -140,7 +154,7 @@ function makeManifest(
     features: [],
     artifacts: {},
     lastUpdated: "2026-03-29T00:00:00Z",
-    github: { epic: 10 },
+    github: { epic: 10, repo: "org/repo" },
     ...overrides,
   };
 }
@@ -185,7 +199,7 @@ describe("syncGitHub", () => {
   describe("repo source", () => {
     test("uses resolved.repo for all GitHub operations", async () => {
       const manifest = makeManifest();
-      delete (manifest.github as Record<string, unknown>).epic;
+      delete (manifest.github as unknown as Record<string, unknown>).epic;
       const config = makeConfig();
       const resolved = makeResolved({ repo: "custom/repo" });
       mockReturns.ghIssueCreate = 99;
@@ -197,7 +211,7 @@ describe("syncGitHub", () => {
     });
 
     test("manifest does not need github.repo field", async () => {
-      const manifest = makeManifest({ github: { epic: 10 } });
+      const manifest = makeManifest({ github: { epic: 10, repo: "org/repo" } });
       const config = makeConfig();
       const resolved = makeResolved();
 
@@ -215,7 +229,7 @@ describe("syncGitHub", () => {
   describe("epic creation", () => {
     test("creates epic when manifest has no github.epic", async () => {
       const manifest = makeManifest();
-      delete (manifest.github as Record<string, unknown>).epic;
+      delete (manifest.github as unknown as Record<string, unknown>).epic;
 
       mockReturns.ghIssueCreate = 99;
       const config = makeConfig();
@@ -262,7 +276,7 @@ describe("syncGitHub", () => {
 
     test("includes correct phase in epic body and labels", async () => {
       const manifest = makeManifest({ phase: "implement" });
-      delete (manifest.github as Record<string, unknown>).epic;
+      delete (manifest.github as unknown as Record<string, unknown>).epic;
       mockReturns.ghIssueCreate = 77;
       const config = makeConfig();
       const resolved = makeResolved();
@@ -288,7 +302,7 @@ describe("syncGitHub", () => {
       const manifest = makeManifest({
         features: [makeFeature()],
       });
-      delete (manifest.github as Record<string, unknown>).epic;
+      delete (manifest.github as unknown as Record<string, unknown>).epic;
       mockErrors.ghIssueCreate = true;
       const config = makeConfig();
       const resolved = makeResolved();
@@ -735,6 +749,229 @@ describe("syncGitHub", () => {
   });
 
   // -------------------------------------------------------
+  // 11.7 Release closing comment
+  // -------------------------------------------------------
+  describe("release closing comment", () => {
+    let commentTempDir: string;
+    const releaseTagName = "beastmode/test-epic/release";
+
+    function createPluginJson(ver: string) {
+      commentTempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+      const dir = join(commentTempDir, ".claude-plugin");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "plugin.json"), JSON.stringify({ version: ver }));
+    }
+
+    function removePluginTemp() {
+      if (commentTempDir) {
+        try {
+          rmSync(commentTempDir, { recursive: true, force: true });
+        } catch {
+          // best effort
+        }
+      }
+    }
+
+    function createReleaseTag() {
+      Bun.spawnSync(["git", "tag", releaseTagName]);
+    }
+
+    function removeReleaseTag() {
+      Bun.spawnSync(["git", "tag", "-d", releaseTagName]);
+    }
+
+    test("posts release comment when phase is done with version and tag", async () => {
+      createPluginJson("1.2.0");
+      createReleaseTag();
+      const manifest = makeManifest({ phase: "done" });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      expect(result.releaseCommentPosted).toBe(true);
+      const calls = callsTo("ghIssueComment");
+      expect(calls).toHaveLength(1);
+      expect(calls[0].args[0]).toBe("org/repo");
+      expect(calls[0].args[1]).toBe(10);
+      expect(calls[0].args[2]).toContain("1.2.0");
+
+      removeReleaseTag();
+      removePluginTemp();
+    });
+
+    test("does not post comment when phase is cancelled", async () => {
+      createPluginJson("1.2.0");
+      createReleaseTag();
+      const manifest = makeManifest({ phase: "cancelled" });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      expect(result.releaseCommentPosted).toBe(false);
+      const calls = callsTo("ghIssueComment");
+      expect(calls).toHaveLength(0);
+
+      removeReleaseTag();
+      removePluginTemp();
+    });
+
+    test("skips comment when release tag is missing", async () => {
+      createPluginJson("1.2.0");
+      // No release tag — readReleaseTag returns undefined, guard fails
+      const manifest = makeManifest({ phase: "done" });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      expect(result.releaseCommentPosted).toBe(false);
+      const calls = callsTo("ghIssueComment");
+      expect(calls).toHaveLength(0);
+
+      removePluginTemp();
+    });
+
+    test("warns when comment posting fails", async () => {
+      createPluginJson("1.2.0");
+      createReleaseTag();
+      const manifest = makeManifest({ phase: "done" });
+      mockErrors.ghIssueComment = true;
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      expect(result.releaseCommentPosted).toBe(false);
+      expect(result.warnings).toContain("Failed to post release comment on epic");
+
+      removeReleaseTag();
+      removePluginTemp();
+    });
+
+    test("still closes epic even when comment fails", async () => {
+      createPluginJson("1.2.0");
+      createReleaseTag();
+      const manifest = makeManifest({ phase: "done" });
+      mockErrors.ghIssueComment = true;
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      expect(result.epicClosed).toBe(true);
+
+      removeReleaseTag();
+      removePluginTemp();
+    });
+
+    test("does not post comment for non-terminal phases", async () => {
+      createPluginJson("1.2.0");
+      createReleaseTag();
+      const manifest = makeManifest({ phase: "implement" });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      const calls = callsTo("ghIssueComment");
+      expect(calls).toHaveLength(0);
+
+      removeReleaseTag();
+      removePluginTemp();
+    });
+
+    test("uses fallback version when plugin.json is missing", async () => {
+      commentTempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+      createReleaseTag();
+      const manifest = makeManifest({ phase: "done" });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      expect(result.releaseCommentPosted).toBe(true);
+      const calls = callsTo("ghIssueComment");
+      expect(calls).toHaveLength(1);
+      // Body should contain fallback "unreleased" version
+      expect(calls[0].args[2]).toContain("unreleased");
+
+      removeReleaseTag();
+      removePluginTemp();
+    });
+
+    test("skips comment when duplicate already exists", async () => {
+      createPluginJson("1.2.0");
+      createReleaseTag();
+      // Simulate existing comment containing the version string
+      mockReturns.ghIssueComments = [
+        { body: "## Released: 1.2.0\n\n- **Tag:** ..." },
+      ];
+      const manifest = makeManifest({ phase: "done" });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      // Should NOT post a new comment — duplicate detected
+      expect(result.releaseCommentPosted).toBe(false);
+      expect(result.commentsPosted).toBe(0);
+      const calls = callsTo("ghIssueComment");
+      expect(calls).toHaveLength(0);
+
+      // ghIssueComments should have been called for the check
+      const commentsCalls = callsTo("ghIssueComments");
+      expect(commentsCalls).toHaveLength(1);
+      expect(commentsCalls[0].args[0]).toBe("org/repo");
+      expect(commentsCalls[0].args[1]).toBe(10);
+
+      removeReleaseTag();
+      removePluginTemp();
+    });
+
+    test("posts comment when existing comments don't match version", async () => {
+      createPluginJson("2.0.0");
+      createReleaseTag();
+      // Existing comments but for a different version
+      mockReturns.ghIssueComments = [
+        { body: "## Released: 1.0.0\n\n- **Tag:** ..." },
+      ];
+      const manifest = makeManifest({ phase: "done" });
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: commentTempDir,
+      });
+
+      // Should post — no duplicate for version 2.0.0
+      expect(result.releaseCommentPosted).toBe(true);
+      expect(result.commentsPosted).toBe(1);
+      const calls = callsTo("ghIssueComment");
+      expect(calls).toHaveLength(1);
+
+      removeReleaseTag();
+      removePluginTemp();
+    });
+  });
+  // -------------------------------------------------------
   // 12. Warn-and-continue — individual failures don't stop sync
   // -------------------------------------------------------
   describe("warn-and-continue", () => {
@@ -747,7 +984,7 @@ describe("syncGitHub", () => {
       const config = makeConfig();
       const resolved = makeResolved();
 
-      const result = await syncGitHub(manifest, config, resolved);
+      await syncGitHub(manifest, config, resolved);
 
       // Both features should have been processed (ghIssueLabels called for each + epic)
       const labelCalls = callsTo("ghIssueLabels");
@@ -908,7 +1145,7 @@ describe("syncGitHub", () => {
     test("syncs issues and labels even without project metadata", async () => {
       const feature = makeFeature({ slug: "feat-1", status: "pending" });
       const manifest = makeManifest({ features: [feature] });
-      delete (manifest.github as Record<string, unknown>).epic;
+      delete (manifest.github as unknown as Record<string, unknown>).epic;
       mockReturns.ghIssueCreate = 100;
       const config = makeConfig();
       // No project fields — only repo
@@ -980,7 +1217,7 @@ describe("syncGitHub", () => {
     test("updates epic body when hash differs from stored", async () => {
       const manifest = makeManifest({
         phase: "implement",
-        github: { epic: 10, bodyHash: "stale-hash" },
+        github: { epic: 10, repo: "org/repo", bodyHash: "stale-hash" },
       });
       const config = makeConfig();
       const resolved = makeResolved();
@@ -1005,7 +1242,7 @@ describe("syncGitHub", () => {
       const manifest = makeManifest({
         phase: "design",
         features: [],
-        github: { epic: 10 },
+        github: { epic: 10, repo: "org/repo" },
       });
       const config = makeConfig();
       const resolved = makeResolved();
@@ -1018,7 +1255,7 @@ describe("syncGitHub", () => {
       const manifest2 = makeManifest({
         phase: "design",
         features: [],
-        github: { epic: 10, bodyHash: hashMut?.type === "setEpicBodyHash" ? hashMut.bodyHash : "x" },
+        github: { epic: 10, repo: "org/repo", bodyHash: hashMut?.type === "setEpicBodyHash" ? hashMut.bodyHash : "x" },
       });
 
       const result = await syncGitHub(manifest2, config, resolved);
@@ -1037,7 +1274,7 @@ describe("syncGitHub", () => {
 
     test("sets body on epic creation with hash mutation", async () => {
       const manifest = makeManifest();
-      delete (manifest.github as Record<string, unknown>).epic;
+      delete (manifest.github as unknown as Record<string, unknown>).epic;
       mockReturns.ghIssueCreate = 99;
       const config = makeConfig();
       const resolved = makeResolved();
@@ -1059,7 +1296,7 @@ describe("syncGitHub", () => {
     test("warns when epic body update fails", async () => {
       const manifest = makeManifest({
         phase: "implement",
-        github: { epic: 10, bodyHash: "stale-hash" },
+        github: { epic: 10, repo: "org/repo", bodyHash: "stale-hash" },
       });
       mockErrors.ghIssueEdit = true;
       const config = makeConfig();
@@ -1127,7 +1364,7 @@ describe("syncGitHub", () => {
       });
       const manifest2 = makeManifest({ features: [feature2] });
 
-      const result = await syncGitHub(manifest2, config, resolved);
+      await syncGitHub(manifest2, config, resolved);
 
       // No body edit for feature 20
       const editCalls = callsTo("ghIssueEdit");
@@ -1175,6 +1412,300 @@ describe("syncGitHub", () => {
       const result = await syncGitHub(manifest, config, resolved);
 
       expect(result.warnings).toContain("Failed to update body for feature feat-a");
+    });
+  });
+
+  // -------------------------------------------------------
+  // Body enrichment (PRD sections, artifact links, user stories)
+  // -------------------------------------------------------
+  describe("body enrichment", () => {
+    let tempDir: string;
+
+    function setupArtifacts(opts: {
+      designContent?: string;
+      planContent?: string;
+      planPath?: string;
+    }) {
+      tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+      if (opts.designContent) {
+        const designDir = join(tempDir, ".beastmode", "artifacts", "design");
+        mkdirSync(designDir, { recursive: true });
+        writeFileSync(join(designDir, "test-epic.md"), opts.designContent);
+      }
+      if (opts.planContent && opts.planPath) {
+        const planDir = join(tempDir, ...opts.planPath.split("/").slice(0, -1));
+        mkdirSync(planDir, { recursive: true });
+        writeFileSync(join(tempDir, opts.planPath), opts.planContent);
+      }
+    }
+
+    function cleanupArtifacts() {
+      if (tempDir) {
+        try { rmSync(tempDir, { recursive: true, force: true }); } catch {}
+      }
+    }
+
+    test("epic body includes PRD problem section from design artifact", async () => {
+      setupArtifacts({
+        designContent: [
+          "---",
+          "phase: design",
+          "slug: test-epic",
+          "---",
+          "",
+          "## Problem Statement",
+          "",
+          "This is the rich PRD problem description.",
+          "",
+          "## Solution",
+          "",
+          "This is the rich PRD solution.",
+          "",
+          "## User Stories",
+          "",
+          "1. As a user, I want X",
+          "",
+          "## Implementation Decisions",
+          "",
+          "- Decision A",
+        ].join("\n"),
+      });
+
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/test-epic.md"],
+        },
+        // No stored body hash — forces an update
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      // Verify the body passed to ghIssueEdit includes PRD sections
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(c => (c.args[2] as any)?.body);
+      expect(bodyEdit).toBeDefined();
+      const body = (bodyEdit!.args[2] as any).body as string;
+      expect(body).toContain("## Problem");
+      expect(body).toContain("This is the rich PRD problem description.");
+      expect(body).toContain("## Solution");
+      expect(body).toContain("This is the rich PRD solution.");
+      expect(body).toContain("## User Stories");
+      expect(body).toContain("1. As a user, I want X");
+      expect(body).toContain("## Decisions");
+      expect(body).toContain("- Decision A");
+
+      cleanupArtifacts();
+    });
+
+    test("epic body includes artifact links section", async () => {
+      setupArtifacts({
+        designContent: "## Problem Statement\n\nSome problem",
+      });
+
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/test-epic.md"],
+          plan: [".beastmode/artifacts/plan/test-epic.md"],
+        },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(c => (c.args[2] as any)?.body);
+      expect(bodyEdit).toBeDefined();
+      const body = (bodyEdit!.args[2] as any).body as string;
+      expect(body).toContain("## Artifacts");
+      expect(body).toContain("design");
+      expect(body).toContain(".beastmode/artifacts/design/test-epic.md");
+
+      cleanupArtifacts();
+    });
+
+    test("feature body includes user story from plan artifact", async () => {
+      const planPath = ".beastmode/artifacts/plan/test-feature.md";
+      setupArtifacts({
+        designContent: "## Problem Statement\n\nSome problem",
+        planContent: [
+          "---",
+          "phase: plan",
+          "---",
+          "",
+          "## User Stories",
+          "",
+          "As a developer, I want to enrich bodies.",
+        ].join("\n"),
+        planPath,
+      });
+
+      const feature = makeFeature({
+        slug: "feat-enrich",
+        plan: planPath,
+        status: "pending",
+      });
+      const manifest = makeManifest({
+        features: [feature],
+        artifacts: { design: [".beastmode/artifacts/design/test-epic.md"] },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      // Feature is created since it has no github.issue
+      const createCalls = callsTo("ghIssueCreate");
+      const featureCreate = createCalls.find(c => c.args[1] === "feat-enrich");
+      expect(featureCreate).toBeDefined();
+      const body = featureCreate!.args[2] as string;
+      expect(body).toContain("## User Story");
+      expect(body).toContain("As a developer, I want to enrich bodies.");
+
+      cleanupArtifacts();
+    });
+
+    test("gracefully degrades when design artifact is missing", async () => {
+      tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/missing.md"],
+        },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      // Should not throw
+      const result = await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      // Body still renders (just without enrichment)
+      expect(result.warnings).not.toContain(expect.stringMatching(/error/i));
+
+      cleanupArtifacts();
+    });
+
+    test("gracefully degrades when feature plan is missing", async () => {
+      tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+
+      const feature = makeFeature({
+        slug: "feat-noplan",
+        plan: ".beastmode/artifacts/plan/nonexistent.md",
+        status: "pending",
+      });
+      const manifest = makeManifest({
+        features: [feature],
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      // Feature is created without user story — no crash
+      const createCalls = callsTo("ghIssueCreate");
+      const featureCreate = createCalls.find(c => c.args[1] === "feat-noplan");
+      expect(featureCreate).toBeDefined();
+      const body = featureCreate!.args[2] as string;
+      expect(body).not.toContain("## User Story");
+
+      cleanupArtifacts();
+    });
+
+    test("no enrichment when projectRoot not provided", async () => {
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/test-epic.md"],
+        },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+
+      // No projectRoot — enrichment disabled
+      await syncGitHub(manifest, config, resolved);
+
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(c => (c.args[2] as any)?.body);
+      if (bodyEdit) {
+        const body = (bodyEdit!.args[2] as any).body as string;
+        // No PRD sections without projectRoot
+        expect(body).not.toContain("## User Stories");
+        expect(body).not.toContain("## Decisions");
+      }
+    });
+
+    test("epic body includes git metadata when manifest has worktree branch", async () => {
+      setupArtifacts({
+        designContent: "## Problem Statement\n\nSome problem",
+      });
+
+      const manifest = makeManifest({
+        artifacts: {
+          design: [".beastmode/artifacts/design/test-epic.md"],
+        },
+        worktree: { branch: "feature/test-branch", path: "/tmp/test" },
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(c => (c.args[2] as any)?.body);
+      expect(bodyEdit).toBeDefined();
+      const body = (bodyEdit!.args[2] as any).body as string;
+      expect(body).toContain("## Git");
+      expect(body).toContain("**Branch:** `feature/test-branch`");
+
+      cleanupArtifacts();
+    });
+
+    test("epic body omits git metadata when no worktree info and no tags", async () => {
+      tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+
+      const manifest = makeManifest({
+        slug: "no-tags-slug-xyz",
+        // No worktree, no artifacts
+        github: { epic: 10, repo: "org/repo" },
+      });
+
+      const config = makeConfig();
+      const resolved = makeResolved();
+      await syncGitHub(manifest, config, resolved, {
+        projectRoot: tempDir,
+      });
+
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(c => (c.args[2] as any)?.body);
+      if (bodyEdit) {
+        const body = (bodyEdit!.args[2] as any).body as string;
+        expect(body).not.toContain("## Git");
+      }
+
+      cleanupArtifacts();
     });
   });
 });

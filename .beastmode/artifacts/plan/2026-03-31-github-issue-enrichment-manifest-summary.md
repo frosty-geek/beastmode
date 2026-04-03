@@ -1,6 +1,6 @@
 ---
 phase: plan
-epic: github-issue-enrichment
+epic: github-issue-enrichment-3d61b1
 feature: manifest-summary
 ---
 

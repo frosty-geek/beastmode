@@ -17,8 +17,10 @@
 - Manifest JSON is the local authority; GitHub is a synced mirror updated only at checkpoint boundaries
 - ALWAYS use `_shared/github.md` for all GitHub operations — never inline gh CLI logic
 - Label taxonomy: 12 labels across type (2), phase (7), status (3) — status/review and gate/awaiting-approval removed
-- Epic lifecycle: created at design checkpoint, phase-advanced at each subsequent checkpoint, closed at release
+- Epic lifecycle: created at design checkpoint, phase-advanced at each subsequent checkpoint, closed at release with closing comment
 - Feature lifecycle: created as sub-issues at plan checkpoint, set in-progress at implement prime, closed at implement checkpoint
+- ALWAYS use presence-based rendering for issue body sections — present field = render section, absent field = omit, no phase-conditional logic in body-format.ts
+- ALWAYS extract artifact content at sync time via section-extractor — never store extracted PRD/plan content in the manifest
 
 ## State Scanning
 - ALWAYS discover epics from manifest files — never from design files or date heuristics

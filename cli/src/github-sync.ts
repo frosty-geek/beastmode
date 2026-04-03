@@ -15,12 +15,17 @@ import { discoverGitHub } from "./github-discovery";
 import type { Logger } from "./logger";
 import { loadConfig } from "./config";
 import * as store from "./manifest-store";
-import { formatEpicBody, formatFeatureBody } from "./body-format";
+import { formatEpicBody, formatFeatureBody, formatClosingComment, type EpicBodyInput } from "./body-format";
+import { extractSection, extractSections } from "./section-extractor.js";
+import { existsSync, readFileSync } from "fs";
+import { resolve } from "path";
 import {
   ghIssueCreate,
   ghIssueEdit,
   ghIssueClose,
   ghIssueReopen,
+  ghIssueComment,
+  ghIssueComments,
   ghIssueState,
   ghIssueLabels,
   ghProjectItemAdd,
@@ -54,6 +59,8 @@ export interface SyncResult {
   bodiesUpdated: number;
   projectUpdated: boolean;
   epicClosed: boolean;
+  releaseCommentPosted: boolean;
+  commentsPosted: number;
   warnings: string[];
   /** Mutations to apply to the manifest after sync. */
   mutations: SyncMutation[];
@@ -93,6 +100,151 @@ const ALL_PHASE_LABELS = [
 ];
 
 /**
+ * Read PRD sections from the design artifact.
+ * Returns prdSections object for EpicBodyInput, or undefined if unavailable.
+ */
+function readPrdSections(
+  manifest: PipelineManifest,
+  projectRoot: string,
+): EpicBodyInput["prdSections"] | undefined {
+  const designPaths = manifest.artifacts?.["design"];
+  if (!designPaths || designPaths.length === 0) return undefined;
+
+  const designPath = resolve(projectRoot, designPaths[0]);
+  if (!existsSync(designPath)) return undefined;
+
+  try {
+    const content = readFileSync(designPath, "utf-8");
+    const sections = extractSections(content, [
+      "Problem Statement",
+      "Solution",
+      "User Stories",
+      "Implementation Decisions",
+    ]);
+
+    const result: EpicBodyInput["prdSections"] = {};
+    if (sections["Problem Statement"]) result.problem = sections["Problem Statement"];
+    if (sections["Solution"]) result.solution = sections["Solution"];
+    if (sections["User Stories"]) result.userStories = sections["User Stories"];
+    if (sections["Implementation Decisions"]) result.decisions = sections["Implementation Decisions"];
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve artifact links from the manifest — repo-relative paths + optional permalinks.
+ * Permalink uses phase tag SHA as commit anchor.
+ */
+function resolveArtifactLinks(
+  manifest: PipelineManifest,
+  repo: string,
+): EpicBodyInput["artifactLinks"] | undefined {
+  if (!manifest.artifacts || Object.keys(manifest.artifacts).length === 0) return undefined;
+
+  const links: Record<string, { repoPath: string; permalink?: string }> = {};
+
+  for (const [phase, paths] of Object.entries(manifest.artifacts)) {
+    if (!paths || paths.length === 0) continue;
+    const repoPath = paths[0];
+
+    let permalink: string | undefined;
+    const tagName = `beastmode/${manifest.slug}/${phase}`;
+    try {
+      const tagResult = Bun.spawnSync(["git", "rev-parse", "--verify", `refs/tags/${tagName}`]);
+      if (tagResult.exitCode === 0) {
+        const sha = tagResult.stdout.toString().trim();
+        if (sha) {
+          permalink = `https://github.com/${repo}/blob/${sha}/${repoPath}`;
+        }
+      }
+    } catch {
+      // No tag — permalink stays undefined
+    }
+
+    links[phase] = { repoPath, ...(permalink ? { permalink } : {}) };
+  }
+
+  return Object.keys(links).length > 0 ? links : undefined;
+}
+
+/**
+ * Resolve git metadata for traceability.
+ * Branch from manifest, phase tags from git, version from manifest/plugin.
+ * Only resolves tags when a worktree branch is present — tags without branch
+ * context are not meaningful traceability metadata.
+ */
+function resolveGitMetadata(
+  manifest: PipelineManifest,
+): EpicBodyInput["gitMetadata"] | undefined {
+  const meta: NonNullable<EpicBodyInput["gitMetadata"]> = {};
+
+  // Branch from worktree — gate all git lookups on worktree presence
+  if (manifest.worktree?.branch) {
+    meta.branch = manifest.worktree.branch;
+
+    // Phase tags from git
+    const tagPrefix = `beastmode/${manifest.slug}/`;
+    try {
+      const tagResult = Bun.spawnSync(["git", "tag", "-l", `${tagPrefix}*`]);
+      if (tagResult.exitCode === 0) {
+        const tags = tagResult.stdout.toString().trim().split("\n").filter(Boolean);
+        if (tags.length > 0) {
+          const phaseTags: Record<string, string> = {};
+          for (const tag of tags) {
+            const phase = tag.replace(tagPrefix, "");
+            if (phase) phaseTags[phase] = tag;
+          }
+          if (Object.keys(phaseTags).length > 0) {
+            meta.phaseTags = phaseTags;
+          }
+        }
+      }
+    } catch {
+      // Git not available — skip tags
+    }
+  }
+
+  return Object.keys(meta).length > 0 ? meta : undefined;
+}
+
+/** Read version from plugin.json — returns undefined if unavailable. */
+function readVersionFromPlugin(projectRoot?: string): string | undefined {
+  if (!projectRoot) return undefined;
+  try {
+    const pluginPath = resolve(projectRoot, ".claude-plugin", "plugin.json");
+    if (!existsSync(pluginPath)) return undefined;
+    const plugin = JSON.parse(readFileSync(pluginPath, "utf-8"));
+    return plugin.version || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Read the release tag for this epic — returns undefined if no tag exists. */
+function readReleaseTag(slug: string): string | undefined {
+  try {
+    const tagName = `beastmode/${slug}/release`;
+    const result = Bun.spawnSync(["git", "rev-parse", "--verify", `refs/tags/${tagName}`]);
+    return result.exitCode === 0 ? tagName : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Read the HEAD merge commit SHA — returns undefined if unavailable. */
+function readMergeCommit(): string | undefined {
+  try {
+    const result = Bun.spawnSync(["git", "rev-parse", "HEAD"]);
+    return result.exitCode === 0 ? result.stdout.toString().trim() || undefined : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Sync GitHub state to match the manifest. Stateless — reads manifest,
  * makes GitHub match. Returns SyncResult with mutations for the caller to apply.
  *
@@ -102,7 +254,7 @@ export async function syncGitHub(
   manifest: PipelineManifest,
   config: BeastmodeConfig,
   resolved: ResolvedGitHub,
-  opts: { logger?: Logger } = {},
+  opts: { logger?: Logger; projectRoot?: string } = {},
 ): Promise<SyncResult> {
   const result: SyncResult = {
     epicCreated: false,
@@ -113,6 +265,8 @@ export async function syncGitHub(
     bodiesUpdated: 0,
     projectUpdated: false,
     epicClosed: false,
+    releaseCommentPosted: false,
+    commentsPosted: 0,
     warnings: [],
     mutations: [],
   };
@@ -126,6 +280,13 @@ export async function syncGitHub(
   const repo = resolved.repo;
   const [owner] = repo.split("/");
 
+  // Compute enrichment data if projectRoot available
+  const prdSections = opts.projectRoot
+    ? readPrdSections(manifest, opts.projectRoot)
+    : undefined;
+  const artifactLinks = resolveArtifactLinks(manifest, repo);
+  const gitMetadata = resolveGitMetadata(manifest);
+
   // --- Epic Sync ---
 
   // Resolve or create the epic number — track locally, never mutate manifest
@@ -138,6 +299,10 @@ export async function syncGitHub(
       phase: manifest.phase,
       summary: manifest.summary,
       features: manifest.features,
+      prdSections,
+      artifactLinks,
+      gitMetadata,
+      repo,
     });
     epicNumber = await ghIssueCreate(
       repo,
@@ -169,6 +334,10 @@ export async function syncGitHub(
       phase: manifest.phase,
       summary: manifest.summary,
       features: manifest.features,
+      prdSections,
+      artifactLinks,
+      gitMetadata,
+      repo,
     });
     const epicBodyHash = hashBody(epicBody);
     const storedEpicHash = manifest.github?.bodyHash;
@@ -224,6 +393,38 @@ export async function syncGitHub(
 
   // --- Epic Close (if done or cancelled) ---
   if (manifest.phase === "done" || manifest.phase === "cancelled") {
+    // Post release closing comment on done epics (not cancelled)
+    if (manifest.phase === "done") {
+      const version = readVersionFromPlugin(opts.projectRoot);
+      const releaseTag = readReleaseTag(manifest.slug);
+      const mergeCommitSha = readMergeCommit();
+
+      if (releaseTag && mergeCommitSha) {
+        // Duplicate check — scan existing comments for the version string
+        const existingComments = await ghIssueComments(repo, epicNumber, { logger: opts.logger });
+        const versionLabel = version ?? "unreleased";
+        const alreadyPosted = existingComments?.some(
+          (c) => c.body.includes(`Released: ${versionLabel}`),
+        ) ?? false;
+
+        if (!alreadyPosted) {
+          const commentBody = formatClosingComment({
+            version: versionLabel,
+            releaseTag,
+            mergeCommit: mergeCommitSha,
+            repo,
+          });
+          const commented = await ghIssueComment(repo, epicNumber, commentBody, { logger: opts.logger });
+          if (commented) {
+            result.commentsPosted++;
+            result.releaseCommentPosted = true;
+          } else {
+            result.warnings.push("Failed to post release comment on epic");
+          }
+        }
+      }
+    }
+
     const closed = await ghIssueClose(repo, epicNumber, { logger: opts.logger });
     if (closed) {
       result.epicClosed = true;
@@ -248,15 +449,30 @@ async function syncFeature(
   feature: ManifestFeature,
   resolved: ResolvedGitHub,
   result: SyncResult,
-  opts: { logger?: Logger } = {},
+  opts: { logger?: Logger; projectRoot?: string } = {},
 ): Promise<void> {
+  // Read user story from feature plan (if projectRoot available)
+  let userStory: string | undefined;
+  if (opts.projectRoot && feature.plan) {
+    const planPath = resolve(opts.projectRoot, feature.plan);
+    try {
+      if (existsSync(planPath)) {
+        const planContent = readFileSync(planPath, "utf-8");
+        const section = extractSection(planContent, "User Stories");
+        if (section) userStory = section;
+      }
+    } catch {
+      // Graceful degradation
+    }
+  }
+
   // Resolve or create the feature issue number — track locally, never mutate feature
   let featureNumber = feature.github?.issue;
   let featureJustCreated = false;
 
   if (!featureNumber) {
     const featureBody = formatFeatureBody(
-      { slug: feature.slug, description: feature.description },
+      { slug: feature.slug, description: feature.description, userStory },
       epicNumber,
     );
     featureNumber = await ghIssueCreate(
@@ -315,7 +531,7 @@ async function syncFeature(
   // --- Feature Body Update ---
   if (!featureJustCreated) {
     const featureBody = formatFeatureBody(
-      { slug: feature.slug, description: feature.description },
+      { slug: feature.slug, description: feature.description, userStory },
       epicNumber,
     );
     const featureBodyHash = hashBody(featureBody);
@@ -458,7 +674,10 @@ export async function syncGitHubForEpic(opts: {
       return;
     }
 
-    const result = await syncGitHub(manifest, config, resolved, { logger: opts.logger });
+    const result = await syncGitHub(manifest, config, resolved, {
+      logger: opts.logger,
+      projectRoot: opts.projectRoot,
+    });
     for (const w of result.warnings) {
       opts.logger?.warn(`GitHub sync: ${w}`);
     }

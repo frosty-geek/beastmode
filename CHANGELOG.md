@@ -4,6 +4,18 @@ All notable changes to beastmode.
 
 ---
 
+### v0.70.0 — GitHub Issue Enrichment (Apr 2026)
+
+- **Progressive body enrichment** — Epic and feature issue bodies fill with PRD content, user stories, artifact links, and git metadata as epics advance through phases
+- **Section extractor/splitter** — Regex-based markdown parser extracts named sections from PRD and plan artifacts by `##` headings
+- **Artifact reader** — Resolves design/plan/validate/release artifacts from manifest paths with slug glob fallback and graceful degradation
+- **Feature user stories** — Feature issue bodies include their user story extracted from plan files
+- **Release traceability** — Epic body updated with version, release tag, and merge commit links on release
+- **Release closing comment** — Closing comment posted to epic issue announcing version, tag, and merge commit
+- **Presence-based rendering** — Missing fields produce no output, not empty sections; bodies degrade gracefully
+
+---
+
 ### v0.69.0 — Watch Log Format (Apr 2026)
 
 - **Fixed-width phase column** — Extracts phase as a 9-character column for vertical alignment across all log lines
