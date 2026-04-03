@@ -1,93 +1,71 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import chalk from "chalk";
-import { buildTreePrefix, formatTreeLine } from "../dashboard/tree-format";
-import type { LogLevel } from "../logger";
+import { formatTreeLogLine } from "../tree-view/format.js";
+import type { LogLevel } from "../logger.js";
 
 const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
 
-describe("buildTreePrefix", () => {
-  test("epic level returns empty string", () => {
-    expect(buildTreePrefix("epic")).toBe("");
-  });
-
-  test("phase level returns vertical bar prefix", () => {
-    expect(buildTreePrefix("phase")).toBe("│ ");
-  });
-
-  test("feature level returns double vertical bar prefix", () => {
-    expect(buildTreePrefix("feature")).toBe("│ │ ");
-  });
-
-  test("leaf-phase level returns bar-dot prefix", () => {
-    expect(buildTreePrefix("leaf-phase")).toBe("│ · ");
-  });
-
-  test("leaf-feature level returns double-bar-dot prefix", () => {
-    expect(buildTreePrefix("leaf-feature")).toBe("│ │ · ");
-  });
-});
-
-describe("formatTreeLine", () => {
+describe("formatTreeLogLine", () => {
   let savedLevel: typeof chalk.level;
 
   beforeEach(() => {
     savedLevel = chalk.level;
-    chalk.level = 0; // No ANSI for content assertions
+    chalk.level = 3;
   });
 
   afterEach(() => {
     chalk.level = savedLevel;
   });
-
-  test("leaf line has timestamp, level, message — no scope, no phase column", () => {
-    const line = formatTreeLine("leaf-phase", "info", "plan", "hello world", 1000);
-    // Format: [prefix] [HH:MM:SS] LEVEL  message
-    expect(line).toMatch(/^│ · \d{2}:\d{2}:\d{2} INFO  hello world$/);
+  test("format: [HH:MM:SS] LEVEL  message", () => {
+    const line = stripAnsi(formatTreeLogLine("info", "hello world"));
+    expect(line).toMatch(/^\[\d{2}:\d{2}:\d{2}\] INFO \s+hello world$/);
   });
 
-  test("leaf-feature line uses double-depth prefix", () => {
-    const line = formatTreeLine("leaf-feature", "info", "implement", "building", 1000);
-    expect(line).toMatch(/^│ │ · \d{2}:\d{2}:\d{2} INFO  building$/);
+  test("no phase column in output", () => {
+    const line = stripAnsi(formatTreeLogLine("info", "test"));
+    expect(line).not.toContain("plan");
+    expect(line).not.toContain("implement");
   });
 
-  test("warn line gets full yellow treatment", () => {
-    chalk.level = 3;
-    const line = formatTreeLine("leaf-phase", "warn", "plan", "watch out", 1000);
-    expect(line).toContain("\x1b[33m"); // yellow ANSI
+  test("no scope column in output", () => {
+    const line = stripAnsi(formatTreeLogLine("info", "test"));
+    expect(line).not.toContain("(");
+    expect(line).not.toContain(")");
   });
 
-  test("error line gets full red treatment", () => {
-    chalk.level = 3;
-    const line = formatTreeLine("leaf-phase", "error", "plan", "bad stuff", 1000);
-    expect(line).toContain("\x1b[31m"); // red ANSI
+  test("level labels are 5-char fixed width", () => {
+    const levels: [LogLevel, string][] = [
+      ["info", "INFO "],
+      ["detail", "DETL "],
+      ["debug", "DEBUG"],
+      ["trace", "TRACE"],
+      ["warn", "WARN "],
+      ["error", "ERR  "],
+    ];
+    for (const [level, label] of levels) {
+      const line = stripAnsi(formatTreeLogLine(level, "msg"));
+      expect(line).toContain(label);
+    }
   });
 
-  test("system line has no prefix", () => {
-    const line = formatTreeLine("system", "info", undefined, "startup complete", 1000);
-    expect(line).toMatch(/^\d{2}:\d{2}:\d{2} INFO  startup complete$/);
+  test("warn line is colored yellow", () => {
+    const line = formatTreeLogLine("warn", "warning msg");
+    expect(line).toContain("\x1b[33m");
   });
 
-  test("phase coloring applied to connectors on normal lines", () => {
-    chalk.level = 3;
-    const line = formatTreeLine("leaf-phase", "info", "plan", "thinking", 1000);
-    // The prefix should contain blue ANSI (plan = blue)
-    expect(line).toContain("\x1b[34m"); // blue ANSI
+  test("error line is colored red", () => {
+    const line = formatTreeLogLine("error", "error msg");
+    expect(line).toContain("\x1b[31m");
   });
 
-  test("epic node renders as label", () => {
-    const line = formatTreeLine("epic", "info", undefined, "my-epic", 1000);
-    expect(line).toBe("my-epic");
+  test("info line has dim timestamp and green level", () => {
+    const line = formatTreeLogLine("info", "msg");
+    expect(line).toContain("\x1b[2m");
+    expect(line).toContain("\x1b[32m");
   });
 
-  test("phase node renders with prefix and colored label", () => {
-    chalk.level = 0;
-    const line = formatTreeLine("phase", "info", "plan", "plan", 1000);
-    expect(line).toBe("│ plan");
-  });
-
-  test("feature node renders with double prefix and label", () => {
-    chalk.level = 0;
-    const line = formatTreeLine("feature", "info", "implement", "write-plan", 1000);
-    expect(line).toBe("│ │ write-plan");
+  test("duration text passes through unchanged", () => {
+    const line = stripAnsi(formatTreeLogLine("info", "completed (202s)"));
+    expect(line).toContain("completed (202s)");
   });
 });
