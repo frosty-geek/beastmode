@@ -4,6 +4,35 @@ All notable changes to beastmode.
 
 ---
 
+### v0.65.0 — Structured Logging (Apr 2026)
+
+- **Shared format function** — `shared/log-format.ts` with Pino-pretty style output: `[HH:MM:SS] LEVEL  (phase/epic/feature):  message`
+- **Logger API** — `createLogger(verbosity, context)` with `.child()` context merging, replacing flat slug strings
+- **Call site migration** — All ~15 call sites migrated from raw console.log to structured logging API
+- **Dashboard format** — ActivityLog uses shared `formatLogLine()` for consistent visual output across CLI and TUI
+- **NO_COLOR support** — Graceful degradation via NO_COLOR/FORCE_COLOR/isatty() detection
+- **Null logger** — `.child()` returns null logger, preserving the null object pattern
+
+---
+
+### v0.64.0 — GH Error Diagnostics (Apr 2026)
+
+- **Endpoint in error messages** — `gh()` error messages now show `args.slice(0, 2)` instead of just the verb, surfacing the actual API endpoint on failure
+- **Logger threading** — All 11 `gh*` helper functions in `gh.ts` accept optional `logger?: Logger` for epic-scoped context propagation
+- **Sync layer wiring** — `syncGitHub()` and `syncGitHubForEpic()` thread logger through all GitHub API call sites
+
+---
+
+### v0.63.0 — HITL Config (Apr 2026)
+
+- **Per-phase HITL config** — Prose config in `config.yaml` under `hitl:` key with "always defer to human" defaults for all phases
+- **Prompt hook** — `PreToolUse` hook on `AskUserQuestion` reads HITL instructions and auto-answers or silently defers to the human
+- **Decision logging** — `PostToolUse` command hook logs all auto and human decisions to `hitl-log.md` per phase
+- **Skill contract** — L0 prime directive + guiding principle in all 5 skill files requiring `AskUserQuestion` for all user input
+- **Retro integration** — Context walker analyzes HITL logs, identifies repetitive human decisions, generates `config.yaml` snippets for automation
+
+---
+
 ### v0.62.0 — Epic Tab Cleanup (Apr 2026)
 
 - **Release cleanup** — Wire `cleanup()` into ReconcilingFactory's release teardown so epic tabs/workspaces close automatically on successful release
