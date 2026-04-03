@@ -19,6 +19,8 @@ mock.module("../git/worktree.js", () => ({
   enter: mock(() => {}),
   merge: mock(() => Promise.resolve()),
   cleanArtifactOutputs: mock(() => {}),
+  implBranchName: mock((slug: string, feature: string) => `impl/${slug}--${feature}`),
+  createImplBranch: mock((slug: string, feature: string) => Promise.resolve(`impl/${slug}--${feature}`)),
 }));
 
 mock.module("../manifest/store.js", () => ({

@@ -293,10 +293,15 @@ export class WatchLoop extends EventEmitter {
       const abortController = new AbortController();
 
       try {
-        // Create impl branch before dispatch — idempotent, skips if exists
-        await createImplBranch(epic.slug, featureSlug, {
-          cwd: resolve(this.config.projectRoot, ".claude", "worktrees", epic.slug),
-        });
+        // Create impl branch before dispatch — idempotent, skips if exists.
+        // Best-effort: failure here should not block session dispatch.
+        try {
+          await createImplBranch(epic.slug, featureSlug, {
+            cwd: resolve(this.config.projectRoot, ".claude", "worktrees", epic.slug),
+          });
+        } catch (branchErr) {
+          this.logger.warn(`impl branch creation failed for ${featureSlug}: ${branchErr}`);
+        }
 
         const handle = await this.deps.sessionFactory.create({
           epicSlug: epic.slug,
