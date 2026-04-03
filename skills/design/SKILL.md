@@ -13,32 +13,20 @@ No implementation until PRD is approved.
 No Plan Mode — this skill operates in normal mode. EnterPlanMode/ExitPlanMode restrict Write/Edit tools and break the workflow.
 </HARD-GATE>
 
-## Constraints
+## Guiding Principles
 
-### No Implementation Until Approval
-
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a PRD and the user has approved it.
-
-This applies to EVERY project regardless of perceived simplicity.
-
-### Anti-Pattern: "Too Simple for a PRD"
-
-Every feature goes through this process. A config change, a single-function utility, a rename — all of them. "Simple" features are where unexamined assumptions cause the most wasted work.
-
-The PRD can be short (a few user stories), but you MUST:
-1. Walk at least one branch of the decision tree
-2. Present it for approval
-3. Write the PRD
-
-There is no "skip design" path.
+- **Every feature gets a PRD.** A config change, a single-function utility, a rename — all of them. Short is fine; skipping is not.
+- **The user frames the problem.** Their words drive the design. Ask before exploring; listen before loading context.
+- **Decision tree before document.** Walk every branch, sweep for gray areas, then write. The PRD is the output, not the process.
+- **Scope is protected by default.** New capabilities get deferred unless the user explicitly pulls them in.
 
 ## Phase 0: Prime
 
-## 1. Announce Skill
+### 1. Announce Skill
 
 Greet in persona voice. One sentence. Set expectations for what this phase does and what the user's role is.
 
-## 2. Problem-First Question
+### 2. Problem-First Question
 
 Before loading any project context or exploring the codebase, ask the user:
 
@@ -56,21 +44,21 @@ Wait for the user's response. Their framing drives the entire design — do not 
 - Infer a feature name or slug from the arguments
 - Treat arguments as a slug — they are optional topic context only
 
-## 3. Load Project Context
+### 3. Load Project Context
 
 Read (if they exist):
 - `.beastmode/context/DESIGN.md`
 
 Follow L2 convention paths (`context/design/{domain}.md`) when relevant to the current topic.
 
-## 4. Express Path Check
+### 4. Express Path Check
 
 If the user's response points to an existing PRD, spec, or requirements document (not a `.beastmode/artifacts/design/` file):
 1. Read the document
 2. Skip decision tree walk in execute
 3. Jump directly to "Gray Areas" (Execute step 2) with the doc as input
 
-## 5. Existing Design Check
+### 5. Existing Design Check
 
 If a prior PRD exists for the same topic (matching feature name):
 - Ask: "Found existing PRD for this topic. What do you want to do?"
@@ -78,7 +66,7 @@ If a prior PRD exists for the same topic (matching feature name):
 
 ## Phase 1: Execute
 
-## 1. Walk the Decision Tree
+### 1. Walk the Decision Tree
 
 Interview the user about every aspect of this feature. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
 
@@ -93,7 +81,7 @@ Rules:
 7. Track deferred ideas internally
 8. Continue until all branches of the decision tree are resolved
 
-## 2. Gray Area Sweep
+### 2. Gray Area Sweep
 
 Second pass to catch big-picture blind spots the decision tree may have missed.
 
@@ -110,7 +98,7 @@ Second pass to catch big-picture blind spots the decision tree may have missed.
    - "3 more" → loop back with next 3 most unclear
    - "Satisfied" → exit loop
 
-## 3. Iterate Until Ready for Validation
+### 3. Iterate Until Ready for Validation
 
 - Go back and clarify as needed
 - Keep YAGNI in mind — remove unnecessary features
@@ -118,7 +106,7 @@ Second pass to catch big-picture blind spots the decision tree may have missed.
 
 ## Phase 2: Validate
 
-## 1. Completeness Check
+### 1. Completeness Check
 
 Verify PRD covers all required sections:
 - [ ] Problem Statement
@@ -132,7 +120,7 @@ Verify PRD covers all required sections:
 
 If missing sections, go back to Execute phase.
 
-## 2. Anti-Pattern Check
+### 2. Anti-Pattern Check
 
 If the PRD produced fewer than 3 user stories, print:
 
@@ -140,7 +128,7 @@ If the PRD produced fewer than 3 user stories, print:
 
 Do NOT skip approval. Short PRDs still need approval.
 
-## 3. Executive Summary
+### 3. Executive Summary
 
 Before asking for approval, present a consolidated executive summary so the user can review the full picture in one place.
 
@@ -166,7 +154,7 @@ Print:
 
 Render this from the decisions and stories gathered during the execute phase. Do NOT ask new questions — this is a read-only summary of what was already discussed.
 
-## 4. PRD Approval
+### 4. PRD Approval
 
 Ask: "Does this PRD look complete? Ready to document?"
 
@@ -178,7 +166,7 @@ Wait for user response before continuing.
 
 ## Phase 3: Checkpoint
 
-## 0. Resolve Feature Slug
+### 0. Resolve Feature Slug
 
 The feature slug is either provided as the skill argument or, when the design was started without a slug (hex temp name), it must be derived here.
 
@@ -189,11 +177,51 @@ If the skill argument is a hex temp slug (6-character lowercase hex string like 
 If the skill argument is already a meaningful slug:
 - Use it directly
 
-## 1. Write PRD
+### 1. Write PRD
 
 Save to `.beastmode/artifacts/design/YYYY-MM-DD-<hex>.md` where `<hex>` is the original hex slug (the skill argument). Do NOT use the resolved feature slug in the filename — the rename happens later in post-dispatch.
 
-Use this template:
+Use the PRD template from the Reference section below.
+
+### 2. Commit and Handoff
+
+Commit all work to the feature branch:
+
+```bash
+git add -A
+git commit -m "design(<feature>): checkpoint"
+```
+
+Print:
+
+```
+Next: beastmode plan <feature>
+```
+
+STOP. No additional output.
+
+## Constraints
+
+### No Implementation Until Approval
+
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a PRD and the user has approved it.
+
+This applies to EVERY project regardless of perceived simplicity.
+
+### Anti-Pattern: "Too Simple for a PRD"
+
+Every feature goes through this process. A config change, a single-function utility, a rename — all of them. "Simple" features are where unexamined assumptions cause the most wasted work.
+
+The PRD can be short (a few user stories), but you MUST:
+1. Walk at least one branch of the decision tree
+2. Present it for approval
+3. Write the PRD
+
+There is no "skip design" path.
+
+## Reference
+
+### PRD Template
 
 ```
 ---
@@ -242,20 +270,3 @@ Do NOT include specific file paths or code snippets — they may become outdated
 
 [Ideas that came up during the interview but were deferred as separate features, or "None"]
 ```
-
-## 2. Commit and Handoff
-
-Commit all work to the feature branch:
-
-```bash
-git add -A
-git commit -m "design(<feature>): checkpoint"
-```
-
-Print:
-
-```
-Next: beastmode plan <feature>
-```
-
-STOP. No additional output.

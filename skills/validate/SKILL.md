@@ -11,6 +11,13 @@ Verify code changes meet quality standards before release.
 No release without passing validation.
 </HARD-GATE>
 
+## Guiding Principles
+
+- All features must complete implementation before validation begins
+- Fix failures before reporting — attempt repairs, don't just stop at first error
+- Gates are pass/fail — no partial credit, no "close enough"
+- Validate the artifact, not the process — results matter, not how we got there
+
 ## Phase 0: Prime
 
 ### 1. Resolve Feature Name
@@ -172,19 +179,27 @@ Next: beastmode release <feature>
 
 STOP. No additional output.
 
-## Quality Gates
+## Constraints
 
-### Why Gates Matter
+- No release without passing validation
+- Do not proceed to commit if validation fails
+- Do not proceed past Prime if features are incomplete
+
+## Reference
+
+### Quality Gates
+
+**Why Gates Matter**
 
 Quality gates prevent broken code from reaching release. Each gate is a checkpoint that must pass.
 
-### Default Gates
+**Default Gates**
 
 1. **Tests** (required) - All tests must pass
 2. **Lint** (optional) - Code style compliance
 3. **Types** (optional) - Type checking passes
 
-### Custom Gates
+**Custom Gates**
 
 Add custom gates in `.beastmode/context/VALIDATE.md`:
 
