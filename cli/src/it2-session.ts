@@ -26,6 +26,7 @@ import type {
 import type { SessionResult } from "./watch-types.js";
 import { filenameMatchesEpic } from "./phase-output.js";
 import * as worktree from "./worktree.js";
+import * as store from "./manifest-store.js";
 
 /** Function that creates a worktree and returns its info. */
 export type CreateWorktreeFn = (
@@ -64,7 +65,7 @@ export class ITermSessionFactory implements SessionFactory {
    * Stale sessions (isAlive === false) are closed.
    * Idempotent — subsequent calls are no-ops.
    */
-  async reconcile(): Promise<void> {
+  async reconcile(projectRoot?: string): Promise<void> {
     if (this.reconciled) return;
     this.reconciled = true;
 
@@ -81,6 +82,18 @@ export class ITermSessionFactory implements SessionFactory {
       const epicSlug = session.name.replace(/^bm-/, "");
 
       if (session.isAlive) {
+        // Check manifest — if epic is done/cancelled, close instead of adopting
+        if (projectRoot) {
+          const manifest = store.load(projectRoot, epicSlug);
+          if (manifest && (manifest.phase === "done" || manifest.phase === "cancelled")) {
+            try {
+              await this.client.closeSession(session.id);
+            } catch {
+              // best-effort
+            }
+            continue;
+          }
+        }
         // Adopt live session — store in tabs map
         this.tabs.set(epicSlug, session.id);
         this.tabHasInitialPane.add(epicSlug);
@@ -99,7 +112,7 @@ export class ITermSessionFactory implements SessionFactory {
     const { epicSlug, phase, featureSlug, args, projectRoot } = opts;
 
     // Run reconciliation once on first create
-    await this.reconcile();
+    await this.reconcile(projectRoot);
 
     // Record start time before any setup — used to filter stale output.json
     const startTime = Date.now();

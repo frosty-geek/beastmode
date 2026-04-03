@@ -94,6 +94,14 @@ export class ReconcilingFactory implements SessionFactory {
             store.save(projectRoot, opts.epicSlug, { ...doneManifest, phase: "done", lastUpdated: new Date().toISOString() });
           }
           logger.log(`${opts.epicSlug}: manifest marked done`);
+
+          // Close the visual container (tab/workspace) — best effort
+          try {
+            await this.inner.cleanup?.(opts.epicSlug);
+            logger.log(`${opts.epicSlug}: session container closed`);
+          } catch (cleanupErr) {
+            logger.warn(`${opts.epicSlug}: session cleanup failed (non-blocking): ${cleanupErr}`);
+          }
         } catch (err) {
           logger.error(`${opts.epicSlug}: release teardown failed: ${err}`);
           logger.error(`${opts.epicSlug}: worktree preserved for manual cleanup`);

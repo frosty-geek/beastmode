@@ -13,6 +13,7 @@ import type { DispatchedSession, SessionResult } from "./watch-types.js";
 import { DispatchTracker } from "./dispatch-tracker.js";
 import { createLogger } from "./logger.js";
 import type { Logger } from "./logger.js";
+import * as store from "./manifest-store.js";
 
 /** Result of a reconciliation pass. */
 export interface ReconcileResult {
@@ -197,6 +198,21 @@ export async function reconcileStartup(opts: {
       const parsed = parseSurfaceTitle(surface.title);
 
       if (surface.alive && parsed) {
+        // Check manifest — if epic is done/cancelled, close instead of adopting
+        const manifest = store.load(projectRoot, parsed.epicSlug);
+        if (manifest && (manifest.phase === "done" || manifest.phase === "cancelled")) {
+          try {
+            await client.closeSurface(surface.id);
+            result.closedSurfaces++;
+            remainingSurfaces--;
+          } catch {
+            logger.warn(
+              `Failed to close orphan surface ${surface.id} for done epic ${parsed.epicSlug}`,
+            );
+          }
+          continue;
+        }
+
         // Live surface with parseable title — adopt it
         const worktreeSlug = parsed.epicSlug;
         const worktreePath = resolve(
