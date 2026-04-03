@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import type { SessionFactory, SessionCreateOpts, SessionHandle } from "../session.js";
 import type { SessionResult } from "../watch-types.js";
 
