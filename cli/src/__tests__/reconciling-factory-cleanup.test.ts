@@ -10,6 +10,7 @@ mock.module("../git/worktree.js", () => ({
   archive: mock(() => Promise.resolve("archive/v1.0.0")),
   remove: mock(() => Promise.resolve()),
   create: mock(() => Promise.resolve({ path: "/tmp/test-worktree" })),
+  rebase: mock(() => Promise.resolve({ outcome: "success", message: "rebased" })),
   isInsideWorktree: mock(() => Promise.resolve(false)),
   resolveMainCheckoutRoot: mock(() => Promise.resolve("/tmp/test-project")),
   resolveMainBranch: mock(() => Promise.resolve("main")),
@@ -61,6 +62,50 @@ mock.module("../github/discovery.js", () => ({
   discoverGitHub: mock(() => Promise.resolve(undefined)),
 }));
 
+// Additional mocks needed by pipeline/runner.ts (called via ReconcilingFactory)
+mock.module("../artifacts/reader.js", () => ({
+  loadWorktreePhaseOutput: mock(() => ({ status: "completed", artifacts: {} })),
+  filenameMatchesEpic: mock(() => true),
+  findPhaseOutputFile: mock(() => undefined),
+  loadPhaseOutput: mock(() => undefined),
+  readArtifact: mock(() => undefined),
+  resolveArtifact: mock(() => undefined),
+  splitSections: mock(() => new Map()),
+  splitSectionsSimple: mock(() => new Map()),
+  extractSection: mock(() => undefined),
+  extractSections: mock(() => new Map()),
+}));
+
+mock.module("../git/tags.js", () => ({
+  createTag: mock(() => Promise.resolve()),
+}));
+
+mock.module("../manifest/pure.js", () => ({
+  setGitHubEpic: mock((m: any) => m),
+  setFeatureGitHubIssue: mock((m: any) => m),
+  setEpicBodyHash: mock((m: any) => m),
+  setFeatureBodyHash: mock((m: any) => m),
+  enrichManifest: mock((m: any) => m),
+  regressManifest: mock((m: any) => m),
+  deriveNextPhase: mock(() => "done"),
+}));
+
+mock.module("../hooks/pre-tool-use.js", () => ({
+  writeHitlSettings: mock(() => {}),
+  cleanHitlSettings: mock(() => {}),
+  buildPreToolUseHook: mock(() => ({})),
+  getPhaseHitlProse: mock(() => ""),
+}));
+
+mock.module("../config.js", () => ({
+  loadConfig: mock(() => ({
+    hitl: { model: "test", timeout: 30, design: "", plan: "", implement: "", validate: "", release: "" },
+    github: { enabled: false, "project-name": "" },
+    cli: {},
+  })),
+  findProjectRoot: mock(() => "/tmp/test-project"),
+}));
+
 // Import AFTER mocking
 const { ReconcilingFactory } = await import("../watch-command.js");
 import { createLogger } from "../logger.js";
@@ -101,7 +146,7 @@ function makeInnerFactory(
   return factory;
 }
 
-const logger = createLogger(0, "test");
+const logger = createLogger(0, {});
 
 // ---------------------------------------------------------------------------
 // Tests

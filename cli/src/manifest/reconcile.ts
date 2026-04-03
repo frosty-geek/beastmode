@@ -6,7 +6,7 @@
  *
  * Replaces the duplicated reconciliation logic that was spread across
  * preReconcile (state-scanner.ts), reconcileState (watch-command.ts),
- * and runPostDispatch (post-dispatch.ts).
+ * and pipeline/runner.ts.
  */
 
 import type { PipelineManifest } from "./store.js";
