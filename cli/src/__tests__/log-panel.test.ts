@@ -1,4 +1,5 @@
 import { describe, test, expect } from "bun:test";
+import { countTreeLines, trimTreeToTail } from "../dashboard/LogPanel.js";
 import type { TreeState, TreeEntry } from "../dashboard/tree-types.js";
 
 // ---------------------------------------------------------------------------
@@ -80,7 +81,140 @@ describe("LogPanel with TreeState", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Group 2: Aggregate vs filtered mode (still relevant)
+// Group 2: countTreeLines and trimTreeToTail
+// ---------------------------------------------------------------------------
+
+describe("countTreeLines", () => {
+  function makeEntry(msg: string, seq: number): TreeEntry {
+    return { timestamp: 1000, level: "info", message: msg, seq };
+  }
+
+  test("empty state has 0 lines", () => {
+    expect(countTreeLines({ epics: [], system: [] })).toBe(0);
+  });
+
+  test("counts system entries", () => {
+    const state: TreeState = {
+      epics: [],
+      system: [
+        { timestamp: 1000, level: "info", message: "a", seq: 0 },
+        { timestamp: 2000, level: "info", message: "b", seq: 1 },
+      ],
+    };
+    expect(countTreeLines(state)).toBe(2);
+  });
+
+  test("counts epic + phase + entries", () => {
+    const state: TreeState = {
+      epics: [{
+        slug: "e",
+        phases: [{
+          phase: "plan",
+          features: [],
+          entries: [makeEntry("msg", 0)],
+        }],
+      }],
+      system: [],
+    };
+    // 1 epic + 1 phase + 1 entry = 3
+    expect(countTreeLines(state)).toBe(3);
+  });
+
+  test("counts features and their entries", () => {
+    const state: TreeState = {
+      epics: [{
+        slug: "e",
+        phases: [{
+          phase: "implement",
+          features: [
+            { slug: "f1", entries: [makeEntry("a", 0), makeEntry("b", 1)] },
+            { slug: "f2", entries: [makeEntry("c", 2)] },
+          ],
+          entries: [],
+        }],
+      }],
+      system: [],
+    };
+    // 1 epic + 1 phase + 2 features + 3 entries = 7
+    expect(countTreeLines(state)).toBe(7);
+  });
+});
+
+describe("trimTreeToTail", () => {
+  function makeEntry(msg: string, seq: number): TreeEntry {
+    return { timestamp: 1000, level: "info", message: msg, seq };
+  }
+
+  test("returns same state when within limit", () => {
+    const state: TreeState = {
+      epics: [{
+        slug: "e",
+        phases: [{
+          phase: "plan",
+          features: [],
+          entries: [makeEntry("msg", 0)],
+        }],
+      }],
+      system: [],
+    };
+    const result = trimTreeToTail(state, 100);
+    expect(result).toBe(state); // same reference
+  });
+
+  test("drops system entries first", () => {
+    const state: TreeState = {
+      epics: [],
+      system: [
+        { timestamp: 1000, level: "info", message: "old", seq: 0 },
+        { timestamp: 2000, level: "info", message: "new", seq: 1 },
+      ],
+    };
+    const result = trimTreeToTail(state, 1);
+    expect(result.system).toHaveLength(1);
+    expect(result.system[0].message).toBe("new");
+  });
+
+  test("drops phase entries from earliest epic first", () => {
+    const state: TreeState = {
+      epics: [{
+        slug: "e",
+        phases: [{
+          phase: "plan",
+          features: [],
+          entries: [makeEntry("old", 0), makeEntry("mid", 1), makeEntry("new", 2)],
+        }],
+      }],
+      system: [],
+    };
+    // Total: 1 epic + 1 phase + 3 entries = 5. Trim to 4 drops 1 entry.
+    const result = trimTreeToTail(state, 4);
+    expect(result.epics[0].phases[0].entries).toHaveLength(2);
+    expect(result.epics[0].phases[0].entries[0].message).toBe("mid");
+  });
+
+  test("drops feature entries", () => {
+    const state: TreeState = {
+      epics: [{
+        slug: "e",
+        phases: [{
+          phase: "implement",
+          features: [
+            { slug: "f", entries: [makeEntry("old", 0), makeEntry("new", 1)] },
+          ],
+          entries: [],
+        }],
+      }],
+      system: [],
+    };
+    // Total: 1 epic + 1 phase + 1 feature + 2 entries = 5. Trim to 4.
+    const result = trimTreeToTail(state, 4);
+    expect(result.epics[0].phases[0].features[0].entries).toHaveLength(1);
+    expect(result.epics[0].phases[0].features[0].entries[0].message).toBe("new");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Group 3: Aggregate vs filtered mode (still relevant)
 // ---------------------------------------------------------------------------
 
 describe("aggregate vs filtered mode", () => {
