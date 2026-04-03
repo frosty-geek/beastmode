@@ -3,7 +3,7 @@ import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node
 import { resolve } from "node:path";
 import { WatchLoop } from "../watch.js";
 import type { WatchDeps } from "../watch.js";
-import type { EnrichedManifest } from "../state-scanner.js";
+import type { EnrichedManifest } from "../manifest-store.js";
 import type { SessionResult } from "../watch-types.js";
 import { SdkSessionFactory } from "../session.js";
 import { DispatchTracker } from "../dispatch-tracker.js";

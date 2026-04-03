@@ -3,7 +3,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { WatchLoop } from "../watch.js";
 import type { WatchDeps } from "../watch.js";
-import type { EnrichedManifest } from "../state-scanner.js";
+import type { EnrichedManifest } from "../manifest-store.js";
 import { SdkSessionFactory } from "../session.js";
 
 const TEST_ROOT = resolve(import.meta.dir, "../../.test-wave-dispatch-tmp");

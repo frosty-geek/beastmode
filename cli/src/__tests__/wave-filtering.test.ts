@@ -3,7 +3,7 @@ import { createActor } from "xstate";
 import { epicMachine } from "../pipeline-machine/epic.js";
 import type { EpicContext } from "../pipeline-machine/types.js";
 import type { PipelineManifest, ManifestFeature } from "../manifest-store.js";
-import type { NextAction } from "../state-scanner.js";
+import type { NextAction } from "../manifest.js";
 import type { DispatchType } from "../pipeline-machine/types.js";
 
 /**
