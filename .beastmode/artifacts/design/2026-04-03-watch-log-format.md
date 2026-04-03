@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: b78506
+slug: watch-log-format
 epic: watch-log-format
 ---
 
