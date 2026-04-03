@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: "863222"
+slug: skill-doc-restructure
 epic: skill-doc-restructure
 ---
 
