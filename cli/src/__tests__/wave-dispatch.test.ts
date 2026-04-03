@@ -27,7 +27,6 @@ function mockDeps(overrides: Partial<WatchDeps> = {}): WatchDeps {
       promise: Promise.resolve({
         success: true,
         exitCode: 0,
-        costUsd: 0.1,
         durationMs: 500,
       }),
     })),
@@ -77,7 +76,6 @@ describe("wave-aware dispatch", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 0.1,
             durationMs: 500,
           }),
         };
@@ -141,7 +139,6 @@ describe("wave-aware dispatch", () => {
           promise: Promise.resolve({
             success: true,
             exitCode: 0,
-            costUsd: 0.1,
             durationMs: 500,
           }),
         };

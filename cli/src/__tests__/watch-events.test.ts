@@ -147,7 +147,6 @@ describe("WatchLoop event emission", () => {
             promise: Promise.resolve({
               success: true,
               exitCode: 0,
-              costUsd: 0.5,
               durationMs: 1000,
             }),
           };
