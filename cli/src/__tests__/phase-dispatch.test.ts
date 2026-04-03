@@ -70,13 +70,11 @@ describe("release teardown simplified", () => {
     expect(phaseSource).not.toContain("mergeWorktree");
   });
 
-  test("removeWorktree is still imported and called", () => {
-    expect(phaseSource).toContain("removeWorktree");
-  });
-
-  test("release teardown is gated on success", () => {
-    expect(phaseSource).toContain('phase === "release"');
-    expect(phaseSource).toContain('result.exit_status === "success"');
+  test("release teardown delegated to pipeline runner", () => {
+    // In the unified pipeline architecture, release teardown (removeWorktree,
+    // merge, archive) is handled by pipeline/runner.ts, not commands/phase.ts
+    expect(phaseSource).not.toContain("removeWorktree");
+    expect(phaseSource).toContain("runPipeline");
   });
 });
 
@@ -116,10 +114,11 @@ describe("phase command is simplified", () => {
     expect(lineCount).toBeLessThan(215);
   });
 
-  test("single dispatch path — only one runInteractive call", () => {
+  test("two dispatch paths — cmux (direct) and manual (via pipeline runner)", () => {
     const matches = phaseSource.match(/runInteractive\(/g);
     expect(matches).not.toBeNull();
-    expect(matches!.length).toBe(1);
+    // cmux path calls runInteractive directly; manual path wraps it in a dispatch fn for runPipeline
+    expect(matches!.length).toBe(2);
   });
 });
 
