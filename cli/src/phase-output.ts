@@ -100,68 +100,6 @@ export function loadPhaseOutput(projectRoot: string, phase: Phase, slug: string)
   return loadOutput(file);
 }
 
-/**
- * Extract per-feature status entries from a phase output.
- * Looks for `artifacts.features` (present in plan and implement outputs).
- * Returns an empty array if the output has no feature list or the data is malformed.
- */
-export function extractFeatureStatuses(output: PhaseOutput): Array<{ slug: string; status: string }> {
-  const artifacts = output.artifacts as unknown as Record<string, unknown>;
-  if (!artifacts || !Array.isArray(artifacts.features)) return [];
-
-  const result: Array<{ slug: string; status: string }> = [];
-  for (const entry of artifacts.features) {
-    if (
-      typeof entry === "object" &&
-      entry !== null &&
-      typeof (entry as Record<string, unknown>).slug === "string"
-    ) {
-      const rec = entry as Record<string, unknown>;
-      result.push({
-        slug: rec.slug as string,
-        status: typeof rec.status === "string" ? rec.status : "unknown",
-      });
-    }
-  }
-  return result;
-}
-
-/**
- * Extract artifact file paths from a phase output.
- * Collects string-valued entries from `artifacts` that look like file paths
- * (from fields like `design`, `report`, `changelog`, `deviations`),
- * plus any `artifacts.files` or `artifacts.paths` arrays if present.
- * Returns an empty array if no paths are found.
- */
-export function extractArtifactPaths(output: PhaseOutput): string[] {
-  const artifacts = output.artifacts as unknown as Record<string, unknown>;
-  if (!artifacts) return [];
-
-  const paths: string[] = [];
-
-  // Collect known string path fields
-  for (const key of ["design", "report", "changelog", "deviations"]) {
-    const val = artifacts[key];
-    if (typeof val === "string" && val.length > 0) {
-      paths.push(val);
-    }
-  }
-
-  // Collect from `files` or `paths` arrays
-  for (const key of ["files", "paths"]) {
-    const arr = artifacts[key];
-    if (Array.isArray(arr)) {
-      for (const item of arr) {
-        if (typeof item === "string" && item.length > 0) {
-          paths.push(item);
-        }
-      }
-    }
-  }
-
-  return paths;
-}
-
 // --- Worktree artifact-based output (where the stop hook actually writes) ---
 
 /**
@@ -225,7 +163,7 @@ export function filenameMatchesEpic(filename: string, epicSlug: string, hexSlug?
  * Check if an output.json filename matches a specific epic+feature combo.
  * Matches: YYYY-MM-DD-<epic>-<feature>.output.json
  */
-export function filenameMatchesFeature(filename: string, epicSlug: string, featureSlug: string): boolean {
+function filenameMatchesFeature(filename: string, epicSlug: string, featureSlug: string): boolean {
   const stripped = filename.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.output\.json$/, "");
   return stripped === `${epicSlug}-${featureSlug}`;
 }

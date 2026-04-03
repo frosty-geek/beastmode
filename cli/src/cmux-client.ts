@@ -23,20 +23,6 @@ export class CmuxConnectionError extends CmuxError {
   }
 }
 
-export class CmuxTimeoutError extends CmuxError {
-  constructor(message: string = "cmux command timed out") {
-    super(message);
-    this.name = "CmuxTimeoutError";
-  }
-}
-
-export class CmuxProtocolError extends CmuxError {
-  constructor(message: string) {
-    super(message);
-    this.name = "CmuxProtocolError";
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
