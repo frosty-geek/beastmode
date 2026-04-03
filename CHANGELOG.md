@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.61.0 — Exhaustive Gray Area Sweep (Apr 2026)
+
+- **Auto-continuation loop** — Gray area sweep in design skill now auto-continues until 0 gray areas remain, replacing the opt-in "3 more or satisfied?" prompt
+- **Skip escape hatch** — "Skip — move to validation" option in every batch's AskUserQuestion; Skip wins over co-selected gray areas
+- **Session deduplication** — Resolved gray areas tracked per session, never re-surfaced in later batches
+- **Partial batch support** — Presents 1-2 remaining gray areas when fewer than 3 exist
+- **Express path parity** — Existing-document express path inherits the same exhaustive sweep behavior
+
+---
+
 ### v0.60.2 — Skill Doc Restructure (Apr 2026)
 
 - **Uniform section ordering** — All 5 phase skills (design, plan, implement, validate, release) restructured to follow Title > HARD-GATE > Guiding Principles > Phase 0-3 > Constraints > Reference ordering
