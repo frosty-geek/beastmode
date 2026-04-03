@@ -1,29 +1,28 @@
 import { Box, Text } from "ink";
-import type { MergedLogEntry } from "./hooks/use-log-entries.js";
+import type { TreeState } from "./tree-types.js";
+import TreeView from "./TreeView.js";
 
 export interface LogPanelProps {
-  /** Merged, sorted log entries to display. */
-  entries: MergedLogEntry[];
+  /** Tree state to render. */
+  state: TreeState;
   /** Maximum visible lines to render. Default: 50 */
   maxVisibleLines?: number;
 }
 
-/** Format a timestamp (ms since epoch) to HH:MM:SS. */
-function formatTime(ts: number): string {
-  const d = new Date(ts);
-  return [d.getHours(), d.getMinutes(), d.getSeconds()]
-    .map((n) => String(n).padStart(2, "0"))
-    .join(":");
-}
-
-/** Maximum width for the label column. */
-const LABEL_WIDTH = 20;
-
+/**
+ * LogPanel — renders pipeline log entries as a hierarchical tree.
+ *
+ * Uses the shared TreeView component for consistent rendering between
+ * watch and dashboard. Applies a viewport window (last N rendered lines)
+ * for auto-follow behavior in the dashboard's alternate screen buffer.
+ */
 export default function LogPanel({
-  entries,
+  state,
   maxVisibleLines = 50,
 }: LogPanelProps) {
-  if (entries.length === 0) {
+  const hasContent = state.epics.length > 0 || state.system.length > 0;
+
+  if (!hasContent) {
     return (
       <Box justifyContent="center" alignItems="center" flexGrow={1}>
         <Text dimColor>no active sessions</Text>
@@ -31,37 +30,11 @@ export default function LogPanel({
     );
   }
 
-  // Take only the last N entries for auto-follow
-  const visible = entries.length > maxVisibleLines
-    ? entries.slice(entries.length - maxVisibleLines)
-    : entries;
-
+  // Viewport windowing: wrap TreeView in a Box with maxHeight
+  // to show only the last N lines (auto-follow newest entries)
   return (
-    <Box flexDirection="column">
-      {visible.map((entry) => {
-        const time = formatTime(entry.timestamp);
-        const label = entry.label.length > LABEL_WIDTH
-          ? entry.label.slice(0, LABEL_WIDTH - 1) + "\u2026"
-          : entry.label.padEnd(LABEL_WIDTH);
-
-        if (entry.isError) {
-          return (
-            <Text key={`${entry.label}-${entry.seq}`} color="red">
-              {time}  {label}  {entry.text}
-            </Text>
-          );
-        }
-
-        return (
-          <Box key={`${entry.label}-${entry.seq}`}>
-            <Text dimColor>{time}</Text>
-            <Text>  </Text>
-            <Text bold>{label}</Text>
-            <Text>  </Text>
-            <Text>{entry.text}</Text>
-          </Box>
-        );
-      })}
+    <Box flexDirection="column" height={maxVisibleLines} overflow="hidden">
+      <TreeView state={state} />
     </Box>
   );
 }
