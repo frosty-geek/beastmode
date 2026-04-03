@@ -139,6 +139,10 @@ export class CmuxSessionFactory implements SessionFactory {
     this.workspaces.delete(epicSlug);
   }
 
+  async setBadgeOnContainer(_epicSlug: string, _text: string): Promise<void> {
+    // cmux has no native badge support — no-op
+  }
+
   /** Watch for a specific output.json file in the artifact directory. */
   private watchForMarker(
     sessionId: string,

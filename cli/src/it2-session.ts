@@ -246,6 +246,12 @@ export class ITermSessionFactory implements SessionFactory {
     }
   }
 
+  async setBadgeOnContainer(epicSlug: string, text: string): Promise<void> {
+    const tabSessionId = this.tabs.get(epicSlug);
+    if (!tabSessionId) return;
+    await this.client.setBadge(tabSessionId, text);
+  }
+
   // -------------------------------------------------------------------------
   // Private methods — shared artifact-watching logic (from CmuxSessionFactory)
   // -------------------------------------------------------------------------

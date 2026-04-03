@@ -109,6 +109,16 @@ export class ReconcilingFactory implements SessionFactory {
         }
       }
 
+      // Badge the lingering container on release failure — best effort
+      if (opts.phase === "release" && !sessionResult.success) {
+        try {
+          await this.inner.setBadgeOnContainer?.(opts.epicSlug, "ERROR: release failed");
+          logger.log(`${opts.epicSlug}: error badge set on container`);
+        } catch (badgeErr) {
+          logger.warn(`${opts.epicSlug}: badge failed (non-blocking): ${badgeErr}`);
+        }
+      }
+
       // State reconciliation via reconcile module
       let progress: { completed: number; total: number } | undefined;
 
@@ -166,6 +176,10 @@ export class ReconcilingFactory implements SessionFactory {
 
   async cleanup(epicSlug: string): Promise<void> {
     return this.inner.cleanup?.(epicSlug);
+  }
+
+  async setBadgeOnContainer(epicSlug: string, text: string): Promise<void> {
+    return this.inner.setBadgeOnContainer?.(epicSlug, text);
   }
 }
 

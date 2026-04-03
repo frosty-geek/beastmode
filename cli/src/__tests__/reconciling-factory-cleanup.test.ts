@@ -83,6 +83,7 @@ function makeOpts(overrides: Partial<SessionCreateOpts> = {}): SessionCreateOpts
 function makeInnerFactory(
   result: SessionResult,
   cleanupFn?: (slug: string) => Promise<void>,
+  setBadgeOnContainerFn?: (slug: string, text: string) => Promise<void>,
 ): SessionFactory {
   const factory: SessionFactory = {
     create: mock(async (opts: SessionCreateOpts): Promise<SessionHandle> => ({
@@ -93,6 +94,9 @@ function makeInnerFactory(
   };
   if (cleanupFn) {
     factory.cleanup = mock(cleanupFn);
+  }
+  if (setBadgeOnContainerFn) {
+    factory.setBadgeOnContainer = mock(setBadgeOnContainerFn);
   }
   return factory;
 }
@@ -171,5 +175,53 @@ describe("ReconcilingFactory cleanup on release", () => {
 
     // Should not throw — optional chaining handles undefined cleanup
     expect(result.success).toBe(true);
+  });
+});
+
+describe("ReconcilingFactory release badge", () => {
+  it("calls setBadgeOnContainer on failed release", async () => {
+    const badgeMock = mock(() => Promise.resolve());
+    const inner = makeInnerFactory(
+      { success: false, exitCode: 1, costUsd: 0, durationMs: 100 },
+      undefined,
+      badgeMock,
+    );
+    const factory = new ReconcilingFactory(inner, "/tmp/test-project", logger);
+    const handle = await factory.create(makeOpts({ phase: "release" }));
+    await handle.promise;
+
+    expect(badgeMock).toHaveBeenCalledTimes(1);
+    expect(badgeMock).toHaveBeenCalledWith("test-epic", "ERROR: release failed");
+  });
+
+  it("does NOT call setBadgeOnContainer on successful release", async () => {
+    const badgeMock = mock(() => Promise.resolve());
+    const inner = makeInnerFactory(
+      { success: true, exitCode: 0, costUsd: 0, durationMs: 100 },
+      undefined,
+      badgeMock,
+    );
+    const factory = new ReconcilingFactory(inner, "/tmp/test-project", logger);
+    const handle = await factory.create(makeOpts({ phase: "release" }));
+    await handle.promise;
+
+    expect(badgeMock).not.toHaveBeenCalled();
+  });
+
+  it("badge failure is best-effort — does not throw", async () => {
+    const badgeMock = mock(() => Promise.reject(new Error("badge failed")));
+    const inner = makeInnerFactory(
+      { success: false, exitCode: 1, costUsd: 0, durationMs: 100 },
+      undefined,
+      badgeMock,
+    );
+    const factory = new ReconcilingFactory(inner, "/tmp/test-project", logger);
+    const handle = await factory.create(makeOpts({ phase: "release" }));
+    const result = await handle.promise;
+
+    // Badge was attempted
+    expect(badgeMock).toHaveBeenCalledTimes(1);
+    // Overall result unchanged — badge failure doesn't alter session result
+    expect(result.success).toBe(false);
   });
 });
