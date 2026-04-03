@@ -1,0 +1,11 @@
+{
+  "featurePlan": ".beastmode/artifacts/plan/2026-04-03-epic-tab-cleanup-release-badge.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Add setBadgeOnContainer to SessionFactory interface", "status": "completed", "wave": 1},
+    {"id": 1, "subject": "Task 1: Implement setBadgeOnContainer in ITermSessionFactory", "status": "completed", "wave": 1},
+    {"id": 2, "subject": "Task 2: Implement setBadgeOnContainer in CmuxSessionFactory", "status": "completed", "wave": 1},
+    {"id": 3, "subject": "Task 3: Wire setBadgeOnContainer in ReconcilingFactory release failure", "status": "completed", "wave": 2},
+    {"id": 4, "subject": "Task 4: Add tests for release badge behavior", "status": "completed", "wave": 2}
+  ],
+  "lastUpdated": "2026-04-03T08:30:00Z"
+}

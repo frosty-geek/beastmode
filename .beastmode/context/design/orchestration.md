@@ -36,3 +36,10 @@
 ## Lifecycle
 - Start via `beastmode watch`, stop via Ctrl+C — foreground process with explicit control
 - NEVER auto-drain or idle-timeout — manual stop only
+- Per-dispatch run log in `.beastmode-runs.json` — epic, phase, feature, cost_usd, duration_ms, exit_status, timestamp
+
+## Decorator Forwarding
+- ALWAYS forward optional interface methods through decorator/proxy factories — silent contract gaps when new optional methods are added to inner factories but the wrapping factory doesn't forward them
+- Interface contract gaps are invisible at compile time for optional methods — only manifest at runtime when the lifecycle event fires
+
+context/design/orchestration/decorator-forwarding.md

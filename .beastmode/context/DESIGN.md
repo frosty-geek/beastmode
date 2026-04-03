@@ -79,6 +79,7 @@ TypeScript CLI watch mode (`beastmode watch`) scans local state files and dispat
 4. ALWAYS use CLI-owned worktrees — CLI creates before, merges after, removes when done
 5. ALWAYS use `DispatchedSession` interface for dispatch — `SessionFactory` returns `SdkSession` or `CmuxSession` based on runtime state and config
 6. ALWAYS reconcile cmux state on startup — adopt live surfaces, close dead ones, remove empty workspaces
+7. ALWAYS forward optional interface methods through decorator/proxy factories — silent contract gaps when wrapping factories omit new optional methods from inner factories
 
 context/design/orchestration.md
 

@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.62.0 — Epic Tab Cleanup (Apr 2026)
+
+- **Release cleanup** — Wire `cleanup()` into ReconcilingFactory's release teardown so epic tabs/workspaces close automatically on successful release
+- **Error badge** — Failed releases set a badge on the tab session so users know which lingering tabs need attention
+- **Orphan reconciliation** — Startup reconciliation closes tabs for done-manifest epics instead of adopting them, covering both iTerm2 and cmux strategies
+- **Context promotions** — Documented decorator-forwarding anti-pattern and best-effort visual cleanup convention
+
+---
+
 ### v0.61.1 — Remove Cost Tracking (Apr 2026)
 
 - **Dead code removal** — Stripped all cost-tracking plumbing (`costUsd`, `cost_usd` fields, `$0.00` formatting) that always displayed zero because non-SDK dispatch strategies can't introspect cost data

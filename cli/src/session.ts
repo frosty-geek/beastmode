@@ -38,6 +38,9 @@ export interface SessionFactory {
 
   /** Optional cleanup when an epic is released (e.g., close cmux workspace). */
   cleanup?(epicSlug: string): Promise<void>;
+
+  /** Optional badge on the epic-level container (tab/workspace) for error signaling. */
+  setBadgeOnContainer?(epicSlug: string, text: string): Promise<void>;
 }
 
 /**

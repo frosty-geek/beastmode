@@ -94,10 +94,28 @@ export class ReconcilingFactory implements SessionFactory {
             store.save(projectRoot, opts.epicSlug, { ...doneManifest, phase: "done", lastUpdated: new Date().toISOString() });
           }
           logger.log(`${opts.epicSlug}: manifest marked done`);
+
+          // Close the visual container (tab/workspace) — best effort
+          try {
+            await this.inner.cleanup?.(opts.epicSlug);
+            logger.log(`${opts.epicSlug}: session container closed`);
+          } catch (cleanupErr) {
+            logger.warn(`${opts.epicSlug}: session cleanup failed (non-blocking): ${cleanupErr}`);
+          }
         } catch (err) {
           logger.error(`${opts.epicSlug}: release teardown failed: ${err}`);
           logger.error(`${opts.epicSlug}: worktree preserved for manual cleanup`);
           sessionResult = { ...sessionResult, success: false };
+        }
+      }
+
+      // Badge the lingering container on release failure — best effort
+      if (opts.phase === "release" && !sessionResult.success) {
+        try {
+          await this.inner.setBadgeOnContainer?.(opts.epicSlug, "ERROR: release failed");
+          logger.log(`${opts.epicSlug}: error badge set on container`);
+        } catch (badgeErr) {
+          logger.warn(`${opts.epicSlug}: badge failed (non-blocking): ${badgeErr}`);
         }
       }
 
@@ -158,6 +176,10 @@ export class ReconcilingFactory implements SessionFactory {
 
   async cleanup(epicSlug: string): Promise<void> {
     return this.inner.cleanup?.(epicSlug);
+  }
+
+  async setBadgeOnContainer(epicSlug: string, text: string): Promise<void> {
+    return this.inner.setBadgeOnContainer?.(epicSlug, text);
   }
 }
 
