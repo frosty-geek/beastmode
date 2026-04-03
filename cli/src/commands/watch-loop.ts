@@ -21,6 +21,7 @@ import { resolve } from "node:path";
 import { execSync } from "node:child_process";
 import { createLogger } from "../logger.js";
 import { createTag } from "../git/tags.js";
+import { createImplBranch } from "../git/worktree.js";
 
 // --- Version banner ---
 
@@ -292,6 +293,11 @@ export class WatchLoop extends EventEmitter {
       const abortController = new AbortController();
 
       try {
+        // Create impl branch before dispatch — idempotent, skips if exists
+        await createImplBranch(epic.slug, featureSlug, {
+          cwd: resolve(this.config.projectRoot, ".claude", "worktrees", epic.slug),
+        });
+
         const handle = await this.deps.sessionFactory.create({
           epicSlug: epic.slug,
           phase: "implement",
