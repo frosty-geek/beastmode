@@ -7,7 +7,7 @@
 - Color scheme follows existing phase convention: magenta (design), blue (plan), yellow (implement), cyan (validate), green (release), dim green (done), red (blocked), dim red (cancelled)
 
 ## Layout
-- Three-panel split screen: epics list (top-left ~30%), details (top-right ~70%), log (bottom ~65% full-width)
+- Three-panel split screen via ThreePanelLayout component with EpicsPanel, DetailsPanel, LogPanel as slot children: epics list (top-left ~30%), details (top-right ~70%), log (bottom ~65% full-width)
 - k9s-style cyan chrome with single-line box-drawing characters and panel titles inset in top borders
 - Watch status and clock rendered in top-right corner of outer border — no dedicated header row
 - Key hints bar at bottom, outside the bordered area
@@ -20,6 +20,7 @@
 - Selecting a specific epic filters details and log in place
 
 ## Keyboard
+- All keyboard input handled by use-dashboard-keyboard hook — single hook for flat navigation, filter mode, cancel confirmation, and toggle
 - `q`/`Ctrl+C` (graceful quit), `Up`/`Down` (navigate epics), `a` (toggle done/cancelled), `x` (cancel with inline confirmation), `/` (filter mode)
 - Filter: k9s style — inline prompt replaces key hints, Enter applies, Escape clears
 - Cancel: inline confirmation in key hints bar — `y` executes, `n`/Escape dismisses, blocks all other input
@@ -61,7 +62,7 @@
 - Dashboard is an additive capability, not a replacement for existing commands
 
 ## Release Queue Indicator
-- Epics held for release serialization show a "Queued" badge with blocking epic context in the EpicList view
+- Epics held for release serialization show a "Queued" badge with blocking epic context in the EpicsPanel
 - Data sourced from `release:held` WatchLoop EventEmitter events — no manifest-level state, purely event-driven
 - Indicator clears on `session-started` or next `scan-complete` for the held epic
 - Only displayed for automated watch loop dispatch — manual releases are not tracked
