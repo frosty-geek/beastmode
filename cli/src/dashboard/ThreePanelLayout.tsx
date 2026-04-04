@@ -2,15 +2,18 @@ import type { ReactNode } from "react";
 import { Box, Text } from "ink";
 import MinSizeGate from "./MinSizeGate.js";
 import PanelBox from "./PanelBox.js";
+import NyanBanner from "./NyanBanner.js";
 
 export interface ThreePanelLayoutProps {
   /** Watch loop running state. */
   watchRunning: boolean;
   /** Current clock string (HH:MM:SS). */
   clock: string;
+  /** Terminal row count for full-height rendering. */
+  rows?: number;
   /** Content for the epics panel (top-left). */
   epicsSlot?: ReactNode;
-  /** Content for the details panel (top-right). */
+  /** Content for the overview panel (top-right). */
   detailsSlot?: ReactNode;
   /** Content for the log panel (bottom). */
   logSlot?: ReactNode;
@@ -26,6 +29,7 @@ export interface ThreePanelLayoutProps {
 export default function ThreePanelLayout({
   watchRunning,
   clock,
+  rows,
   epicsSlot,
   detailsSlot,
   logSlot,
@@ -35,7 +39,7 @@ export default function ThreePanelLayout({
 }: ThreePanelLayoutProps) {
   return (
     <MinSizeGate>
-      <Box flexDirection="column" width="100%" height="100%">
+      <Box flexDirection="column" width="100%" height={rows ?? "100%"}>
         {/* Outer chrome — header line with title, watch status, and clock */}
         <Box
           borderStyle="single"
@@ -43,17 +47,17 @@ export default function ThreePanelLayout({
           flexDirection="column"
           flexGrow={1}
         >
-          {/* Status bar inside outer chrome */}
+          {/* Banner + status bar */}
           <Box flexDirection="row" justifyContent="space-between" paddingX={1}>
-            <Text bold color="cyan">
-              beastmode
-            </Text>
-            <Box>
-              <Text color={watchRunning ? "green" : "red"}>
-                {watchRunning ? "watch: running" : "watch: stopped"}
-              </Text>
-              <Text> </Text>
-              <Text dimColor>{clock}</Text>
+            <NyanBanner />
+            <Box flexDirection="column" alignItems="flex-end" justifyContent="flex-start">
+              <Box>
+                <Text color={watchRunning ? "green" : "red"}>
+                  {watchRunning ? "watch: running" : "watch: stopped"}
+                </Text>
+                <Text> </Text>
+                <Text dimColor>{clock}</Text>
+              </Box>
             </Box>
           </Box>
 
@@ -62,7 +66,7 @@ export default function ThreePanelLayout({
             <PanelBox title="EPICS" width="30%">
               {epicsSlot}
             </PanelBox>
-            <PanelBox title="DETAILS" width="70%">
+            <PanelBox title="OVERVIEW" width="70%">
               {detailsSlot}
             </PanelBox>
           </Box>
