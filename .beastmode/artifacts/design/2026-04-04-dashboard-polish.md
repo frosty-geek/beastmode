@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: fb4605
+slug: dashboard-polish
 epic: dashboard-polish
 ---
 
