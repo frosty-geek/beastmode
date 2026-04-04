@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: 6989cf
+slug: dead-man-switch
 epic: dead-man-switch
 ---
 
