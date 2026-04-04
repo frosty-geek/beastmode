@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: 524637
+slug: dashboard-wiring
 epic: dashboard-wiring
 ---
 
