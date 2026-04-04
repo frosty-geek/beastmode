@@ -186,4 +186,98 @@ describe("JsonFileStore", () => {
       expect(f3.id).toBe(`${epic.id}.3`);
     });
   });
+
+  describe("Queries", () => {
+    it("should find entity by ID", () => {
+      const epic = store.addEpic({ name: "Epic" });
+      expect(store.find(epic.id)).toEqual(epic);
+    });
+
+    it("should find epic by slug", () => {
+      const epic = store.addEpic({ name: "Test Epic", slug: "test-slug" });
+      expect(store.find("test-slug")).toEqual(epic);
+    });
+
+    it("should return undefined for unknown", () => {
+      expect(store.find("nope")).toBeUndefined();
+    });
+
+    it("should return blocked entities", () => {
+      const epic = store.addEpic({ name: "Epic" });
+      const f1 = store.addFeature({ parent: epic.id, name: "F1" });
+      store.updateFeature(f1.id, { status: "blocked" });
+      const blocked = store.blocked();
+      expect(blocked).toHaveLength(1);
+      expect(blocked[0].id).toBe(f1.id);
+    });
+
+    it("should build tree hierarchy", () => {
+      const epic = store.addEpic({ name: "Epic" });
+      store.addFeature({ parent: epic.id, name: "F1" });
+      store.addFeature({ parent: epic.id, name: "F2" });
+      const tree = store.tree();
+      expect(tree.length).toBeGreaterThanOrEqual(1);
+      const node = tree.find((n) => n.entity.id === epic.id);
+      expect(node?.children).toHaveLength(2);
+    });
+
+    it("should return ready features (no unresolved deps, parent not cancelled)", () => {
+      const epic = store.addEpic({ name: "Epic" });
+      store.addFeature({ parent: epic.id, name: "F1" }); // pending, no deps
+      const ready = store.ready({ type: "feature" });
+      expect(ready).toHaveLength(1);
+    });
+
+    it("should exclude features with unresolved deps from ready", () => {
+      const epic = store.addEpic({ name: "Epic" });
+      const f1 = store.addFeature({ parent: epic.id, name: "F1" });
+      const f2 = store.addFeature({ parent: epic.id, name: "F2" });
+      store.updateFeature(f2.id, { depends_on: [f1.id] });
+      const ready = store.ready({ type: "feature" });
+      expect(ready).toHaveLength(1);
+      expect(ready[0].id).toBe(f1.id);
+    });
+  });
+
+  describe("Dependency graph", () => {
+    it("should compute wave 1 for entity with no deps", () => {
+      const epic = store.addEpic({ name: "Epic" });
+      expect(store.computeWave(epic.id)).toBe(1);
+    });
+
+    it("should compute wave based on dependency depth", () => {
+      const e1 = store.addEpic({ name: "E1" });
+      const e2 = store.addEpic({ name: "E2" });
+      const e3 = store.addEpic({ name: "E3" });
+      store.updateEpic(e2.id, { depends_on: [e1.id] });
+      store.updateEpic(e3.id, { depends_on: [e2.id] });
+      expect(store.computeWave(e1.id)).toBe(1);
+      expect(store.computeWave(e2.id)).toBe(2);
+      expect(store.computeWave(e3.id)).toBe(3);
+    });
+
+    it("should return dependency chain in topological order", () => {
+      const e1 = store.addEpic({ name: "E1" });
+      const e2 = store.addEpic({ name: "E2" });
+      store.updateEpic(e2.id, { depends_on: [e1.id] });
+      const chain = store.dependencyChain(e2.id);
+      expect(chain.map((e) => e.id)).toEqual([e1.id, e2.id]);
+    });
+
+    it("should detect cycles", () => {
+      const e1 = store.addEpic({ name: "E1" });
+      const e2 = store.addEpic({ name: "E2" });
+      store.updateEpic(e1.id, { depends_on: [e2.id] });
+      store.updateEpic(e2.id, { depends_on: [e1.id] });
+      const cycles = store.detectCycles();
+      expect(cycles.length).toBeGreaterThan(0);
+    });
+
+    it("should detect no cycles in acyclic graph", () => {
+      const e1 = store.addEpic({ name: "E1" });
+      const e2 = store.addEpic({ name: "E2" });
+      store.updateEpic(e2.id, { depends_on: [e1.id] });
+      expect(store.detectCycles()).toHaveLength(0);
+    });
+  });
 });
