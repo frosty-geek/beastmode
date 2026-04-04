@@ -219,6 +219,37 @@ export function formatClosingComment(opts: {
   ].join("\n");
 }
 
+/** Input for building a compare URL — pure computation, no I/O. */
+export interface CompareUrlInput {
+  repo?: string;
+  branch?: string;
+  phase: Phase;
+  slug: string;
+  versionTag?: string;
+  hasArchiveTag?: boolean;
+}
+
+/**
+ * Build a GitHub compare URL for an epic.
+ *
+ * Active development: main...feature/{slug}
+ * Post-release with archive tag: {versionTag}...archive/{slug}
+ * Fallback: branch-based URL when archive tag missing.
+ */
+export function buildCompareUrl(input: CompareUrlInput): string | undefined {
+  if (!input.repo || !input.branch) return undefined;
+
+  const base = `https://github.com/${input.repo}/compare`;
+
+  // Post-release with archive tag — use version range
+  if (input.phase === "done" && input.versionTag && input.hasArchiveTag) {
+    return `${base}/${input.versionTag}...archive/${input.slug}`;
+  }
+
+  // Active development or fallback — branch-based
+  return `${base}/main...${input.branch}`;
+}
+
 // ---------------------------------------------------------------------------
 // Sync engine (formerly github-sync.ts)
 // ---------------------------------------------------------------------------
@@ -367,6 +398,7 @@ function resolveArtifactLinks(
  */
 function resolveGitMetadata(
   manifest: PipelineManifest,
+  repo?: string,
 ): EpicBodyInput["gitMetadata"] | undefined {
   const meta: NonNullable<EpicBodyInput["gitMetadata"]> = {};
 
@@ -396,6 +428,31 @@ function resolveGitMetadata(
     }
   }
 
+  // Compare URL — pure computation from available metadata
+  if (repo) {
+    // Check for archive tag
+    let hasArchiveTag = false;
+    try {
+      const archiveCheck = Bun.spawnSync(["git", "rev-parse", "--verify", `refs/tags/archive/${manifest.slug}`]);
+      hasArchiveTag = archiveCheck.exitCode === 0;
+    } catch {
+      // Git not available — skip
+    }
+
+    // Read version tag if available
+    const versionTag = readVersionTag(manifest.slug);
+
+    const compareUrl = buildCompareUrl({
+      repo,
+      branch: manifest.worktree?.branch,
+      phase: manifest.phase,
+      slug: manifest.slug,
+      versionTag,
+      hasArchiveTag,
+    });
+    if (compareUrl) meta.compareUrl = compareUrl;
+  }
+
   return Object.keys(meta).length > 0 ? meta : undefined;
 }
 
@@ -418,6 +475,25 @@ function readReleaseTag(slug: string): string | undefined {
     const tagName = `beastmode/${slug}/release`;
     const result = Bun.spawnSync(["git", "rev-parse", "--verify", `refs/tags/${tagName}`]);
     return result.exitCode === 0 ? tagName : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Read the version tag for this epic — returns undefined if no tag exists. */
+function readVersionTag(slug: string): string | undefined {
+  try {
+    // Look for version tags like v1.2.0 that point to the same commit as the release tag
+    const releaseTagName = `beastmode/${slug}/release`;
+    const releaseRef = Bun.spawnSync(["git", "rev-parse", "--verify", `refs/tags/${releaseTagName}`]);
+    if (releaseRef.exitCode !== 0) return undefined;
+    const releaseSha = releaseRef.stdout.toString().trim();
+
+    // Find version tags (vX.Y.Z) pointing to the same commit
+    const tagsResult = Bun.spawnSync(["git", "tag", "-l", "v*", "--points-at", releaseSha]);
+    if (tagsResult.exitCode !== 0) return undefined;
+    const tags = tagsResult.stdout.toString().trim().split("\n").filter(Boolean);
+    return tags[0] || undefined;
   } catch {
     return undefined;
   }
@@ -474,7 +550,7 @@ export async function syncGitHub(
     ? readPrdSections(manifest, opts.projectRoot)
     : undefined;
   const artifactLinks = resolveArtifactLinks(manifest, repo);
-  const gitMetadata = resolveGitMetadata(manifest);
+  const gitMetadata = resolveGitMetadata(manifest, repo);
 
   // --- Epic Sync ---
 
