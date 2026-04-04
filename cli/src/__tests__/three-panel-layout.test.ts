@@ -185,3 +185,29 @@ describe("key hints bar", () => {
     expect(display).toBe("q quit  ↑↓ navigate");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Depth hierarchy background tiers
+// ---------------------------------------------------------------------------
+
+describe("depth hierarchy backgrounds", () => {
+  test("chrome tier uses #403E41 for header and hints", () => {
+    const { DEPTH } = require("../dashboard/monokai-palette.js");
+    expect(DEPTH.chrome).toBe("#403E41");
+  });
+
+  test("panel tier uses #353236 for panel interiors", () => {
+    const { DEPTH } = require("../dashboard/monokai-palette.js");
+    expect(DEPTH.panel).toBe("#353236");
+  });
+
+  test("three tiers progress from lightest to darkest", () => {
+    const { DEPTH } = require("../dashboard/monokai-palette.js");
+    // Chrome (#403E41) > Panel (#353236) > Terminal (#2D2A2E)
+    const chromeR = parseInt(DEPTH.chrome.slice(1, 3), 16);
+    const panelR = parseInt(DEPTH.panel.slice(1, 3), 16);
+    const terminalR = parseInt("2D", 16);
+    expect(chromeR).toBeGreaterThan(panelR);
+    expect(panelR).toBeGreaterThan(terminalR);
+  });
+});
