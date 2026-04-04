@@ -151,6 +151,9 @@ export function formatEpicBody(input: EpicBodyInput): string {
     if (meta.mergeCommit) {
       lines.push(`**Merge Commit:** [${meta.mergeCommit.sha.slice(0, 7)}](${meta.mergeCommit.url})`);
     }
+    if (meta.compareUrl) {
+      lines.push(`**Compare:** [View Changes](${meta.compareUrl})`);
+    }
     if (lines.length > 0) {
       sections.push(`## Git\n\n${lines.join("\n")}`);
     }

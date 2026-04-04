@@ -405,6 +405,38 @@ describe("formatEpicBody", () => {
     expect(body).toContain("**Version:** 2.0.0");
     expect(body).toContain("**Merge Commit:** [deadbee](https://github.com/org/repo/commit/deadbeef12345678)");
   });
+
+  test("renders compare URL alongside other git metadata fields", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      gitMetadata: {
+        branch: "feature/epic-branch",
+        phaseTags: { design: "beastmode/epic/design" },
+        compareUrl: "https://github.com/org/repo/compare/main...feature/epic-branch",
+      },
+    });
+    expect(body).toContain("**Branch:** `feature/epic-branch`");
+    expect(body).toContain("**Tags:** `beastmode/epic/design`");
+    expect(body).toContain("**Compare:** [View Changes](https://github.com/org/repo/compare/main...feature/epic-branch)");
+  });
+
+  test("renders archive-based compare URL for released epics", () => {
+    const body = formatEpicBody({
+      ...makeManifest({ phase: "done" }),
+      gitMetadata: {
+        compareUrl: "https://github.com/org/repo/compare/v1.0.0...archive/my-epic",
+      },
+    });
+    expect(body).toContain("**Compare:** [View Changes](https://github.com/org/repo/compare/v1.0.0...archive/my-epic)");
+  });
+
+  test("omits compare URL line when compareUrl absent", () => {
+    const body = formatEpicBody({
+      ...makeManifest(),
+      gitMetadata: { branch: "feature/my-branch" },
+    });
+    expect(body).not.toContain("**Compare:**");
+  });
 });
 
 // --- formatFeatureBody ---
