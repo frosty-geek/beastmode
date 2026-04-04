@@ -17,6 +17,7 @@ import {
   blockedTestable,
   treeTestable,
   searchTestable,
+  parseFlags,
 } from "./store.js";
 
 function tmpdir(): string {
@@ -306,5 +307,65 @@ describe("query commands", () => {
     const result = await searchTestable(store, ["--type=epic"]);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe("epic");
+  });
+});
+
+describe("error handling and output contract", () => {
+  let storeDir: string;
+  let storePath: string;
+  let store: JsonFileStore;
+
+  beforeEach(() => {
+    storeDir = tmpdir();
+    storePath = join(storeDir, "store.json");
+    store = new JsonFileStore(storePath);
+  });
+
+  afterEach(() => {
+    rmSync(storeDir, { recursive: true, force: true });
+  });
+
+  it("feature show with nonexistent ID throws descriptive error", async () => {
+    await expect(featureShowTestable(store, ["bm-9999.1"])).rejects.toThrow("Feature not found: bm-9999.1");
+  });
+
+  it("epic add returns all expected fields", async () => {
+    const result = await store.transact(s => s.addEpic({ name: "Full Fields" }));
+    expect(result).toHaveProperty("id");
+    expect(result).toHaveProperty("type", "epic");
+    expect(result).toHaveProperty("name", "Full Fields");
+    expect(result).toHaveProperty("slug", "full-fields");
+    expect(result).toHaveProperty("status", "design");
+    expect(result).toHaveProperty("depends_on");
+    expect(result).toHaveProperty("created_at");
+    expect(result).toHaveProperty("updated_at");
+  });
+
+  it("feature add returns all expected fields", async () => {
+    const epic = await store.transact(s => s.addEpic({ name: "E1" }));
+    const result = await store.transact(s => s.addFeature({ parent: epic.id, name: "Full Feature" }));
+    expect(result).toHaveProperty("id");
+    expect(result).toHaveProperty("type", "feature");
+    expect(result).toHaveProperty("parent", epic.id);
+    expect(result).toHaveProperty("name", "Full Feature");
+    expect(result).toHaveProperty("status", "pending");
+    expect(result).toHaveProperty("depends_on");
+    expect(result).toHaveProperty("created_at");
+    expect(result).toHaveProperty("updated_at");
+  });
+
+  it("epic delete cascades to features", async () => {
+    const epic = await store.transact(s => s.addEpic({ name: "Cascade" }));
+    const f = await store.transact(s => s.addFeature({ parent: epic.id, name: "Child" }));
+    await epicDeleteTestable(store, [epic.id]);
+    const check = await store.transact(s => s.getFeature(f.id));
+    expect(check).toBeUndefined();
+  });
+
+  it("parseFlags handles mixed args correctly", () => {
+    const { positional, flags } = parseFlags(["bm-1234", "--name=Hello World", "--deps"]);
+    expect(positional).toEqual(["bm-1234"]);
+    expect(flags["name"]).toBe("Hello World");
+    expect(flags["deps"]).toBe("true");
   });
 });
