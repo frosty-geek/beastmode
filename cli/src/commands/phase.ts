@@ -52,7 +52,7 @@ export async function phaseCommand(
   const projectRoot = inWorktree
     ? await resolveMainCheckoutRoot()
     : process.cwd();
-  const worktreeSlug = deriveWorktreeSlug(phase, args);
+  let worktreeSlug = deriveWorktreeSlug(phase, args);
 
   // Fail-fast: non-design phases require the epic to exist.
   // Resolution priority: store ID → store slug → manifest fallback
@@ -76,6 +76,10 @@ export async function phaseCommand(
         logger.error(`Epic "${worktreeSlug}" not found — run "beastmode design" first`);
         process.exit(1);
       }
+    }
+
+    if (resolution.kind === "found" && resolution.entity.type === "epic") {
+      worktreeSlug = resolution.entity.slug;
     }
   }
 
