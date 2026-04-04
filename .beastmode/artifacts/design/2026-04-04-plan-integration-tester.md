@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: a514e1
+slug: plan-integration-tester
 epic: plan-integration-tester
 ---
 
