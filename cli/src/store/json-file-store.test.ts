@@ -280,4 +280,66 @@ describe("JsonFileStore", () => {
       expect(store.detectCycles()).toHaveLength(0);
     });
   });
+
+  describe("transact() — async mutex", () => {
+    it("should serialize concurrent mutations", async () => {
+      // Pre-populate
+      store.addEpic({ name: "Epic" });
+      store.save();
+
+      const store2 = new JsonFileStore(storePath);
+
+      // Fire 10 concurrent transact calls that each add an epic
+      const promises = Array.from({ length: 10 }, (_, i) =>
+        store2.transact((s) => {
+          s.addEpic({ name: `Concurrent Epic ${i}` });
+        })
+      );
+
+      await Promise.all(promises);
+
+      // Reload and verify all 11 epics exist (1 original + 10 concurrent)
+      const store3 = new JsonFileStore(storePath);
+      store3.load();
+      expect(store3.listEpics()).toHaveLength(11);
+    });
+
+    it("should reload from disk on each transact call", async () => {
+      // Store1 adds an epic and saves
+      store.addEpic({ name: "Epic From Store 1" });
+      store.save();
+
+      // Store2 transacts — should see Store1's epic
+      const store2 = new JsonFileStore(storePath);
+      await store2.transact((s) => {
+        const epics = s.listEpics();
+        expect(epics).toHaveLength(1);
+        expect(epics[0].name).toBe("Epic From Store 1");
+        s.addEpic({ name: "Epic From Store 2" });
+      });
+
+      // Verify both epics persisted
+      const store3 = new JsonFileStore(storePath);
+      store3.load();
+      expect(store3.listEpics()).toHaveLength(2);
+    });
+
+    it("should not save if transact callback throws", async () => {
+      store.addEpic({ name: "Existing" });
+      store.save();
+
+      const store2 = new JsonFileStore(storePath);
+      await expect(
+        store2.transact(() => {
+          throw new Error("Oops");
+        })
+      ).rejects.toThrow("Oops");
+
+      // Original data should be unchanged
+      const store3 = new JsonFileStore(storePath);
+      store3.load();
+      expect(store3.listEpics()).toHaveLength(1);
+      expect(store3.listEpics()[0].name).toBe("Existing");
+    });
+  });
 });
