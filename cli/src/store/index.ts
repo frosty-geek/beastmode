@@ -19,3 +19,4 @@ export type {
 
 export { InMemoryTaskStore } from "./in-memory.js";
 export { JsonFileStore } from "./json-file-store.js";
+export { resolveIdentifier, type ResolveResult, type ResolveOptions } from "./resolve.js";
