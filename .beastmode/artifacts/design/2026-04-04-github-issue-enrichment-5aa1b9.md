@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: 5aa1b9
+slug: github-issue-enrichment-5aa1b9
 epic: github-issue-enrichment
 ---
 
