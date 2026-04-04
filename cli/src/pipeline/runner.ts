@@ -20,7 +20,7 @@ import type { Phase, PhaseResult } from "../types.js";
 import type { Logger } from "../logger.js";
 import { createLogger } from "../logger.js";
 import * as worktree from "../git/worktree.js";
-import { rebase } from "../git/worktree.js";
+import { rebase, createImplBranch } from "../git/worktree.js";
 import { loadWorktreePhaseOutput } from "../artifacts/reader.js";
 import * as store from "../manifest/store.js";
 import { syncGitHub } from "../github/sync.js";
@@ -137,6 +137,17 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     const hitlProse = getPhaseHitlProse(config.config.hitl, config.phase);
     const preToolUseHook = buildPreToolUseHook(hitlProse, config.config.hitl.model, config.config.hitl.timeout);
     writeHitlSettings({ claudeDir, preToolUseHook, phase: config.phase });
+  }
+
+  // Create impl branch for implement phase (idempotent — skips if exists)
+  if (config.phase === "implement" && config.featureSlug) {
+    try {
+      const implBranch = await createImplBranch(config.epicSlug, config.featureSlug, { cwd: worktreePath });
+      logger.log(`impl branch: ${implBranch}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.warn(`impl branch creation failed: ${message}`);
+    }
   }
 
   // -- Step 4: dispatch.run ---------------------------------------------------

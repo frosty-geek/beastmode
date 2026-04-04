@@ -9,7 +9,7 @@
 ## Git Workflow
 - ALWAYS commit naturally during implementation — don't batch
 - NEVER push to main directly — release handles the squash merge
-- ALWAYS use `feature/<feature>` branch naming — convention
+- ALWAYS use `feature/<slug>` for worktree branches, `impl/<slug>--<feature>` for implementation branches
 - Worktree discovery: check `.beastmode/worktrees/` for active worktrees — cross-session continuity
 
 ## Parallel Dispatch

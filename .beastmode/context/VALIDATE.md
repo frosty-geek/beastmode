@@ -14,4 +14,4 @@
 ## Known Pre-existing Failures
 - `state-scanner.test.ts` line 109: expects `design -> single` but v0.59.0 changed dispatch to `design -> skip` — not in scope for any current epic, do not triage repeatedly
 - ALWAYS record the pre-existing failure count baseline from main in validation reports — prevents re-triaging known failures across epics
-- Baseline as of 2026-04-04 (post tree-log-view): 0 test failures across 70 files, 20 type errors on main
+- Baseline as of 2026-04-04 (post impl-branch-naming): 33 worktree tests pass in isolation, 185 pre-existing failures in full suite (test infrastructure noise), 28 type errors on main

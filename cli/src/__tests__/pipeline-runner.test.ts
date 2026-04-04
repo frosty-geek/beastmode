@@ -21,6 +21,7 @@ mock.module("../git/worktree.js", () => ({
   rebase: mockRebase,
   archive: mockArchive,
   remove: mockRemove,
+  createImplBranch: mock((slug: string, feature: string) => Promise.resolve(`impl/${slug}--${feature}`)),
 }));
 
 // Mock artifacts/reader

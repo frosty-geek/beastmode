@@ -16,7 +16,8 @@
 - NEVER use @imports between skills — each SKILL.md is self-contained
 
 ## Branch Naming
-- ALWAYS use `feature/<feature>` branch naming — convention
+- ALWAYS use `feature/<slug>` for the worktree branch — created by CLI at worktree creation
+- ALWAYS use `impl/<slug>--<feature>` for implementation branches — created by CLI before implement dispatch, cleaned up by `remove()` at release
 - ALWAYS create worktrees at `.beastmode/worktrees/<feature>` — standard location
 - NEVER work directly on main — use worktree isolation
 - Design creates both branch and worktree, all phases inherit, /release merges and cleans up — full lifecycle

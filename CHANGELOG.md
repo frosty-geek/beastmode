@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.75.0 — Impl Branch Naming (Apr 2026)
+
+- **Isolated implementation branches** — Parallel worktree agents use `impl/<slug>--<feature>` branches instead of `feature/<slug>/<feature>`, eliminating git ref namespace collisions
+- **`implBranchName` utility** — Naming function for consistent `impl/<slug>--<feature>` convention
+- **Idempotent `createImplBranch`** — CLI-owned branch creation with try-catch robustness
+- **Pipeline integration** — Impl branch created in both pipeline runner and watch loop before dispatch
+- **Automatic cleanup** — Impl branches deleted on worktree removal
+- **Skill updates** — SKILL.md, agent, and context files updated to reference new convention
+
+---
+
 ### v0.74.0 — Model Escalation Ladder (Apr 2026)
 
 - **Three-tier escalation ladder** — Implementer agents start on haiku and automatically escalate to sonnet, then opus, when blocked or quality review fails with critical issues
