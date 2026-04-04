@@ -91,6 +91,7 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
     slugAtIndex,
     onFilterApply: handleFilterApply,
     onFilterClear: handleFilterClear,
+    initialVerbosity: verbosity,
   });
 
   // --- Filter + toggle-all ---
@@ -242,6 +243,7 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
   const keyHintText = getKeyHints(keyboard.mode, {
     slug: cancelConfirmingSlug,
     filterInput: keyboard.filterInput,
+    verbosity: keyboard.verbosity,
   });
 
   // --- Cancel prompt ---
@@ -269,7 +271,7 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
           gitStatus={gitStatus}
         />
       }
-      logSlot={<LogPanel state={treeState} />}
+      logSlot={<LogPanel state={treeState} verbosity={keyboard.verbosity} />}
       keyHints={keyHintText}
       isShuttingDown={keyboard.shutdown.isShuttingDown}
       cancelPrompt={cancelPrompt}
