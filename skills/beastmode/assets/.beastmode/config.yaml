@@ -11,3 +11,6 @@ hitl:
   implement: "always defer to human"
   validate: "always defer to human"
   release: "always defer to human"
+
+file-permissions:
+  claude-settings: "always defer to human"

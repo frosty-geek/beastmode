@@ -88,6 +88,116 @@ export function formatLogEntry(
   return lines.join("\n");
 }
 
+// --- File Permission Types ---
+
+export interface FilePermissionInput {
+  file_path: string;
+  content?: string;
+  old_string?: string;
+  new_string?: string;
+  [key: string]: unknown;
+}
+
+// --- File Permission Detection ---
+
+/**
+ * Detect whether raw parsed JSON is a Write/Edit tool input (has file_path).
+ */
+export function isFilePermissionInput(raw: unknown): raw is FilePermissionInput {
+  if (raw === null || typeof raw !== "object") return false;
+  return "file_path" in (raw as Record<string, unknown>);
+}
+
+/**
+ * Infer tool name from input structure.
+ * Edit has old_string; Write has content or just file_path.
+ */
+export function inferToolName(input: FilePermissionInput): "Write" | "Edit" {
+  if ("old_string" in input) return "Edit";
+  return "Write";
+}
+
+/**
+ * Detect the permission tag from PostToolUse output.
+ *
+ * - "auto-deny": output indicates the tool was blocked/denied
+ * - "deferred": output indicates human intervention
+ * - "auto-allow": default — PostToolUse fired and tool succeeded
+ */
+export function detectFilePermissionTag(output: string): "auto-allow" | "auto-deny" | "deferred" {
+  const lower = output.toLowerCase();
+  if (lower.includes("denied") || lower.includes("blocked") || lower.includes('"deny"')) {
+    return "auto-deny";
+  }
+  if (lower.includes("user approved")) return "deferred";
+  return "auto-allow";
+}
+
+/**
+ * Format a structured markdown log entry for a file permission decision.
+ * Distinct from AskUserQuestion format but coexists in the same file.
+ */
+export function formatFilePermissionLogEntry(
+  toolName: string,
+  filePath: string,
+  tag: "auto-allow" | "auto-deny" | "deferred",
+): string {
+  const timestamp = new Date().toISOString();
+  const lines: string[] = [];
+
+  lines.push(`## ${timestamp}`);
+  lines.push("");
+  lines.push(`**Tag:** ${tag}`);
+  lines.push("");
+  lines.push(`**Tool:** ${toolName}`);
+  lines.push("");
+  lines.push(`**File:** ${filePath}`);
+  lines.push("");
+  lines.push(`**Decision:** ${tag}`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+// --- Routing ---
+
+/**
+ * Route raw TOOL_INPUT/TOOL_OUTPUT to the correct formatter.
+ * Returns formatted log entry string, or null if input is unrecognized.
+ */
+export function routeAndFormat(rawInput: string, rawOutput: string): string | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawInput);
+  } catch {
+    return null;
+  }
+
+  if (parsed === null || typeof parsed !== "object") return null;
+
+  // File permission path (Write/Edit)
+  if (isFilePermissionInput(parsed)) {
+    const toolName = inferToolName(parsed);
+    const tag = detectFilePermissionTag(rawOutput);
+    return formatFilePermissionLogEntry(toolName, parsed.file_path, tag);
+  }
+
+  // AskUserQuestion path
+  const input = parsed as ToolInput;
+  if (input.questions && input.questions.length > 0) {
+    let output: ToolOutput;
+    try {
+      output = JSON.parse(rawOutput);
+    } catch {
+      return null;
+    }
+    const tag = detectTag(input);
+    return formatLogEntry(input, output, tag);
+  }
+
+  return null;
+}
+
 // --- CLI entry point ---
 
 if (import.meta.main) {
@@ -103,15 +213,10 @@ if (import.meta.main) {
       process.exit(0);
     }
 
-    const input: ToolInput = JSON.parse(rawInput);
-    const output: ToolOutput = JSON.parse(rawOutput);
-
-    if (!input.questions || input.questions.length === 0) {
+    const entry = routeAndFormat(rawInput, rawOutput);
+    if (!entry) {
       process.exit(0);
     }
-
-    const tag = detectTag(input);
-    const entry = formatLogEntry(input, output, tag);
 
     // Resolve log path relative to git repo root
     const repoRoot = execSync("git rev-parse --show-toplevel", {

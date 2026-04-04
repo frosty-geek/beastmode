@@ -44,7 +44,14 @@ import {
   buildPreToolUseHook,
   getPhaseHitlProse,
 } from "../hooks/hitl-settings.js";
+import {
+  writeFilePermissionSettings,
+  cleanFilePermissionSettings,
+  buildFilePermissionPreToolUseHooks,
+  buildFilePermissionPostToolUseHooks,
+} from "../hooks/file-permission-settings.js";
 import type { BeastmodeConfig } from "../config.js";
+import { getCategoryProse } from "../config.js";
 
 /** Dispatch strategy type -- determines how the phase session runs. */
 export type DispatchStrategy = "interactive" | "sdk" | "cmux" | "iterm2";
@@ -138,6 +145,13 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     const hitlProse = getPhaseHitlProse(config.config.hitl, config.phase);
     const preToolUseHook = buildPreToolUseHook(hitlProse, config.config.hitl.timeout);
     writeHitlSettings({ claudeDir, preToolUseHook, phase: config.phase });
+
+    // File-permission hooks
+    cleanFilePermissionSettings(claudeDir);
+    const fpProse = getCategoryProse(config.config["file-permissions"], "claude-settings");
+    const fpPreToolUseHooks = buildFilePermissionPreToolUseHooks(fpProse, config.config["file-permissions"].timeout);
+    const fpPostToolUseHooks = buildFilePermissionPostToolUseHooks(config.phase);
+    writeFilePermissionSettings({ claudeDir, preToolUseHooks: fpPreToolUseHooks, postToolUseHooks: fpPostToolUseHooks });
   }
 
   // Create impl branch for implement phase (idempotent — skips if exists)

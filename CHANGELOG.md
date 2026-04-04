@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.83.0 — File Permission Hooks (Apr 2026)
+
+- **File permission config** — Declarative `file-permissions:` section in config.yaml with per-category prose fields and "always defer to human" defaults
+- **Hook builders** — Generate Claude Code PreToolUse prompt hooks from config, targeting Write/Edit with `if`-field path filtering per category
+- **Dispatch integration** — File permission hooks written alongside HITL hooks at watch, phase, and pipeline runner dispatch time
+- **Permission logging** — PostToolUse command hooks for Write/Edit events with unified log entry formatting and routing
+- **Integration tests** — Cucumber BDD suite covering config parsing, hook generation, decision logging, and lifecycle scenarios
+
+---
+
 ### v0.82.0 — Dashboard Wiring Fix (Apr 2026)
 
 - **ThreePanelLayout wiring** — Replaced dead TwoColumnLayout with ThreePanelLayout in App.tsx as the primary dashboard layout
