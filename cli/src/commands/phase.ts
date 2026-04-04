@@ -83,7 +83,7 @@ export async function phaseCommand(
     }
   }
 
-  const epicSlug = phase === "design" ? worktreeSlug : (args[0] || worktreeSlug);
+  const epicSlug = worktreeSlug;
 
   // ── Cmux path ─────────────────────────────────────────────────────────
   // Already in a worktree (cmux dispatch) — run interactive dispatch only.
