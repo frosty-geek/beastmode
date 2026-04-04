@@ -135,6 +135,33 @@ export class WatchLoop extends EventEmitter {
 
   /** Run a single scan-and-dispatch cycle. */
   async tick(): Promise<void> {
+    // Check liveness of active sessions before scanning
+    if (this.deps.sessionFactory.checkLiveness && this.tracker.size > 0) {
+      const beforeIds = new Set(this.tracker.getAll().map((s) => s.id));
+      const beforeSessions = new Map(this.tracker.getAll().map((s) => [s.id, s]));
+      try {
+        await this.deps.sessionFactory.checkLiveness(this.tracker.getAll());
+      } catch (err) {
+        this.logger.warn(`Liveness check failed: ${err}`);
+      }
+      // Give microtasks a chance to process force-resolved promises
+      await new Promise((r) => setTimeout(r, 0));
+      // Detect sessions removed by force-resolution
+      for (const id of beforeIds) {
+        if (!this.tracker.has(id)) {
+          const session = beforeSessions.get(id);
+          if (session) {
+            this.emitTyped('session-dead', {
+              epicSlug: session.epicSlug,
+              phase: session.phase,
+              featureSlug: session.featureSlug,
+              sessionId: session.id,
+              tty: '',
+            });
+          }
+        }
+      }
+    }
 
     let epics: EnrichedManifest[];
     try {

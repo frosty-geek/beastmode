@@ -362,4 +362,124 @@ describe("WatchLoop event emission", () => {
     expect(held[0].blockingSlug).toBe("epic-a");
     loop.setRunning(false);
   });
+
+  test("tick calls checkLiveness before epic scan when factory supports it", async () => {
+    const callOrder: string[] = [];
+    let scanCount = 0;
+
+    const deps = makeDeps({
+      scanEpics: async () => {
+        callOrder.push("scan");
+        scanCount++;
+        // First scan dispatches one session, second scan (rescan after completion) returns empty
+        if (scanCount === 1) {
+          return [makeEpic({ slug: "test-epic", nextAction: { phase: "design", args: ["test-epic"], type: "single" as const } })];
+        }
+        return [];
+      },
+      sessionFactory: {
+        async create(opts: SessionCreateOpts): Promise<SessionHandle> {
+          return {
+            id: `session-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: new Promise(() => {}), // Never resolves
+          };
+        },
+        async checkLiveness(_sessions: import("../dispatch/types").DispatchedSession[]) {
+          callOrder.push("checkLiveness");
+        },
+      },
+    });
+
+    const loop = new WatchLoop(makeConfig(), deps);
+    loop.setRunning(true);
+
+    // First tick: dispatch the session
+    await loop.tick();
+    expect(callOrder).toEqual(["scan"]); // No liveness check on first tick (tracker empty)
+
+    // Second tick: liveness check should run first
+    callOrder.length = 0;
+    await loop.tick();
+
+    expect(callOrder).toEqual(["checkLiveness", "scan"]);
+    loop.setRunning(false);
+  });
+
+  test("tick skips checkLiveness when factory does not support it", async () => {
+    const deps = makeDeps({
+      scanEpics: async () => [],
+      sessionFactory: {
+        async create(opts: SessionCreateOpts): Promise<SessionHandle> {
+          return {
+            id: `session-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: new Promise(() => {}),
+          };
+        },
+        // No checkLiveness method
+      },
+    });
+
+    const loop = new WatchLoop(makeConfig(), deps);
+    loop.setRunning(true);
+
+    // Should not throw
+    await loop.tick();
+    loop.setRunning(false);
+  });
+
+  test("emits session-dead when liveness check detects dead session", async () => {
+    const resolvers = new Map<string, (result: import("../dispatch/types").SessionResult) => void>();
+
+    let scanCount = 0;
+    const deps = makeDeps({
+      scanEpics: async () => {
+        scanCount++;
+        if (scanCount === 1) {
+          return [makeEpic({ slug: "dead-epic", nextAction: { phase: "plan", args: ["dead-epic"], type: "single" as const } })];
+        }
+        return [];
+      },
+      sessionFactory: {
+        async create(opts: SessionCreateOpts): Promise<SessionHandle> {
+          let resolvePromise!: (result: import("../dispatch/types").SessionResult) => void;
+          const promise = new Promise<import("../dispatch/types").SessionResult>((resolve) => {
+            resolvePromise = resolve;
+          });
+          const id = `session-dead-test`;
+          resolvers.set(id, resolvePromise);
+          return { id, worktreeSlug: opts.epicSlug, promise };
+        },
+        async checkLiveness(sessions: import("../dispatch/types").DispatchedSession[]) {
+          for (const session of sessions) {
+            const resolver = resolvers.get(session.id);
+            if (resolver) {
+              resolver({ success: false, exitCode: 1, durationMs: 1000 });
+            }
+          }
+        },
+      },
+    });
+
+    const loop = new WatchLoop(makeConfig(), deps);
+    loop.setRunning(true);
+
+    const deadEvents: Array<{ epicSlug: string; phase: string; sessionId: string }> = [];
+    loop.on("session-dead", (payload) => deadEvents.push(payload));
+
+    // First tick dispatches the session
+    await loop.tick();
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Second tick triggers liveness check — which force-resolves the dead session
+    await loop.tick();
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(deadEvents.length).toBe(1);
+    expect(deadEvents[0].epicSlug).toBe("dead-epic");
+    expect(deadEvents[0].phase).toBe("plan");
+    expect(deadEvents[0].sessionId).toBe("session-dead-test");
+    loop.setRunning(false);
+  });
 });
