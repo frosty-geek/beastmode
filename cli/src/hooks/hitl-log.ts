@@ -88,6 +88,77 @@ export function formatLogEntry(
   return lines.join("\n");
 }
 
+// --- File Permission Types ---
+
+export interface FilePermissionInput {
+  file_path: string;
+  content?: string;
+  old_string?: string;
+  new_string?: string;
+  [key: string]: unknown;
+}
+
+// --- File Permission Detection ---
+
+/**
+ * Detect whether raw parsed JSON is a Write/Edit tool input (has file_path).
+ */
+export function isFilePermissionInput(raw: unknown): raw is FilePermissionInput {
+  if (raw === null || typeof raw !== "object") return false;
+  return "file_path" in (raw as Record<string, unknown>);
+}
+
+/**
+ * Infer tool name from input structure.
+ * Edit has old_string; Write has content or just file_path.
+ */
+export function inferToolName(input: FilePermissionInput): "Write" | "Edit" {
+  if ("old_string" in input) return "Edit";
+  return "Write";
+}
+
+/**
+ * Detect the permission tag from PostToolUse output.
+ *
+ * - "auto-deny": output indicates the tool was blocked/denied
+ * - "deferred": output indicates human intervention
+ * - "auto-allow": default — PostToolUse fired and tool succeeded
+ */
+export function detectFilePermissionTag(output: string): "auto-allow" | "auto-deny" | "deferred" {
+  const lower = output.toLowerCase();
+  if (lower.includes("denied") || lower.includes("blocked") || lower.includes('"deny"')) {
+    return "auto-deny";
+  }
+  if (lower.includes("user approved")) return "deferred";
+  return "auto-allow";
+}
+
+/**
+ * Format a structured markdown log entry for a file permission decision.
+ * Distinct from AskUserQuestion format but coexists in the same file.
+ */
+export function formatFilePermissionLogEntry(
+  toolName: string,
+  filePath: string,
+  tag: "auto-allow" | "auto-deny" | "deferred",
+): string {
+  const timestamp = new Date().toISOString();
+  const lines: string[] = [];
+
+  lines.push(`## ${timestamp}`);
+  lines.push("");
+  lines.push(`**Tag:** ${tag}`);
+  lines.push("");
+  lines.push(`**Tool:** ${toolName}`);
+  lines.push("");
+  lines.push(`**File:** ${filePath}`);
+  lines.push("");
+  lines.push(`**Decision:** ${tag}`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
 // --- CLI entry point ---
 
 if (import.meta.main) {

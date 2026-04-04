@@ -1,5 +1,12 @@
 import { describe, test, expect } from "bun:test";
-import { formatLogEntry, detectTag } from "../hooks/hitl-log";
+import {
+  formatLogEntry,
+  detectTag,
+  isFilePermissionInput,
+  detectFilePermissionTag,
+  inferToolName,
+  formatFilePermissionLogEntry,
+} from "../hooks/hitl-log";
 import type { ToolInput, ToolOutput } from "../hooks/hitl-log";
 
 // --- Fixture helpers ---
@@ -133,5 +140,106 @@ describe("formatLogEntry", () => {
     const entry = formatLogEntry(input, output, "human");
 
     expect(entry).toContain("**Answer:** (no answer)");
+  });
+});
+
+// --- File Permission Detection ---
+
+describe("isFilePermissionInput", () => {
+  test("returns true for Write-shaped input", () => {
+    const raw = { file_path: "/tmp/test.ts", content: "hello" };
+    expect(isFilePermissionInput(raw)).toBe(true);
+  });
+
+  test("returns true for Edit-shaped input", () => {
+    const raw = { file_path: "/tmp/test.ts", old_string: "old", new_string: "new" };
+    expect(isFilePermissionInput(raw)).toBe(true);
+  });
+
+  test("returns false for AskUserQuestion-shaped input", () => {
+    const raw = { questions: [{ question: "Which DB?" }] };
+    expect(isFilePermissionInput(raw)).toBe(false);
+  });
+
+  test("returns false for empty object", () => {
+    expect(isFilePermissionInput({})).toBe(false);
+  });
+
+  test("returns false for null", () => {
+    expect(isFilePermissionInput(null)).toBe(false);
+  });
+});
+
+describe("inferToolName", () => {
+  test("returns Write when input has content field", () => {
+    expect(inferToolName({ file_path: "/tmp/f.ts", content: "x" })).toBe("Write");
+  });
+
+  test("returns Edit when input has old_string field", () => {
+    expect(inferToolName({ file_path: "/tmp/f.ts", old_string: "a", new_string: "b" })).toBe("Edit");
+  });
+
+  test("returns Write as default when only file_path present", () => {
+    expect(inferToolName({ file_path: "/tmp/f.ts" })).toBe("Write");
+  });
+});
+
+describe("detectFilePermissionTag", () => {
+  test("returns auto-allow for successful output", () => {
+    expect(detectFilePermissionTag("File written successfully")).toBe("auto-allow");
+  });
+
+  test("returns auto-allow for empty output (success)", () => {
+    expect(detectFilePermissionTag("")).toBe("auto-allow");
+  });
+
+  test("returns auto-deny when output contains denied", () => {
+    expect(detectFilePermissionTag("Permission denied by hook")).toBe("auto-deny");
+  });
+
+  test("returns auto-deny when output contains blocked", () => {
+    expect(detectFilePermissionTag("Tool use blocked")).toBe("auto-deny");
+  });
+
+  test("returns auto-deny when output contains permissionDecision deny", () => {
+    expect(detectFilePermissionTag(JSON.stringify({ permissionDecision: "deny" }))).toBe("auto-deny");
+  });
+
+  test("returns deferred when output contains user approved", () => {
+    expect(detectFilePermissionTag("User approved the operation")).toBe("deferred");
+  });
+});
+
+describe("formatFilePermissionLogEntry", () => {
+  test("produces markdown with timestamp heading", () => {
+    const entry = formatFilePermissionLogEntry("Write", "/tmp/test.ts", "auto-allow");
+    expect(entry).toMatch(/## \d{4}-\d{2}-\d{2}T/);
+  });
+
+  test("includes tag", () => {
+    const entry = formatFilePermissionLogEntry("Write", "/tmp/test.ts", "auto-allow");
+    expect(entry).toContain("**Tag:** auto-allow");
+  });
+
+  test("includes tool name", () => {
+    const entry = formatFilePermissionLogEntry("Edit", "/tmp/test.ts", "auto-deny");
+    expect(entry).toContain("**Tool:** Edit");
+  });
+
+  test("includes file path", () => {
+    const entry = formatFilePermissionLogEntry("Write", ".claude/settings.local.json", "auto-allow");
+    expect(entry).toContain("**File:** .claude/settings.local.json");
+  });
+
+  test("includes decision line matching tag", () => {
+    const entry = formatFilePermissionLogEntry("Write", "/tmp/f.ts", "deferred");
+    expect(entry).toContain("**Decision:** deferred");
+  });
+
+  test("format is distinct from AskUserQuestion entries (no Q: heading)", () => {
+    const entry = formatFilePermissionLogEntry("Write", "/tmp/f.ts", "auto-allow");
+    expect(entry).not.toContain("### Q:");
+    expect(entry).not.toContain("**Options:**");
+    expect(entry).not.toContain("**Answer:**");
   });
 });
