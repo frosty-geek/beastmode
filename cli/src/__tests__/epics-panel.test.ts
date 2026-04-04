@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { getKeyHints } from "../dashboard/key-hints.js";
+import { getEpicIcon } from "../dashboard/EpicsPanel.js";
 
 
 // ---------------------------------------------------------------------------
@@ -71,17 +72,11 @@ describe("EpicsPanel logic", () => {
     expect(totalRows).toBe(1); // just (all)
   });
 
-  // Test: progress bar computation
-  test("progress bar counts completed features", () => {
-    const features = [
-      { status: "completed" },
-      { status: "pending" },
-      { status: "completed" },
-      { status: "in-progress" },
-    ];
-    const completed = features.filter((f) => f.status === "completed").length;
-    expect(completed).toBe(2);
-    expect(features.length).toBe(4);
+  // Test: no progress bars in epic rows
+  test("epic rows do not include progress bars", () => {
+    // ProgressBar component removed from EpicsPanel — rows show icon + slug + phase badge
+    const icon = getEpicIcon(false, false, "implement");
+    expect(icon).not.toHaveProperty("progress");
   });
 
   // Test: slugWidth computation
