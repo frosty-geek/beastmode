@@ -4,22 +4,34 @@
 - ALWAYS use Ink v6.8.0 + React for fullscreen TUI rendering — Yoga flexbox handles terminal resize natively
 - ALWAYS use alternate screen buffer (`\x1b[?1049h` / `\x1b[?1049l`) for clean terminal entry and exit
 - UI refresh ticks every 1 second independently of the orchestration scan interval — spinners and clock update smoothly
-- Color scheme follows existing phase convention: magenta (design), blue (plan), yellow (implement), cyan (validate), green (release), dim green (done), red (blocked), dim red (cancelled)
+- Color scheme follows Monokai Pro palette: purple #AB9DF2 (design), cyan #78DCE8 (plan), yellow #FFD866 (implement), green #A9DC76 (validate), orange #FC9867 (release), dim green (done), red #FF6188 (blocked/cancelled) — all values exported from a single shared monokai-palette module
 
 ## Layout
-- Three-panel split screen via ThreePanelLayout component with EpicsPanel, OverviewPanel, LogPanel as slot children: epics list (top-left ~30%), overview (top-right ~70%), log (bottom ~65% full-width)
-- k9s-style cyan chrome with single-line box-drawing characters and panel titles inset in top borders (custom top line: disable Ink borderTop, emit `┌─ TITLE ─...─┐` manually — no third-party library)
+- Three-panel vertical split via ThreePanelLayout: left column (35% width) contains EpicsPanel (60% height) stacked above OverviewPanel (40% height); right column (65% width) contains LogPanel at full height
+- No outer chrome border — each panel renders its own PanelBox border with title inset (custom top line: `┌─ TITLE ─...─┐` via `"─".repeat(200)` + terminal clipping — no third-party library)
+- Panel borders: Monokai gray #727072; panel titles: Monokai cyan #78DCE8
 - Outer Box receives explicit `height={rows}` from `useTerminalSize()` hook passed through App.tsx for fullscreen auto-expansion — does not rely on `height="100%"` alone
 - Watch status and clock rendered in top-right corner of NyanBanner header row
-- Key hints bar at bottom, outside the bordered area
+- Key hints bar at bottom, outside the panel area
 - Minimum terminal size enforced at 80x24 — friendly message below that threshold
 
 ## Header / NyanBanner
-- Dashboard header replaced by NyanBanner component — 2-line ASCII block art rendered with continuously cycling nyan cat rainbow colors
-- Color cycling: 6-stripe palette (Red #FF0000, Orange #FF9008, Yellow #F6FF00, Green #7CFF27, Cyan #5FFBFF, Purple #6400FF), each non-space character gets color `(charIndex + tickOffset) % 6`, spaces pass through uncolored
-- Animation tick: 80ms interval via `useEffect` — matches existing spinner tick rate, both banner lines share same offset for vertical stripe coherence
+- Dashboard header is a NyanBanner component — 2-line ASCII block art rendered with continuously cycling nyan cat rainbow colors
+- Color cycling: 256-step interpolated palette via linear RGB interpolation between 6 nyan cat anchor colors (~43 steps per transition); each non-space character gets color `palette[(charIndex + tickOffset) % 256]`, spaces pass through uncolored
+- Animation tick: 80ms interval via `useEffect` — 256-step width produces ~20-second full rotation (slow, buttery color wash); both banner lines share same offset for vertical stripe coherence
 - Color engine is a pure function in `nyan-colors.ts` — stateless, independently testable
+- Trailing animated dots: 15 `▄` characters appended to banner line 2, colored by the same gradient engine
 - Watch status and clock remain right-aligned on banner row 1
+
+## Monokai Pro Palette Module
+- ALWAYS import dashboard colors from the shared `monokai-palette` module — no inline hex values or duplicate PHASE_COLOR maps in consumers
+- Module exports: PHASE_COLORS map (design/plan/implement/validate/release/done/cancelled/blocked), chrome colors (BORDER #727072, TITLE #78DCE8, WATCH_RUNNING #A9DC76, WATCH_STOPPED #FF6188, CLOCK_HINTS #727072), and DEPTH background constants (CHROME #403E41, PANEL #353236, TERMINAL #2D2A2E)
+- Consumers: EpicsPanel, OverviewPanel, PanelBox, ThreePanelLayout, tree-format, status.ts — all import from shared module, zero duplicate definitions
+
+## Depth Hierarchy
+- Three-tier background system creates visual depth without harsh borders: Tier 1 chrome (#403E41, header + hints bars), Tier 2 panel interiors (#353236, all PanelBox content areas), Tier 3 terminal (#2D2A2E, natural terminal background in gaps)
+- Tiers progress from lightest (chrome) to darkest (terminal) — depth reads naturally, heavier elements sit deeper
+- ALWAYS use DEPTH constants from monokai-palette — never inline the hex values in layout or panel components
 
 ## Interaction Model
 - Epics panel is the sole interactive panel — details and log are passive displays reacting to epic selection

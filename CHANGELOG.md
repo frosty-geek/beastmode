@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.86.0 — Dashboard Polish (Apr 2026)
+
+- **Monokai Pro palette** — Centralized color module with hex/ANSI constants replacing scattered hardcoded values across all dashboard components
+- **Smooth gradient** — 256-step interpolated nyan banner palette replacing 6-color hard-switch
+- **Depth hierarchy** — Three-tier panel background system (chrome → mid → deep) with header/hints chrome bands
+- **Layout restructure** — Vertical split layout with outer chrome removed, panel interior backgrounds via PanelBox
+- **Banner fixes** — Correct D/K character swap and trailing dot count
+- **Integration tests** — Cucumber scenarios for all dashboard-polish features with shared DashboardWorld helpers
+
+---
+
 ### v0.85.0 — Dashboard Dispatch Fix (Apr 2026)
 
 - **Strategy dispatch** — Replace broken CLI fallback with proper `selectStrategy()` wired into dashboard command, respecting configured dispatch strategy
