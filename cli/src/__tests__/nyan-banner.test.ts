@@ -50,7 +50,8 @@ describe("nyanColor", () => {
 
   test("handles large tick offsets without error", () => {
     const color = nyanColor("█", 0, 100000);
-    expect(NYAN_PALETTE).toContain(color as string);
+    expect(color).toBeDefined();
+    expect(NYAN_PALETTE as readonly string[]).toContain(color as string);
   });
 });
 
