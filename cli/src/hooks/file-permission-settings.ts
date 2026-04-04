@@ -17,6 +17,7 @@ interface FilePermissionHookHandler {
   prompt: string;
   if: string;
   timeout?: number;
+  [key: string]: unknown;
 }
 
 interface FilePermissionHookEntry {
