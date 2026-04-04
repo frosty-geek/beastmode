@@ -14,7 +14,7 @@
 
 import type { BeastmodeConfig } from "../config";
 import type { Phase } from "../types";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
 import { runInteractive } from "../dispatch/factory";
 import {
   enter as enterWorktree,
@@ -23,6 +23,8 @@ import {
 } from "../git/worktree";
 import { run as runPipeline } from "../pipeline/runner.js";
 import * as store from "../manifest/store";
+import { JsonFileStore } from "../store/json-file-store.js";
+import { resolveIdentifier } from "../store/resolve.js";
 import { createLogger } from "../logger";
 import { loadWorktreePhaseOutput } from "../artifacts/reader";
 import { loadConfig, getCategoryProse } from "../config";
@@ -52,12 +54,28 @@ export async function phaseCommand(
     : process.cwd();
   const worktreeSlug = deriveWorktreeSlug(phase, args);
 
-  // Fail-fast: non-design phases require the slug to exist in the store.
+  // Fail-fast: non-design phases require the epic to exist.
+  // Resolution priority: store ID → store slug → manifest fallback
   if (phase !== "design") {
-    const existing = store.find(projectRoot, worktreeSlug);
-    if (!existing) {
-      logger.error(`Epic "${worktreeSlug}" not found — run "beastmode design" first`);
+    const storePath = join(projectRoot, ".beastmode", "state", "store.json");
+    const taskStore = new JsonFileStore(storePath);
+    taskStore.load();
+
+    const resolution = resolveIdentifier(taskStore, worktreeSlug, { resolveToEpic: true });
+
+    if (resolution.kind === "ambiguous") {
+      const ids = resolution.matches.map(e => e.id).join(", ");
+      logger.error(`Ambiguous identifier "${worktreeSlug}" matches multiple entities: ${ids}. Use the fully qualified ID instead.`);
       process.exit(1);
+    }
+
+    if (resolution.kind === "not-found") {
+      // Fallback to manifest lookup (coexistence period)
+      const existing = store.find(projectRoot, worktreeSlug);
+      if (!existing) {
+        logger.error(`Epic "${worktreeSlug}" not found — run "beastmode design" first`);
+        process.exit(1);
+      }
     }
   }
 
