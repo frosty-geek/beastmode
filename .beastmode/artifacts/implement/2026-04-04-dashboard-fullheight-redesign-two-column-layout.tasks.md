@@ -42,7 +42,7 @@ Replace `ThreePanelLayout` with a `TwoColumnLayout` component. Left column (40%)
 - Modify: `cli/src/dashboard/PanelBox.tsx`
 - Test: `cli/src/__tests__/two-column-layout.test.ts`
 
-- [ ] **Step 1: Write the test for PanelBox backgroundColor prop**
+- [x] **Step 1: Write the test for PanelBox backgroundColor prop**
 
 Create `cli/src/__tests__/two-column-layout.test.ts` with the PanelBox backgroundColor tests:
 
@@ -69,12 +69,12 @@ describe("PanelBox backgroundColor prop", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it passes (baseline)**
+- [x] **Step 2: Run test to verify it passes (baseline)**
 
 Run: `bun test cli/src/__tests__/two-column-layout.test.ts`
 Expected: PASS (these are unit tests on plain objects, not rendering tests)
 
-- [ ] **Step 3: Add backgroundColor prop to PanelBox**
+- [x] **Step 3: Add backgroundColor prop to PanelBox**
 
 Modify `cli/src/dashboard/PanelBox.tsx`:
 
@@ -138,12 +138,12 @@ export default function PanelBox({
 }
 ```
 
-- [ ] **Step 4: Run tests to verify nothing broke**
+- [x] **Step 4: Run tests to verify nothing broke**
 
 Run: `bun test cli/src/__tests__/two-column-layout.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add cli/src/dashboard/PanelBox.tsx cli/src/__tests__/two-column-layout.test.ts
@@ -161,7 +161,7 @@ git commit -m "feat(two-column-layout): add backgroundColor prop to PanelBox"
 - Create: `cli/src/dashboard/TwoColumnLayout.tsx`
 - Modify: `cli/src/__tests__/two-column-layout.test.ts`
 
-- [ ] **Step 1: Write tests for TwoColumnLayout proportions and structure**
+- [x] **Step 1: Write tests for TwoColumnLayout proportions and structure**
 
 Append to `cli/src/__tests__/two-column-layout.test.ts`:
 
@@ -273,12 +273,12 @@ describe("TwoColumnLayout key hints bar", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they pass (baseline logic tests)**
+- [x] **Step 2: Run tests to verify they pass (baseline logic tests)**
 
 Run: `bun test cli/src/__tests__/two-column-layout.test.ts`
 Expected: PASS
 
-- [ ] **Step 3: Create TwoColumnLayout component**
+- [x] **Step 3: Create TwoColumnLayout component**
 
 Create `cli/src/dashboard/TwoColumnLayout.tsx`:
 
@@ -373,12 +373,12 @@ export default function TwoColumnLayout({
 }
 ```
 
-- [ ] **Step 4: Run tests to verify everything passes**
+- [x] **Step 4: Run tests to verify everything passes**
 
 Run: `bun test cli/src/__tests__/two-column-layout.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add cli/src/dashboard/TwoColumnLayout.tsx cli/src/__tests__/two-column-layout.test.ts
@@ -397,7 +397,7 @@ git commit -m "feat(two-column-layout): create TwoColumnLayout component"
 - Delete: `cli/src/dashboard/ThreePanelLayout.tsx`
 - Delete: `cli/src/__tests__/three-panel-layout.test.ts`
 
-- [ ] **Step 1: Update App.tsx to use TwoColumnLayout**
+- [x] **Step 1: Update App.tsx to use TwoColumnLayout**
 
 In `cli/src/dashboard/App.tsx`:
 
@@ -407,24 +407,24 @@ In `cli/src/dashboard/App.tsx`:
 
 2. In the JSX return, change `<ThreePanelLayout` to `<TwoColumnLayout` and `</ThreePanelLayout>` to `</TwoColumnLayout>`. The props are identical — same interface.
 
-- [ ] **Step 2: Delete old ThreePanelLayout component**
+- [x] **Step 2: Delete old ThreePanelLayout component**
 
 ```bash
 rm cli/src/dashboard/ThreePanelLayout.tsx
 ```
 
-- [ ] **Step 3: Delete old three-panel-layout test file**
+- [x] **Step 3: Delete old three-panel-layout test file**
 
 ```bash
 rm cli/src/__tests__/three-panel-layout.test.ts
 ```
 
-- [ ] **Step 4: Run full test suite to verify nothing broke**
+- [x] **Step 4: Run full test suite to verify nothing broke**
 
 Run: `cd cli && npm test`
 Expected: All test files pass. No import errors for ThreePanelLayout.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add cli/src/dashboard/App.tsx
