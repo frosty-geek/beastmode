@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: 81fdc2
+slug: dashboard-wiring-fix
 epic: dashboard-wiring-fix
 ---
 
