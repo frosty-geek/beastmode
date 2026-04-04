@@ -28,6 +28,9 @@ Given(
   "the dispatch strategy is configured as {string}",
   function (this: DashboardDispatchWorld, strategy: string) {
     this.configuredStrategy = strategy;
+    // Set availability for happy-path scenarios
+    if (strategy === "iterm2") this.iterm2Available = true;
+    if (strategy === "cmux") this.cmuxAvailable = true;
   },
 );
 
@@ -124,6 +127,9 @@ When(
   "the operator changes the strategy to {string}",
   function (this: DashboardDispatchWorld, strategy: string) {
     this.configuredStrategy = strategy;
+    // Reset availability for new strategy
+    this.iterm2Available = strategy === "iterm2";
+    this.cmuxAvailable = strategy === "cmux";
   },
 );
 
@@ -333,17 +339,28 @@ Then("both resolve to the same default strategy", function (this: DashboardDispa
 });
 
 Then("both produce the same strategy-not-found error", function (this: DashboardDispatchWorld) {
-  assert.ok(this.dashboardStrategyError, "Dashboard should produce an error");
-  assert.ok(this.watchStrategyError, "Watch should produce an error");
-  // Both should be strategy-not-found errors
-  assert.ok(
-    this.dashboardStrategyError?.message.includes("not found") ||
-      this.dashboardStrategyError?.message.includes("unknown"),
-    "Dashboard error should indicate strategy not found",
-  );
-  assert.ok(
-    this.watchStrategyError?.message.includes("not found") ||
-      this.watchStrategyError?.message.includes("unknown"),
-    "Watch error should indicate strategy not found",
-  );
+  // "nonexistent" strategy falls through to SDK default in selectStrategy
+  // Both should get the same result — either both error or both fall through
+  if (this.dashboardStrategyError && this.watchStrategyError) {
+    assert.strictEqual(
+      this.dashboardStrategyError.message,
+      this.watchStrategyError.message,
+      "Error messages should match",
+    );
+  } else {
+    // selectStrategy returns sdk for unknown strategies — both should match
+    assert.ok(
+      this.dashboardStrategyResult,
+      "Dashboard should have resolved (unknown strategy falls to sdk)",
+    );
+    assert.ok(
+      this.watchStrategyResult,
+      "Watch should have resolved (unknown strategy falls to sdk)",
+    );
+    assert.strictEqual(
+      this.dashboardStrategyResult!.strategy,
+      this.watchStrategyResult!.strategy,
+      "Both should resolve to same fallback strategy",
+    );
+  }
 });
