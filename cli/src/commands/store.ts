@@ -241,20 +241,69 @@ export async function featureCommand(store: JsonFileStore, args: string[]): Prom
   }
 }
 
-async function readyCommand(store: JsonFileStore, args: string[]): Promise<void> {
-  jsonError("Not implemented yet");
+export async function readyCommand(store: JsonFileStore, args: string[]): Promise<void> {
+  const { positional, flags } = parseFlags(args);
+  const opts: { epicId?: string; type?: "epic" | "feature" } = {};
+
+  if (positional.length > 0) {
+    const epicId = await store.transact(s => {
+      const entity = s.find(positional[0]);
+      if (!entity || entity.type !== "epic") throw new Error(`Epic not found: ${positional[0]}`);
+      return entity.id;
+    });
+    opts.epicId = epicId;
+  }
+
+  if (flags["type"] === "epic" || flags["type"] === "feature") {
+    opts.type = flags["type"];
+  }
+
+  const result = await store.transact(s => s.ready(opts));
+  jsonOut(result);
 }
 
-async function blockedCommand(store: JsonFileStore): Promise<void> {
-  jsonError("Not implemented yet");
+export async function blockedCommand(store: JsonFileStore): Promise<void> {
+  const result = await store.transact(s => s.blocked());
+  jsonOut(result);
 }
 
-async function treeCommand(store: JsonFileStore, args: string[]): Promise<void> {
-  jsonError("Not implemented yet");
+export async function treeCommand(store: JsonFileStore, args: string[]): Promise<void> {
+  const { positional } = parseFlags(args);
+  const rootId = positional.length > 0 ? positional[0] : undefined;
+
+  const result = await store.transact(s => {
+    if (rootId) {
+      const entity = s.find(rootId);
+      if (!entity) throw new Error(`Entity not found: ${rootId}`);
+      return s.tree(entity.id);
+    }
+    return s.tree();
+  });
+  jsonOut(result);
 }
 
-async function searchCommand(store: JsonFileStore, args: string[]): Promise<void> {
-  jsonError("Not implemented yet");
+export async function searchCommand(store: JsonFileStore, args: string[]): Promise<void> {
+  const { flags } = parseFlags(args);
+
+  const result = await store.transact(s => {
+    const epics = s.listEpics();
+    const allEntities: any[] = [...epics];
+    for (const epic of epics) {
+      allEntities.push(...s.listFeatures(epic.id));
+    }
+
+    return allEntities.filter(entity => {
+      if (flags["type"] && entity.type !== flags["type"]) return false;
+      if (flags["status"] && entity.status !== flags["status"]) return false;
+      if (flags["name"]) {
+        const nameLower = entity.name.toLowerCase();
+        const queryLower = flags["name"].toLowerCase();
+        if (!nameLower.includes(queryLower)) return false;
+      }
+      return true;
+    });
+  });
+  jsonOut(result);
 }
 
 // --- Testable helpers (bypass projectRoot resolution) ---
@@ -371,5 +420,61 @@ export async function featureDeleteTestable(store: JsonFileStore, args: string[]
     const feature = s.getFeature(args[0]);
     if (!feature) throw new Error(`Feature not found: ${args[0]}`);
     s.deleteFeature(feature.id);
+  });
+}
+
+// --- Query testable helpers ---
+
+export async function readyTestable(store: JsonFileStore, args: string[]): Promise<any> {
+  const { positional, flags } = parseFlags(args);
+  const opts: { epicId?: string; type?: "epic" | "feature" } = {};
+  if (positional.length > 0) {
+    opts.epicId = await store.transact(s => {
+      const entity = s.find(positional[0]);
+      if (!entity || entity.type !== "epic") throw new Error(`Epic not found: ${positional[0]}`);
+      return entity.id;
+    });
+  }
+  if (flags["type"] === "epic" || flags["type"] === "feature") {
+    opts.type = flags["type"];
+  }
+  return store.transact(s => s.ready(opts));
+}
+
+export async function blockedTestable(store: JsonFileStore): Promise<any> {
+  return store.transact(s => s.blocked());
+}
+
+export async function treeTestable(store: JsonFileStore, args: string[]): Promise<any> {
+  const { positional } = parseFlags(args);
+  const rootId = positional.length > 0 ? positional[0] : undefined;
+  return store.transact(s => {
+    if (rootId) {
+      const entity = s.find(rootId);
+      if (!entity) throw new Error(`Entity not found: ${rootId}`);
+      return s.tree(entity.id);
+    }
+    return s.tree();
+  });
+}
+
+export async function searchTestable(store: JsonFileStore, args: string[]): Promise<any> {
+  const { flags } = parseFlags(args);
+  return store.transact(s => {
+    const epics = s.listEpics();
+    const allEntities: any[] = [...epics];
+    for (const epic of epics) {
+      allEntities.push(...s.listFeatures(epic.id));
+    }
+    return allEntities.filter(entity => {
+      if (flags["type"] && entity.type !== flags["type"]) return false;
+      if (flags["status"] && entity.status !== flags["status"]) return false;
+      if (flags["name"]) {
+        const nameLower = entity.name.toLowerCase();
+        const queryLower = flags["name"].toLowerCase();
+        if (!nameLower.includes(queryLower)) return false;
+      }
+      return true;
+    });
   });
 }

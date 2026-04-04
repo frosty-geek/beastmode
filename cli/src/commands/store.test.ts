@@ -13,6 +13,10 @@ import {
   featureShowTestable,
   featureUpdateTestable,
   featureDeleteTestable,
+  readyTestable,
+  blockedTestable,
+  treeTestable,
+  searchTestable,
 } from "./store.js";
 
 function tmpdir(): string {
@@ -204,5 +208,103 @@ describe("feature commands", () => {
 
   it("feature show with unknown ID throws", async () => {
     await expect(featureShowTestable(store, ["bm-0000.1"])).rejects.toThrow("Feature not found");
+  });
+});
+
+describe("query commands", () => {
+  let storeDir: string;
+  let storePath: string;
+  let store: JsonFileStore;
+
+  beforeEach(() => {
+    storeDir = tmpdir();
+    storePath = join(storeDir, "store.json");
+    store = new JsonFileStore(storePath);
+  });
+
+  afterEach(() => {
+    rmSync(storeDir, { recursive: true, force: true });
+  });
+
+  it("ready returns unblocked features", async () => {
+    const epic = await store.transact(s => s.addEpic({ name: "E1" }));
+    await store.transact(s => s.addFeature({ parent: epic.id, name: "F1" }));
+    await store.transact(s => s.addFeature({ parent: epic.id, name: "F2" }));
+    const result = await readyTestable(store, []);
+    expect(result).toHaveLength(2);
+  });
+
+  it("ready filters by epic ID", async () => {
+    const e1 = await store.transact(s => s.addEpic({ name: "E1" }));
+    const e2 = await store.transact(s => s.addEpic({ name: "E2" }));
+    await store.transact(s => s.addFeature({ parent: e1.id, name: "F1" }));
+    await store.transact(s => s.addFeature({ parent: e2.id, name: "F2" }));
+    const result = await readyTestable(store, [e1.id]);
+    expect(result).toHaveLength(1);
+    expect(result[0].parent).toBe(e1.id);
+  });
+
+  it("ready --type=epic returns ready epics", async () => {
+    await store.transact(s => s.addEpic({ name: "E1" }));
+    const result = await readyTestable(store, ["--type=epic"]);
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe("epic");
+  });
+
+  it("blocked returns blocked entities", async () => {
+    const epic = await store.transact(s => s.addEpic({ name: "E1" }));
+    await store.transact(s => {
+      const f = s.addFeature({ parent: epic.id, name: "Blocked Feature" });
+      s.updateFeature(f.id, { status: "blocked" });
+    });
+    const result = await blockedTestable(store);
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("blocked");
+  });
+
+  it("tree returns full hierarchy", async () => {
+    const epic = await store.transact(s => s.addEpic({ name: "E1" }));
+    await store.transact(s => s.addFeature({ parent: epic.id, name: "F1" }));
+    const result = await treeTestable(store, []);
+    expect(result).toHaveLength(1);
+    expect(result[0].entity.type).toBe("epic");
+    expect(result[0].children).toHaveLength(1);
+  });
+
+  it("tree with root ID returns subtree", async () => {
+    const epic = await store.transact(s => s.addEpic({ name: "E1" }));
+    await store.transact(s => s.addFeature({ parent: epic.id, name: "F1" }));
+    await store.transact(s => s.addEpic({ name: "E2" }));
+    const result = await treeTestable(store, [epic.id]);
+    expect(result).toHaveLength(1);
+    expect(result[0].entity.id).toBe(epic.id);
+  });
+
+  it("search --name filters by name substring", async () => {
+    await store.transact(s => s.addEpic({ name: "Auth Middleware" }));
+    await store.transact(s => s.addEpic({ name: "CLI Restructure" }));
+    const result = await searchTestable(store, ["--name=Auth"]);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Auth Middleware");
+  });
+
+  it("search --status filters by status", async () => {
+    const epic = await store.transact(s => s.addEpic({ name: "E1" }));
+    await store.transact(s => {
+      const f = s.addFeature({ parent: epic.id, name: "F1" });
+      s.updateFeature(f.id, { status: "blocked" });
+    });
+    await store.transact(s => s.addFeature({ parent: epic.id, name: "F2" }));
+    const result = await searchTestable(store, ["--status=blocked"]);
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("blocked");
+  });
+
+  it("search --type filters by entity type", async () => {
+    const epic = await store.transact(s => s.addEpic({ name: "E1" }));
+    await store.transact(s => s.addFeature({ parent: epic.id, name: "F1" }));
+    const result = await searchTestable(store, ["--type=epic"]);
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe("epic");
   });
 });
