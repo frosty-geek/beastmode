@@ -366,6 +366,50 @@ export class InMemoryTaskStore implements TaskStore {
     // No-op for in-memory store
   }
 
+  /**
+   * Bulk-load entities from a flat map (used by JsonFileStore on load).
+   * Reconstructs the internal entity map and epic counters.
+   */
+  loadEntities(entities: Record<string, Entity>): void {
+    this.entities.clear();
+    this.epicCounters.clear();
+
+    for (const [id, entity] of Object.entries(entities)) {
+      this.entities.set(id, entity);
+    }
+
+    // Reconstruct epic counters from existing feature IDs
+    for (const entity of this.entities.values()) {
+      if (entity.type === "feature") {
+        const parts = entity.id.split(".");
+        const parentId = parts.slice(0, -1).join(".");
+        const ordinal = parseInt(parts[parts.length - 1], 10);
+        const current = this.epicCounters.get(parentId) ?? 0;
+        if (ordinal > current) {
+          this.epicCounters.set(parentId, ordinal);
+        }
+      }
+    }
+
+    // Ensure all epics have counters
+    for (const entity of this.entities.values()) {
+      if (entity.type === "epic" && !this.epicCounters.has(entity.id)) {
+        this.epicCounters.set(entity.id, 0);
+      }
+    }
+  }
+
+  /**
+   * Dump all entities as a flat record (used by JsonFileStore on save).
+   */
+  dumpEntities(): Record<string, Entity> {
+    const result: Record<string, Entity> = {};
+    for (const [id, entity] of this.entities) {
+      result[id] = entity;
+    }
+    return result;
+  }
+
   // --- Helper methods ---
 
   private areDependenciesResolved(entity: Entity): boolean {
