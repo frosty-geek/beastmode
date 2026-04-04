@@ -102,6 +102,18 @@ mock.module("../hooks/hitl-settings.js", () => ({
   getPhaseHitlProse: mockGetPhaseHitlProse,
 }));
 
+// Mock hooks/file-permission-settings
+const mockCleanFilePermissionSettings = mock((_dir: string) => {});
+const mockBuildFilePermissionPreToolUseHooks = mock(() => []);
+const mockBuildFilePermissionPostToolUseHooks = mock(() => []);
+const mockWriteFilePermissionSettings = mock((_opts: any) => {});
+mock.module("../hooks/file-permission-settings.js", () => ({
+  cleanFilePermissionSettings: mockCleanFilePermissionSettings,
+  buildFilePermissionPreToolUseHooks: mockBuildFilePermissionPreToolUseHooks,
+  buildFilePermissionPostToolUseHooks: mockBuildFilePermissionPostToolUseHooks,
+  writeFilePermissionSettings: mockWriteFilePermissionSettings,
+}));
+
 // ---------- import runner AFTER mocks ----------
 
 import { run } from "../pipeline/runner.js";
@@ -126,6 +138,10 @@ function makeConfig(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
         implement: "",
         validate: "",
         release: "",
+      },
+      "file-permissions": {
+        timeout: 60,
+        "claude-settings": "test file permission prose",
       },
       github: { enabled: false },
       cli: {},
@@ -427,6 +443,7 @@ describe("pipeline/runner", () => {
       await run(makeConfig({
         config: {
           hitl: { model: "claude-sonnet-4-5-20250514", timeout: 30, design: "", plan: "", implement: "", validate: "", release: "" },
+          "file-permissions": { timeout: 60, "claude-settings": "test" },
           github: { enabled: true, "project-name": "test" },
           cli: {},
         } as BeastmodeConfig,
