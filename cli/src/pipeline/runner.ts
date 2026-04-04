@@ -29,6 +29,7 @@ import { discoverGitHub } from "../github/discovery.js";
 import type { ResolvedGitHub } from "../github/discovery.js";
 import { ensureEarlyIssues } from "../github/early-issues.js";
 import { setGitHubEpic, setFeatureGitHubIssue, setEpicBodyHash, setFeatureBodyHash } from "../manifest/pure.js";
+import { ensureEarlyIssues } from "../github/early-issues.js";
 import { createTag } from "../git/tags.js";
 import {
   reconcileDesign,
