@@ -150,5 +150,23 @@
     ],
     "format": ["progress-bar"],
     "publishQuiet": true
+  },
+  "dashboard-polish": {
+    "paths": [
+      "features/dashboard-polish-banner.feature",
+      "features/dashboard-polish-monokai.feature",
+      "features/dashboard-polish-gradient.feature",
+      "features/dashboard-polish-depth.feature",
+      "features/dashboard-polish-chrome.feature",
+      "features/dashboard-wiring-fix.feature"
+    ],
+    "import": [
+      "features/step_definitions/dashboard-wiring.steps.ts",
+      "features/step_definitions/dashboard-polish.steps.ts",
+      "features/support/dashboard-world.ts",
+      "features/support/dashboard-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
   }
 }
