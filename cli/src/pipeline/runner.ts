@@ -265,7 +265,10 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
         if (resolved) {
           const manifest = store.load(config.projectRoot, epicSlug);
           if (manifest) {
-            const syncResult = await syncGitHub(manifest, beastConfig, resolved);
+            const syncResult = await syncGitHub(manifest, beastConfig, resolved, {
+              logger,
+              projectRoot: config.projectRoot,
+            });
 
             if (syncResult.mutations.length > 0) {
               await store.transact(config.projectRoot, epicSlug, (m) => {
