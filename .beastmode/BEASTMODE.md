@@ -66,7 +66,7 @@
 - Sequential tasks with API-level dependencies fail under worktree isolation — orchestrator must merge intermediate results
 - ALWAYS produce a Write Plan (.tasks.md) before dispatch — visible, inspectable task breakdown with complete code, TDD cycles, and no-placeholder rule
 - ALWAYS run two-stage review per task: spec compliance first, then code quality — ordered pipeline, not optional
-- ALWAYS use isolated implementation branches (feature/<slug>/<feature>) with per-task commits — worktree branch stays clean, checkpoint rebases back
+- ALWAYS use isolated implementation branches (impl/<slug>--<feature>) with per-task commits — worktree branch stays clean, checkpoint rebases back
 
 ## Implement Workarounds
 
