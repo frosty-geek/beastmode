@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.84.0 — Structured Task Store (Apr 2026)
+
+- **Store backend** — `store.json` persistence layer with `JsonFileStore` for CRUD operations, hash-based `bm-xxxx` IDs, cross-epic `depends_on` dependency modeling, and file-level mutex for concurrent access
+- **Store CLI** — `beastmode store` command namespace with epic/feature CRUD, query commands (`ready`, `blocked`, `tree`, `search`), and JSON output contract
+- **ID resolution** — `resolveIdentifier` function with dual-reference support (hash ID or human slug), ambiguity detection, and manifest fallback for coexistence
+- **Phase integration** — Store-based ID resolution wired into phase dispatch pipeline alongside existing manifest system
+- **Integration tests** — Cucumber BDD suite with `InMemoryTaskStore` test double covering 10 user stories: ready queries, hash IDs, cross-epic deps, tree view, dual reference, dependency ordering, typed artifacts, JSON output, backend CRUD, and blocked detection
+
+---
+
 ### v0.83.0 — File Permission Hooks (Apr 2026)
 
 - **File permission config** — Declarative `file-permissions:` section in config.yaml with per-category prose fields and "always defer to human" defaults

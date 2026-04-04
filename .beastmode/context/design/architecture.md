@@ -14,10 +14,14 @@
 - NEVER mix domain concerns — State tracks features, Context documents knowledge
 - ALWAYS write phase artifacts to `artifacts/<phase>/` — retro promotes to `context/`
 - Manifest JSON is the operational authority for feature lifecycle via manifest-store.ts (filesystem) and manifest.ts (pure state machine), with top-level `phase` field as the single phase source of truth; manifests live in `.beastmode/state/` (gitignored); GitHub is a one-way synced mirror updated by the CLI after every phase dispatch when enabled — repo files remain the content store
+- `store.json` is the structured entity store at `.beastmode/state/store.json` (gitignored, coexists with manifests during PRD-1; absorbs manifests in PRD-2) — provides hash-based IDs, cross-epic dependency modeling, and queryable CRUD via `beastmode store` CLI namespace
 - Write protection: phases write `artifacts/` only, retro promotes and compaction agent prunes — prevents unauthorized knowledge edits
 - ALWAYS structure artifacts/ as phase subdirs for committed skill outputs — no L1 index files in artifacts/
 - NEVER put research under state/ — research/ lives at `.beastmode/research/` as reference material, not workflow state
 - ALWAYS create a matching L3 directory (with .gitkeep) for every L2 file — ready for retro expansion
+- ALWAYS introduce new subsystems alongside existing ones in coexistence mode first — PRD-1 establishes the foundation while old system continues, PRD-2 absorbs the old system; prevents disruption during adoption
+
+context/design/architecture/phased-subsystem-rollout.md
 
 ## Sub-Phase Anatomy
 - Every phase follows sub-phase anatomy: prime -> execute -> validate -> checkpoint as inline sections within SKILL.md — standardized lifecycle
