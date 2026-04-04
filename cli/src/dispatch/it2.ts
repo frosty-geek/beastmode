@@ -73,6 +73,7 @@ export interface IIt2Client {
   setBadge(sessionId: string, text: string): Promise<void>;
   setTabTitle(sessionId: string, title: string): Promise<void>;
   getSessionProperty(sessionId: string, property: string): Promise<string>;
+  getSessionTty(sessionId: string): Promise<string | null>;
 }
 
 /**
@@ -245,6 +246,22 @@ export class It2Client implements IIt2Client {
       property,
     ]);
     return stdout.trim();
+  }
+
+  async getSessionTty(sessionId: string): Promise<string | null> {
+    try {
+      const stdout = await this.exec(["session", "list", "--json"]);
+      const parsed = JSON.parse(stdout);
+      if (!Array.isArray(parsed)) return null;
+      const session = parsed.find(
+        (s: Record<string, unknown>) => String(s.id ?? "") === sessionId,
+      );
+      if (!session) return null;
+      const tty = session.tty;
+      return typeof tty === "string" && tty.length > 0 ? tty : null;
+    } catch {
+      return null;
+    }
   }
 
   private async exec(args: string[]): Promise<string> {

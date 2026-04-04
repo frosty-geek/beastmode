@@ -66,6 +66,10 @@ function createMockIt2Client(opts?: {
       calls.push({ method: "getSessionProperty", args: [sessionId, property] });
       return "";
     },
+    async getSessionTty(sessionId: string) {
+      calls.push({ method: "getSessionTty", args: [sessionId] });
+      return null;
+    },
   };
 }
 
