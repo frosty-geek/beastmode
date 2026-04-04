@@ -62,16 +62,8 @@ Given("the current log verbosity level is {string}", function (this: DashboardDi
   this.setVerbosityByName(level);
 });
 
-Given("the log verbosity level is {string}", function (this: DashboardDispatchWorld, level: string) {
-  this.setVerbosityByName(level);
-});
-
 Given("no dispatch strategy is configured", function (this: DashboardDispatchWorld) {
   this.configuredStrategy = "";
-});
-
-Given("the dispatch strategy is configured as {string}", function (this: DashboardDispatchWorld, strategy: string) {
-  this.configuredStrategy = strategy;
 });
 
 // =============================================================================

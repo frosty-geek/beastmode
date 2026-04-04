@@ -150,5 +150,22 @@
     ],
     "format": ["progress-bar"],
     "publishQuiet": true
+  },
+  "dashboard-dispatch-fix": {
+    "paths": [
+      "features/dashboard-dispatch-strategy.feature",
+      "features/dashboard-event-log-panel.feature",
+      "features/dashboard-cli-fallback-removal.feature",
+      "features/dashboard-verbosity-cycling.feature",
+      "features/dashboard-verbosity-indicator.feature",
+      "features/dashboard-unified-strategy.feature"
+    ],
+    "import": [
+      "features/step_definitions/dashboard-dispatch-fix.steps.ts",
+      "features/support/dashboard-dispatch-world.ts",
+      "features/support/dashboard-dispatch-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
   }
 }
