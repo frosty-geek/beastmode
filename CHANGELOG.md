@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.80.0 — Plan Integration Tester (Apr 2026)
+
+- **Plan-integration-tester agent** — New domain-specialist agent spawned by plan skill post-decomposition to generate BDD integration test features from PRD user stories
+- **Integration test generation step** — Plan skill execute phase now includes an integration test generation step that diffs PRD against existing `.feature` files and produces Gherkin integration artifact at wave 1
+
+---
+
 ### v0.79.0 — Dashboard Full-Height Redesign (Apr 2026)
 
 - **Two-column layout** — Replaced ThreePanelLayout with full-height TwoColumnLayout (40/60 split), stacking epics and details panels in the left column with a full-height tree view on the right
