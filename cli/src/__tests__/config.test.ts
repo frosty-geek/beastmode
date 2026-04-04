@@ -165,4 +165,50 @@ describe("FilePermissionsConfig", () => {
     expect(config["file-permissions"].timeout).toBe(30);
     expect(config["file-permissions"]["claude-settings"]).toBe("always defer to human");
   });
+
+  test("parses file-permissions section from config.yaml", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+    mkdirSync(join(tempDir, ".beastmode"), { recursive: true });
+    writeFileSync(
+      join(tempDir, ".beastmode", "config.yaml"),
+      `file-permissions:
+  timeout: 60
+  claude-settings: "auto-allow all .claude file writes"
+`,
+    );
+
+    const config = loadConfig(tempDir);
+    expect(config["file-permissions"].timeout).toBe(60);
+    expect(config["file-permissions"]["claude-settings"]).toBe("auto-allow all .claude file writes");
+  });
+
+  test("partial file-permissions fills defaults for missing fields", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+    mkdirSync(join(tempDir, ".beastmode"), { recursive: true });
+    writeFileSync(
+      join(tempDir, ".beastmode", "config.yaml"),
+      `file-permissions:
+  claude-settings: "deny all"
+`,
+    );
+
+    const config = loadConfig(tempDir);
+    expect(config["file-permissions"].timeout).toBe(30);
+    expect(config["file-permissions"]["claude-settings"]).toBe("deny all");
+  });
+
+  test("missing file-permissions section returns defaults", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
+    mkdirSync(join(tempDir, ".beastmode"), { recursive: true });
+    writeFileSync(
+      join(tempDir, ".beastmode", "config.yaml"),
+      `github:
+  enabled: true
+`,
+    );
+
+    const config = loadConfig(tempDir);
+    expect(config["file-permissions"].timeout).toBe(30);
+    expect(config["file-permissions"]["claude-settings"]).toBe("always defer to human");
+  });
 });
