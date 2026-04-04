@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: e6b049
+slug: structured-task-store
 epic: structured-task-store
 ---
 
