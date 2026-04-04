@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Box, Text } from "ink";
-import { CHROME, BG } from "./monokai-palette.js";
+import { CHROME, DEPTH } from "./monokai-palette.js";
 
 export interface PanelBoxProps {
   /** Title displayed inline in the top border of the panel. */
@@ -45,7 +45,7 @@ export default function PanelBox({
         borderTop={false}
         flexDirection="column"
         flexGrow={1}
-        backgroundColor={BG.panel}
+        backgroundColor={DEPTH.panel}
       >
         <Box flexDirection="column" flexGrow={1} paddingX={1}>
           {children}
