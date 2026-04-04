@@ -38,7 +38,7 @@ Feature: Cross-epic dependency modeling for pipeline orchestration
     And a feature "feature-a" exists under "epic-a" with no dependencies
     And an epic "epic-b" exists in the store
     And a feature "feature-b" exists under "epic-b" with no dependencies
-    And epic "epic-a" depends on feature "feature-b"
-    And epic "epic-b" depends on feature "feature-a"
+    And feature "feature-a" also depends on "feature-b"
+    And feature "feature-b" also depends on "feature-a"
     When the store checks for circular dependencies
     Then circular dependencies should be detected

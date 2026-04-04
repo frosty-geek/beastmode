@@ -170,10 +170,12 @@ export class InMemoryTaskStore implements TaskStore {
 
   ready(opts?: { epicId?: string; type?: EntityType }): Entity[] {
     const results: Entity[] = [];
+    // Default to features when no type filter specified
+    const typeFilter = opts?.type;
 
     for (const entity of this.entities.values()) {
-      // Filter by type if specified
-      if (opts?.type && entity.type !== opts.type) continue;
+      // Filter by type if specified; when no type given, include both
+      if (typeFilter && entity.type !== typeFilter) continue;
 
       // For features: check if parent is not cancelled/done and status is "pending"
       if (entity.type === "feature") {
@@ -190,8 +192,9 @@ export class InMemoryTaskStore implements TaskStore {
         results.push(entity);
       }
 
-      // For epics: check if status is "design" and matches epicId filter
+      // For epics: only include when explicitly requested via type filter
       if (entity.type === "epic") {
+        if (!typeFilter) continue; // Skip epics unless explicitly requested
         if (entity.status !== "design") continue;
         if (opts?.epicId && entity.id !== opts.epicId) continue;
 
