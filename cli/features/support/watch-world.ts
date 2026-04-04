@@ -291,6 +291,64 @@ export class WatchLoopWorld extends World {
       .getAll()
       .map((s) => ({ epicSlug: s.epicSlug, phase: s.phase }));
   }
+
+  /**
+   * Fail a specific session (feature within an epic) without advancing manifest.
+   * Does NOT call advanceManifest, so the feature stays pending for re-dispatch.
+   */
+  failSession(epicSlug: string, featureSlug: string): void {
+    for (const [id, resolver] of this.sessionResolvers) {
+      if (resolver.epicSlug === epicSlug && resolver.featureSlug === featureSlug) {
+        // Do NOT advance manifest — feature stays pending
+        this.sessionResolvers.delete(id);
+        resolver.resolve({ success: false, exitCode: 1, durationMs: 100 });
+        return;
+      }
+    }
+    throw new Error(`No session found for ${epicSlug}/${featureSlug}`);
+  }
+
+  /**
+   * Succeed a specific feature session and advance manifest.
+   * Used for fine-grained control in failure scenarios.
+   */
+  async succeedSession(epicSlug: string, featureSlug: string): Promise<void> {
+    for (const [id, resolver] of this.sessionResolvers) {
+      if (resolver.epicSlug === epicSlug && resolver.featureSlug === featureSlug) {
+        this.sessionResolvers.delete(id);
+        this.advanceManifest(resolver.epicSlug, resolver.phase, resolver.featureSlug);
+        resolver.resolve({ success: true, exitCode: 0, durationMs: 100 });
+        await new Promise((r) => setTimeout(r, 150));
+        return;
+      }
+    }
+    throw new Error(`No session found for ${epicSlug}/${featureSlug}`);
+  }
+
+  /**
+   * Complete all remaining active sessions excluding a specific feature.
+   */
+  async completeAllSessionsExcept(epicSlug: string, featureSlug: string): Promise<void> {
+    const entries: Array<[string, SessionResolver]> = [];
+    for (const [id, resolver] of this.sessionResolvers) {
+      // Skip the specified feature
+      if (resolver.epicSlug === epicSlug && resolver.featureSlug === featureSlug) {
+        continue;
+      }
+      entries.push([id, resolver]);
+    }
+
+    for (const [_id, resolver] of entries) {
+      this.advanceManifest(resolver.epicSlug, resolver.phase, resolver.featureSlug);
+    }
+
+    for (const [id, resolver] of entries) {
+      this.sessionResolvers.delete(id);
+      resolver.resolve({ success: true, exitCode: 0, durationMs: 100 });
+    }
+
+    await new Promise((r) => setTimeout(r, 150));
+  }
 }
 
 setWorldConstructor(WatchLoopWorld);

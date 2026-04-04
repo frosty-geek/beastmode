@@ -18,5 +18,104 @@
     ],
     "format": ["progress-bar"],
     "publishQuiet": true
+  },
+  "cancel": {
+    "paths": ["features/cancel-flow.feature"],
+    "import": [
+      "features/step_definitions/cancel.steps.ts",
+      "features/support/cancel-world.ts",
+      "features/support/cancel-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "wave-failure": {
+    "paths": ["features/wave-failure.feature"],
+    "import": [
+      "features/step_definitions/wave-failure.steps.ts",
+      "features/step_definitions/watch-loop.steps.ts",
+      "features/support/watch-world.ts",
+      "features/support/watch-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "regression": {
+    "paths": ["features/regression-loop.feature"],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/regression.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "slug-rename": {
+    "paths": ["features/design-slug-rename.feature"],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/slug-rename.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "error-resilience": {
+    "paths": ["features/pipeline-error-resilience.feature"],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/error-resilience.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "hitl": {
+    "paths": ["features/hitl-hook-lifecycle.feature"],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/hitl.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "pipeline-all": {
+    "paths": [
+      "features/pipeline-happy-path.feature",
+      "features/regression-loop.feature",
+      "features/design-slug-rename.feature",
+      "features/pipeline-error-resilience.feature",
+      "features/hitl-hook-lifecycle.feature"
+    ],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/regression.steps.ts",
+      "features/step_definitions/slug-rename.steps.ts",
+      "features/step_definitions/error-resilience.steps.ts",
+      "features/step_definitions/hitl.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "watch-all": {
+    "paths": [
+      "features/watch-loop-happy-path.feature",
+      "features/wave-failure.feature"
+    ],
+    "import": [
+      "features/step_definitions/watch-loop.steps.ts",
+      "features/step_definitions/wave-failure.steps.ts",
+      "features/support/watch-world.ts",
+      "features/support/watch-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
   }
 }
