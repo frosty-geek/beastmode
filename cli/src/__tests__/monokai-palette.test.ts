@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { PHASE_COLOR, CHROME, isDim } from "../dashboard/monokai-palette.js";
+import { PHASE_COLOR, CHROME, DEPTH, isDim } from "../dashboard/monokai-palette.js";
 
 describe("monokai-palette", () => {
   test("PHASE_COLOR has all 8 phase/status entries", () => {
@@ -46,5 +46,10 @@ describe("monokai-palette", () => {
     expect(isDim("validate")).toBe(false);
     expect(isDim("release")).toBe(false);
     expect(isDim("blocked")).toBe(false);
+  });
+
+  test("DEPTH has chrome and panel background colors", () => {
+    expect(DEPTH.chrome).toBe("#403E41");
+    expect(DEPTH.panel).toBe("#353236");
   });
 });

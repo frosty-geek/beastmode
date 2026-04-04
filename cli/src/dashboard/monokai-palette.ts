@@ -26,6 +26,12 @@ export const CHROME = {
   muted: "#727072",
 } as const;
 
+/** Background depth tiers — lightest (chrome) to mid (panels). Terminal bg is deepest. */
+export const DEPTH = {
+  chrome: "#403E41",
+  panel: "#353236",
+} as const;
+
 /** Background colors for depth hierarchy (darkest → lightest). */
 export const BG = {
   /** Terminal default — deepest layer (#2D2A2E). Not applied; serves as reference. */
