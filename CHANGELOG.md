@@ -4,6 +4,13 @@ All notable changes to beastmode.
 
 ---
 
+### v0.82.0 — Dashboard Wiring Fix (Apr 2026)
+
+- **ThreePanelLayout wiring** — Replaced dead TwoColumnLayout with ThreePanelLayout in App.tsx as the primary dashboard layout
+- **Cucumber integration tests** — Added BDD integration test suite for dashboard wiring: Gherkin scenarios, DashboardWorld with source-analysis pattern, step definitions, and cucumber profile
+
+---
+
 ### v0.81.0 — Flashy Dashboard (Apr 2026)
 
 - **NyanBanner** — Animated 2-line ASCII block art header with continuously cycling 6-stripe rainbow colors (80ms tick, pure color engine in `nyan-colors.ts`)
