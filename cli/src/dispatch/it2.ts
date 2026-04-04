@@ -451,6 +451,7 @@ export class ITermSessionFactory implements SessionFactory {
   private ttyMap = new Map<string, string>(); // pane session ID -> TTY device path
   private spawnFn: SpawnFn;
   private resolvers = new Map<string, (result: SessionResult) => void>(); // dispatch session ID -> resolve fn
+  private dispatchToPaneId = new Map<string, string>(); // dispatch session ID -> pane session ID
 
   constructor(
     client: IIt2Client,
@@ -561,6 +562,9 @@ export class ITermSessionFactory implements SessionFactory {
       this.ttyMap.set(paneSessionId, tty);
     }
 
+    // Map dispatch ID to pane ID for liveness checks
+    this.dispatchToPaneId.set(id, paneSessionId);
+
     // cd into the worktree, then run the beastmode command
     const command = `cd ${wt.path} && beastmode ${phase} ${args.join(" ")}`;
     await this.client.sendText(paneSessionId, command);
@@ -670,6 +674,49 @@ export class ITermSessionFactory implements SessionFactory {
     if (!resolver) return false;
     resolver(result);
     return true;
+  }
+
+  /** Check if dispatched sessions are still alive via process liveness. */
+  async checkLiveness(sessions: import("./types.js").DispatchedSession[]): Promise<void> {
+    for (const session of sessions) {
+      const paneId = this.dispatchToPaneId.get(session.id);
+      if (!paneId) continue;
+
+      const tty = this.ttyMap.get(paneId);
+      if (!tty) continue;
+
+      try {
+        const proc = this.spawnFn(["ps", "-t", tty, "-o", "args="], {
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+
+        const stdout = proc.stdout
+          ? await new Response(proc.stdout as ReadableStream).text()
+          : "";
+        const exitCode = await proc.exited;
+
+        // ps failure (e.g., TTY gone) — don't assume dead
+        if (exitCode !== 0) continue;
+
+        // Check if any process has "beastmode" in its args
+        const hasBeastmode = stdout
+          .split("\n")
+          .some((line) => line.includes("beastmode"));
+
+        if (!hasBeastmode) {
+          // Dead session — force-resolve as failed
+          this.forceResolveSession(session.id, {
+            success: false,
+            exitCode: 1,
+            durationMs: Date.now() - session.startedAt,
+          });
+        }
+      } catch {
+        // ps spawn failure — don't assume dead
+        continue;
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
