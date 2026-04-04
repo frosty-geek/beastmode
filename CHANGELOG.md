@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.77.0 — Dashboard Wiring (Apr 2026)
+
+- **Three-panel layout** — App.tsx rewritten to use ThreePanelLayout with EpicsPanel, DetailsPanel, LogPanel as slot children, replacing the legacy drill-down navigation model
+- **Legacy component deletion** — Removed EpicTable, FeatureList, AgentLog, ActivityLog, CrumbBar, view-stack module, and associated keyboard hooks
+- **Barrel export cleanup** — Updated barrel exports and key hints for the new panel architecture
+- **Integration test suite** — Added App wiring integration test with 22 tests and 56 assertions validating end-to-end dashboard wiring
+- **Context docs updated** — DESIGN.md Dashboard section rewritten for three-panel model, L3 dashboard records updated
+
+---
+
 ### v0.76.0 — Watch HITL Fix (Apr 2026)
 
 - **Watch loop HITL injection** — `dispatchPhase()` in `watch.ts` now writes HITL hooks and rebases onto main before SDK dispatch, so AskUserQuestion calls respect the `hitl:` config instead of blocking for human input

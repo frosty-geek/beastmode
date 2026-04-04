@@ -36,6 +36,12 @@ date: 2026-04-04
 - `.beastmode/context/implement/testing/critical-paths.md` — pure restatement of parent L2 `.beastmode/context/implement/testing.md` (same four core scenarios, same three ALWAYS rules)
 - `.beastmode/context/plan/github-integration/configuration-extension.md` — pure restatement of parent L2 (L2 already covers github.enabled, project-name, setup subcommand)
 - `.beastmode/context/plan/github-integration/issue-hierarchy.md` — pure restatement of parent L2 (L2 covers two-level hierarchy, sub-issues API, GraphQL roll-up)
+- `.beastmode/context/plan/github-integration/shared-utility.md` — pure restatement of parent L2 (L2 already covers sync engine, post-dispatch placement, mutation objects, reconciliation list)
+- `.beastmode/context/plan/task-format/design-coverage.md` — pure restatement of parent L2 (L2 already covers coverage verification, table print, missing-components trigger)
+- `.beastmode/context/plan/task-format/task-structure.md` — pure restatement of parent L2 (L2 already covers complete task skeleton including header, metadata, files, steps, verification)
+- `.beastmode/context/plan/task-format/wave-ordering.md` — pure restatement of parent L2 (L2 already covers wave number rules and default wave 1)
+- `.beastmode/context/plan/workflow/release-git-workflow.md` — pure restatement of parent L2 (L2 already covers squash merge, archive tags, commit message style)
+- `.beastmode/context/plan/workflow/retro-agents.md` — pure restatement of parent L2 (L2 already covers convention-based discovery, L1-path passing, orphan detection)
 - `.beastmode/context/validate/quality-gates/standard-gates.md` — pure restatement of parent L2 `.beastmode/context/validate/quality-gates.md` (L2 already covers attempt-even-if-skipped, annotate-rationale, skipped-not-failure)
 - `.beastmode/context/validate/validation-patterns/acceptance-criteria-verification.md` — pure restatement of parent L2 `.beastmode/context/validate/validation-patterns.md` (L2 already covers trace-to-criterion, PASS/FAIL/DEFER)
 
@@ -61,5 +67,5 @@ date: 2026-04-04
 
 - Stale removed: 2
 - Stale flagged: 8
-- Restatements removed: 16
+- Restatements removed: 22
 - Promotion candidates: 15
