@@ -43,8 +43,8 @@ describe("deriveWorktreeSlug hex generation (source checks)", () => {
     expect(source).toContain('args[0] || "default"');
   });
 
-  test("epicSlug uses worktreeSlug for design phase", () => {
+  test("epicSlug is assigned from worktreeSlug", () => {
     const source = readFileSync(PHASE_TS_PATH, "utf-8");
-    expect(source).toContain('phase === "design" ? worktreeSlug');
+    expect(source).toContain("const epicSlug = worktreeSlug");
   });
 });

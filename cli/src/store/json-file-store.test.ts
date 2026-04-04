@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { JsonFileStore } from "./json-file-store.js";
 import { existsSync, mkdirSync, rmSync, readFileSync } from "fs";
 import { resolve } from "path";

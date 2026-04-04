@@ -2,7 +2,7 @@
  * Tests for InMemoryTaskStore
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { InMemoryTaskStore } from "./in-memory.js";
 import { Epic, Feature } from "./types.js";
 
@@ -261,7 +261,7 @@ describe("InMemoryTaskStore", () => {
   describe("tree()", () => {
     it("should return hierarchical tree of all epics and features", () => {
       const epic1 = store.addEpic({ name: "Epic 1" });
-      const epic2 = store.addEpic({ name: "Epic 2" });
+      store.addEpic({ name: "Epic 2" });
       const f1 = store.addFeature({ parent: epic1.id, name: "Feature 1" });
       const f2 = store.addFeature({ parent: epic1.id, name: "Feature 2" });
 

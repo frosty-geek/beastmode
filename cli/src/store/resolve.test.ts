@@ -2,9 +2,9 @@
  * Tests for ID resolution module.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { InMemoryTaskStore } from "./in-memory.js";
-import { resolveIdentifier, type ResolveResult } from "./resolve.js";
+import { resolveIdentifier } from "./resolve.js";
 
 describe("resolveIdentifier", () => {
   let store: InMemoryTaskStore;
