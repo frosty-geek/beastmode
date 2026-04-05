@@ -4,6 +4,8 @@ import MinSizeGate from "./MinSizeGate.js";
 import PanelBox from "./PanelBox.js";
 import NyanBanner from "./NyanBanner.js";
 import { CHROME } from "./monokai-palette.js";
+import type { FocusedPanel } from "./hooks/use-dashboard-keyboard.js";
+import { NYAN_PALETTE } from "./nyan-colors.js";
 
 export interface ThreePanelLayoutProps {
   /** Watch loop running state. */
@@ -24,12 +26,10 @@ export interface ThreePanelLayoutProps {
   isShuttingDown?: boolean;
   /** Cancel confirmation prompt content. */
   cancelPrompt?: ReactNode;
-  /** External tick for NyanBanner — when provided, banner uses this instead of internal timer. */
-  tick?: number;
-  /** Border color for the epics panel (animated when focused). */
-  epicsBorderColor?: string;
-  /** Border color for the log panel (animated when focused). */
-  logBorderColor?: string;
+  /** Currently focused panel for border highlighting. */
+  focusedPanel?: FocusedPanel;
+  /** Current nyan animation tick for border color computation. */
+  nyanTick?: number;
 }
 
 /** Three-panel k9s-style dashboard layout. */
@@ -43,16 +43,19 @@ export default function ThreePanelLayout({
   keyHints,
   isShuttingDown,
   cancelPrompt,
-  tick,
-  epicsBorderColor,
-  logBorderColor,
+  focusedPanel,
+  nyanTick,
 }: ThreePanelLayoutProps) {
+  const focusBorderColor = nyanTick !== undefined
+    ? NYAN_PALETTE[nyanTick % NYAN_PALETTE.length]
+    : undefined;
+
   return (
     <MinSizeGate>
       <Box flexDirection="column" width="100%" height={rows ?? "100%"}>
         {/* Header bar — banner + watch status */}
         <Box flexDirection="row" justifyContent="space-between" paddingX={1} paddingY={1}>
-          <NyanBanner tick={tick} />
+          <NyanBanner tick={nyanTick} />
           <Box flexDirection="column" alignItems="flex-end" justifyContent="flex-start">
             <Box>
               <Text color={watchRunning ? CHROME.watchRunning : CHROME.watchStopped}>
@@ -68,7 +71,7 @@ export default function ThreePanelLayout({
         <Box flexDirection="row" flexGrow={1}>
           {/* Left column — 35% width */}
           <Box flexDirection="column" width="35%">
-            <PanelBox title="EPICS" height="60%" borderColor={epicsBorderColor}>
+            <PanelBox title="EPICS" height="60%" borderColor={focusedPanel === "epics" ? focusBorderColor : undefined}>
               {epicsSlot}
             </PanelBox>
             <PanelBox title="DETAILS" flexGrow={1}>
@@ -77,7 +80,7 @@ export default function ThreePanelLayout({
           </Box>
 
           {/* Right column — 65% width, LOG at full height */}
-          <PanelBox title="LOG" width="65%" borderColor={logBorderColor}>
+          <PanelBox title="LOG" width="65%" borderColor={focusedPanel === "log" ? focusBorderColor : undefined}>
             {logSlot}
           </PanelBox>
         </Box>

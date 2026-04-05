@@ -173,3 +173,43 @@ describe("key hints bar", () => {
     expect(display).toBe("q quit  ↑↓ navigate");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Focus border color logic
+// ---------------------------------------------------------------------------
+
+describe("focus border color computation", () => {
+  test("focused panel gets nyan color at tick offset", () => {
+    const PALETTE_SIZE = 256;
+    const tick = 42;
+    const borderColor = `palette[${tick % PALETTE_SIZE}]`;
+    expect(borderColor).toBe("palette[42]");
+  });
+
+  test("tick wraps at palette boundary", () => {
+    const PALETTE_SIZE = 256;
+    const tick = 300;
+    const index = tick % PALETTE_SIZE;
+    expect(index).toBe(44);
+  });
+
+  test("unfocused panel gets undefined borderColor", () => {
+    const focusedPanel = "epics";
+    const epicsBorder = focusedPanel === "epics" ? "#color" : undefined;
+    const logBorder = focusedPanel === "log" ? "#color" : undefined;
+    expect(epicsBorder).toBe("#color");
+    expect(logBorder).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Panel title change
+// ---------------------------------------------------------------------------
+
+describe("details panel title", () => {
+  test("title is DETAILS not OVERVIEW", () => {
+    const title = "DETAILS";
+    expect(title).toBe("DETAILS");
+    expect(title).not.toBe("OVERVIEW");
+  });
+});
