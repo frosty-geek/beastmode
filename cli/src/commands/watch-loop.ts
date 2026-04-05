@@ -228,7 +228,6 @@ export class WatchLoop extends EventEmitter {
         abortController,
         promise: handle.promise,
         startedAt: Date.now(),
-        events: handle.events,
         tty: handle.tty,
       };
 
@@ -337,7 +336,6 @@ export class WatchLoop extends EventEmitter {
           abortController,
           promise: handle.promise,
           startedAt: Date.now(),
-          events: handle.events,
           tty: handle.tty,
         };
 
