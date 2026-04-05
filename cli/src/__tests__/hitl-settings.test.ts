@@ -20,10 +20,8 @@ const mockPreToolUseHook = {
   matcher: "AskUserQuestion",
   hooks: [
     {
-      type: "prompt" as const,
-      prompt: "You are a HITL hook...",
-      model: "haiku",
-      timeout: 30,
+      type: "command" as const,
+      command: 'bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/hitl-auto.ts" design',
     },
   ],
 };

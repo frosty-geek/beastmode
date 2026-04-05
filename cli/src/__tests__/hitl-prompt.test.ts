@@ -1,57 +1,43 @@
 import { describe, test, expect } from "vitest";
 import { buildPreToolUseHook, getPhaseHitlProse } from "../hooks/hitl-settings";
 import type { HitlConfig } from "../config";
-import type { PromptHookEntry } from "../hooks/hitl-settings";
 
 describe("buildPreToolUseHook", () => {
   test("returns entry targeting AskUserQuestion", () => {
-    const entry = buildPreToolUseHook("always defer to human");
+    const entry = buildPreToolUseHook("design");
     expect(entry.matcher).toBe("AskUserQuestion");
     expect(entry.hooks).toHaveLength(1);
-    expect(entry.hooks[0].type).toBe("prompt");
+    expect(entry.hooks[0].type).toBe("command");
   });
 
-  test("injects prose into prompt", () => {
-    const prose = "Auto-approve database choices, defer everything else";
-    const entry = buildPreToolUseHook(prose);
-    expect(entry.hooks[0].prompt).toContain(prose);
+  test("command references hitl-auto.ts", () => {
+    const entry = buildPreToolUseHook("design");
+    expect(entry.hooks[0].command).toContain("hitl-auto.ts");
   });
 
-  test("uses provided timeout", () => {
-    const entry = buildPreToolUseHook("defer", 60);
-    expect(entry.hooks[0].timeout).toBe(60);
+  test("command includes phase argument", () => {
+    const entry = buildPreToolUseHook("implement");
+    expect(entry.hooks[0].command).toContain("implement");
   });
 
-  test("defaults to 30s timeout", () => {
-    const entry = buildPreToolUseHook("defer");
-    expect(entry.hooks[0].timeout).toBe(30);
+  test("command uses bun run", () => {
+    const entry = buildPreToolUseHook("plan");
+    expect(entry.hooks[0].command).toContain("bun run");
   });
 
-  test("prompt contains auto-answer format", () => {
-    const entry = buildPreToolUseHook("defer");
-    expect(entry.hooks[0].prompt).toContain("permissionDecision");
-    expect(entry.hooks[0].prompt).toContain("updatedInput");
+  test("command uses git rev-parse for repo root", () => {
+    const entry = buildPreToolUseHook("validate");
+    expect(entry.hooks[0].command).toContain("git rev-parse --show-toplevel");
   });
 
-  test("prompt contains defer format", () => {
-    const entry = buildPreToolUseHook("defer");
-    expect(entry.hooks[0].prompt).toContain('"permissionDecision": "allow"');
+  test("does not contain prompt field", () => {
+    const entry = buildPreToolUseHook("design");
+    expect(entry.hooks[0]).not.toHaveProperty("prompt");
   });
 
-  test("prompt instructs all-or-nothing for multi-question", () => {
-    const entry = buildPreToolUseHook("defer");
-    expect(entry.hooks[0].prompt).toContain("ANY question");
-    expect(entry.hooks[0].prompt).toContain("defer ALL");
-  });
-
-  test("prompt instructs fail-open behavior", () => {
-    const entry = buildPreToolUseHook("defer");
-    expect(entry.hooks[0].prompt).toContain("fail-open");
-  });
-
-  test("prompt references $ARGUMENTS", () => {
-    const entry = buildPreToolUseHook("defer");
-    expect(entry.hooks[0].prompt).toContain("$ARGUMENTS");
+  test("does not contain timeout field", () => {
+    const entry = buildPreToolUseHook("design");
+    expect(entry.hooks[0]).not.toHaveProperty("timeout");
   });
 });
 
