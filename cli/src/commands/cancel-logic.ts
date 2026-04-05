@@ -47,7 +47,7 @@ export interface CancelResult {
 // ---------------------------------------------------------------------------
 
 async function confirmCancel(logger: Logger): Promise<boolean> {
-  logger.log(
+  logger.info(
     "This will remove the worktree, branch, tags, artifacts, manifest, and close the GitHub issue. Proceed? [y/N]",
   );
   const reader = Bun.stdin.stream().getReader();
@@ -88,7 +88,7 @@ export async function cancelEpic(config: CancelConfig): Promise<CancelResult> {
   if (!force) {
     const confirmed = await confirmCancel(logger);
     if (!confirmed) {
-      logger.log("Cancelled.");
+      logger.info("Cancelled.");
       return { cleaned, warned };
     }
   }

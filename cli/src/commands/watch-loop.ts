@@ -106,10 +106,10 @@ export class WatchLoop extends EventEmitter {
       this.pollTimer = null;
     }
 
-    this.logger.log("Shutting down...");
+    this.logger.info("Shutting down...");
 
     if (this.tracker.size > 0) {
-      this.logger.log(
+      this.logger.info(
         `Waiting for ${this.tracker.size} active session(s)...`,
       );
       this.tracker.abortAll();
@@ -432,7 +432,7 @@ export class WatchLoop extends EventEmitter {
 
   private setupSignalHandlers(): void {
     const handler = async () => {
-      this.logger.log("Received SIGINT — initiating graceful shutdown...");
+      this.logger.info("Received SIGINT — initiating graceful shutdown...");
       await this.stop();
       process.exit(0);
     };
@@ -448,16 +448,16 @@ export class WatchLoop extends EventEmitter {
  */
 export function attachLoggerSubscriber(loop: WatchLoop, logger: Logger): void {
   loop.on('started', ({ version, pid, intervalSeconds }) => {
-    logger.log(`Started ${version} (PID ${pid}, poll every ${intervalSeconds}s)`);
+    logger.info(`Started ${version} (PID ${pid}, poll every ${intervalSeconds}s)`);
   });
 
   loop.on('stopped', () => {
-    logger.log('Stopped.');
+    logger.info('Stopped.');
   });
 
   loop.on('session-started', ({ epicSlug, featureSlug, phase }) => {
     const child = logger.child({ phase, epic: epicSlug, ...(featureSlug ? { feature: featureSlug } : {}) });
-    child.log("dispatching");
+    child.info("dispatching");
   });
 
   loop.on('session-completed', ({ epicSlug, featureSlug, phase, success, durationMs, costUsd }) => {
@@ -465,7 +465,7 @@ export function attachLoggerSubscriber(loop: WatchLoop, logger: Logger): void {
     const status = success ? 'completed' : 'failed';
     const dur = `${(durationMs / 1000).toFixed(0)}s`;
     const detail = costUsd != null ? `$${costUsd.toFixed(2)}, ${dur}` : dur;
-    child.log(`${status} (${detail})`);
+    child.info(`${status} (${detail})`);
   });
 
   loop.on('error', ({ epicSlug, message }) => {
@@ -477,7 +477,7 @@ export function attachLoggerSubscriber(loop: WatchLoop, logger: Logger): void {
   });
 
   loop.on('release:held', ({ waitingSlug, blockingSlug }) => {
-    logger.child({ epic: waitingSlug }).log(`release held: ${waitingSlug} blocked by ${blockingSlug}`);
+    logger.child({ epic: waitingSlug }).info(`release held: ${waitingSlug} blocked by ${blockingSlug}`);
   });
 
   loop.on('session-dead', ({ epicSlug, phase, featureSlug, sessionId, tty }) => {

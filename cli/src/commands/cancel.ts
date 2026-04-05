@@ -22,7 +22,7 @@ export async function cancelCommand(
     process.exit(1);
   }
 
-  logger.log(`Cancel: ${slug}`);
+  logger.info(`Cancel: ${slug}`);
 
   const result = await cancelEpic({
     identifier: slug,
@@ -32,7 +32,7 @@ export async function cancelCommand(
     logger,
   });
 
-  logger.log(
+  logger.info(
     `Cancel complete: ${result.cleaned.length} cleaned, ${result.warned.length} warnings`,
   );
 }

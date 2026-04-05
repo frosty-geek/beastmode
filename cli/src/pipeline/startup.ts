@@ -270,7 +270,7 @@ export async function reconcileStartup(opts: {
     result.closedSurfaces > 0 ||
     result.closedWorkspaces > 0
   ) {
-    logger.log(
+    logger.info(
       `Startup: adopted ${result.adopted} surface(s), closed ${result.closedSurfaces} dead surface(s), removed ${result.closedWorkspaces} empty workspace(s), skipped ${result.skipped} non-beastmode workspace(s)`,
     );
   }

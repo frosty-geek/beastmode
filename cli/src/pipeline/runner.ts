@@ -135,7 +135,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       const wt = await worktree.create(epicSlug, { cwd: config.projectRoot });
       worktreePath = wt.path;
     }
-    logger.log(`worktree: ${worktreePath}`);
+    logger.info(`worktree: ${worktreePath}`);
 
     // -- Step 2: git.worktree.rebase ------------------------------------------
     const rebaseResult = await rebase(config.phase, { cwd: worktreePath, logger });
@@ -163,7 +163,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   if (config.phase === "implement" && config.featureSlug) {
     try {
       const implBranch = await createImplBranch(config.epicSlug, config.featureSlug, { cwd: worktreePath });
-      logger.log(`impl branch: ${implBranch}`);
+      logger.info(`impl branch: ${implBranch}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.warn(`impl branch creation failed: ${message}`);
@@ -195,7 +195,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   if (!dispatchResult.success && config.phase !== "validate") {
     // Early exit on failure -- no manifest/sync updates.
     // Exception: validate failures must reach the machine so REGRESS fires.
-    logger.log("dispatch failed -- skipping post-dispatch steps");
+    logger.info("dispatch failed -- skipping post-dispatch steps");
     return { success: false, worktreePath, epicSlug };
   }
 
@@ -204,7 +204,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
 
   // Design abandon guard: if design produced no output, skip everything
   if (config.phase === "design" && !phaseOutput) {
-    logger.log("no output -- skipping post-dispatch");
+    logger.info("no output -- skipping post-dispatch");
     return { success: dispatchResult.success, worktreePath, epicSlug };
   }
 
@@ -234,7 +234,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     }
 
     if (reconcileResult) {
-      logger.log(`reconciled -> ${reconcileResult.phase}`);
+      logger.info(`reconciled -> ${reconcileResult.phase}`);
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -263,7 +263,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       );
       if (renameResult.renamed) {
         epicSlug = renameResult.finalSlug;
-        logger.log(`renamed -> ${renameResult.finalSlug}`);
+        logger.info(`renamed -> ${renameResult.finalSlug}`);
       } else if (renameResult.error) {
         logger.warn(`Slug rename failed: ${renameResult.error}`);
       }
@@ -280,7 +280,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
         resolved: config.resolved,
         logger,
       });
-      logger.log("GitHub sync complete");
+      logger.info("GitHub sync complete");
     } else {
       // Manual CLI path -- discover and sync
       const beastConfig = config.config;
@@ -317,7 +317,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
               });
             }
 
-            logger.log("GitHub sync complete");
+            logger.info("GitHub sync complete");
           }
         } else {
           logger.detail?.("GitHub discovery failed -- skipping sync");
@@ -348,19 +348,19 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   // -- Step 9: git.worktree.cleanup -------------------------------------------
   if (config.phase === "release" && dispatchResult.success) {
     try {
-      logger.log("release teardown -- archiving branch...");
+      logger.info("release teardown -- archiving branch...");
       const tagName = await worktree.archive(epicSlug, { cwd: config.projectRoot });
-      logger.log(`archived as ${tagName}`);
+      logger.info(`archived as ${tagName}`);
 
       await worktree.remove(epicSlug, { cwd: config.projectRoot });
-      logger.log("worktree removed");
+      logger.info("worktree removed");
 
       // Mark manifest as done so scanner skips it
       const doneManifest = store.load(config.projectRoot, epicSlug);
       if (doneManifest) {
         store.save(config.projectRoot, epicSlug, { ...doneManifest, phase: "done", lastUpdated: new Date().toISOString() });
       }
-      logger.log("manifest marked done");
+      logger.info("manifest marked done");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`release teardown failed: ${message}`);

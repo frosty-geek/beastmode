@@ -105,7 +105,7 @@ export async function phaseCommand(
     writeFilePermissionSettings({ claudeDir, preToolUseHooks: fpPreToolUseHooks, postToolUseHooks: fpPostToolUseHooks });
 
     const result = await runInteractive({ phase, args, cwd });
-    logger.log(`${phase} ${result.exit_status} in ${formatDuration(result.duration_ms)}`);
+    logger.info(`${phase} ${result.exit_status} in ${formatDuration(result.duration_ms)}`);
     if (result.exit_status === "error") process.exit(1);
     if (result.exit_status === "cancelled") process.exit(130);
     return;
@@ -144,7 +144,7 @@ export async function phaseCommand(
   if (phase === "design" && !pipelineResult.success) {
     const designOutput = loadWorktreePhaseOutput(pipelineResult.worktreePath, "design", epicSlug);
     if (!designOutput) {
-      logger.log("Design abandoned — cleaning up");
+      logger.info("Design abandoned — cleaning up");
       const config = loadConfig(projectRoot);
       await cancelEpic({
         identifier: epicSlug,

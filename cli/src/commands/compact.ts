@@ -20,7 +20,7 @@ export async function compactCommand(): Promise<void> {
   }
 
   const logger = createLogger(createStdioSink(0), { phase: "compact" });
-  logger.log("Dispatching compaction agent...");
+  logger.info("Dispatching compaction agent...");
 
   const proc = Bun.spawn(
     [
@@ -50,7 +50,7 @@ export async function compactCommand(): Promise<void> {
     if (cancelled) {
       logger.warn("Compaction cancelled.");
     } else if (exitCode === 0) {
-      logger.log("Compaction complete.");
+      logger.info("Compaction complete.");
     } else {
       logger.error(`Compaction failed (exit code ${exitCode}).`);
       process.exit(exitCode ?? 1);
