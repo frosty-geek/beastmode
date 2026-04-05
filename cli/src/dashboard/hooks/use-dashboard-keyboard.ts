@@ -100,6 +100,8 @@ export interface DashboardKeyboardState {
   logAutoFollow: boolean;
   /** Details panel scroll offset */
   detailsScrollOffset: number;
+  /** Reset details scroll offset to 0 (call on selection change) */
+  resetDetailsScroll: () => void;
 }
 
 export function useDashboardKeyboard(
@@ -132,6 +134,10 @@ export function useDashboardKeyboard(
   const [logScrollOffset, setLogScrollOffset] = useState(0);
   const [logAutoFollow, setLogAutoFollow] = useState(true);
   const [detailsScrollOffset, setDetailsScrollOffset] = useState(0);
+
+  const resetDetailsScroll = useCallback(() => {
+    setDetailsScrollOffset(0);
+  }, []);
 
   const handleInput = useCallback(
     (input: string, key: Key) => {
@@ -314,5 +320,6 @@ export function useDashboardKeyboard(
     logScrollOffset,
     logAutoFollow,
     detailsScrollOffset,
+    resetDetailsScroll,
   };
 }
