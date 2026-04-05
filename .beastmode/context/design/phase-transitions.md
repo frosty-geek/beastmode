@@ -8,7 +8,7 @@
 - CLI-owned worktree lifecycle: creates worktree at first phase encounter, persists through all phases, squash-merges to main and removes at release
 - Worktree directory is `.claude/worktrees/` (Claude Code default) — not `.beastmode/worktrees/`
 - Design uses `Bun.spawn` with inherited stdio for interactive Claude (not SDK) — design requires human interaction
-- Watch loop (`beastmode watch`) provides automated advancement: event-driven re-scan on session completion drives epics through plan -> release
+- Watch loop (embedded in dashboard) provides automated advancement: event-driven re-scan on session completion drives epics through plan -> release
 
 ## Phase-to-Skill Mapping
 design -> plan -> implement -> validate -> release. Each phase maps to a skill of the same name.

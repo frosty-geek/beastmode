@@ -63,7 +63,7 @@
 - Four verbosity levels map to numeric indices (0-3) — cycling uses modular increment
 
 ## Log Panel Tree View
-- ALWAYS use shared `<TreeView />` component for log panel rendering — same component used by `beastmode watch`
+- ALWAYS use shared `<TreeView />` component for log panel rendering
 - Tree hierarchy: epic > phase > feature with vertical line connectors and phase-based coloring
 - `useDashboardTreeState` adapter hook bridges existing data sources (ring buffers + session events) to tree state — rendering layer swap, data flow unchanged
 - Tree trimming for auto-follow within alternate screen buffer — newest entries visible at bottom
@@ -71,17 +71,15 @@
 ## Watch Loop Integration
 - ALWAYS embed WatchLoop directly in the dashboard process — dashboard IS the orchestrator
 - ALWAYS subscribe to WatchLoop EventEmitter typed events for React state updates
-- ALWAYS use the same lockfile as `beastmode watch` — mutual exclusion prevents two orchestrators
+- ALWAYS use the dashboard lockfile — mutual exclusion prevents two orchestrators
 - ALWAYS externalize signal handling — Ink app's SIGINT handler calls `loop.stop()`
 
 ## Shared Data Module
-- ALWAYS use `status-data.ts` for sorting, filtering, snapshot building, and change detection — shared between `beastmode status` and `beastmode dashboard`
-- Data layer shared, presentation layer separate (ANSI strings for status, Ink components for dashboard)
+- ALWAYS use `status-data.ts` for sorting, filtering, snapshot building, and change detection — shared data module for the dashboard
 
-## Coexistence
-- NEVER replace `beastmode watch` — kept as headless fallback for CI/automation
-- NEVER replace `beastmode status` or `status --watch` — kept for quick passive viewing
-- Dashboard is an additive capability, not a replacement for existing commands
+## Sole Orchestrator
+- Dashboard is the sole orchestration entry point — embeds the WatchLoop directly
+- No separate headless watch command — dashboard IS the orchestrator
 
 ## Release Queue Indicator
 - Epics held for release serialization show a "Queued" badge with blocking epic context in the EpicsPanel

@@ -1,7 +1,7 @@
 # Design Abandon Cleanup
 
 ## Context
-When the design phase exits without producing a PRD (output.json) — whether via graceful quit, crash, or session abandonment — the CLI previously left orphaned artifacts: a worktree directory, a git branch, a manifest file that incorrectly advanced to plan phase, and potentially a GitHub issue. These ghost epics polluted `beastmode status` and caused the watch loop to dispatch plan on PRD-less epics.
+When the design phase exits without producing a PRD (output.json) — whether via graceful quit, crash, or session abandonment — the CLI previously left orphaned artifacts: a worktree directory, a git branch, a manifest file that incorrectly advanced to plan phase, and potentially a GitHub issue. These ghost epics polluted the dashboard and caused the watch loop to dispatch plan on PRD-less epics.
 
 ## Decision
 Two-layer defense detects missing output.json and cleans up automatically:
