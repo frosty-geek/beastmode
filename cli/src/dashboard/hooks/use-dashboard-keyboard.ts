@@ -88,6 +88,12 @@ export interface DashboardKeyboardState {
   phaseFilter: PhaseFilter;
   /** Whether to show blocked items */
   showBlocked: boolean;
+  /** Log scroll offset (line index from top) */
+  logScrollOffset: number;
+  /** Whether log auto-follows newest entries */
+  logAutoFollow: boolean;
+  /** Details panel scroll offset */
+  detailsScrollOffset: number;
 }
 
 export function useDashboardKeyboard(
@@ -114,6 +120,9 @@ export function useDashboardKeyboard(
   const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>("epics");
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
   const [showBlocked, setShowBlocked] = useState(true);
+  const [logScrollOffset, setLogScrollOffset] = useState(0);
+  const [logAutoFollow, setLogAutoFollow] = useState(true);
+  const [detailsScrollOffset, setDetailsScrollOffset] = useState(0);
 
   const handleInput = useCallback(
     (input: string, key: Key) => {
@@ -172,9 +181,19 @@ export function useDashboardKeyboard(
         return;
       }
 
-      // Priority 6: arrow key navigation
+      // Priority 6: arrow key navigation — routed by focused panel
       if (key.upArrow || key.downArrow) {
-        nav.handleNavInput(key);
+        if (focusedPanel === "epics") {
+          nav.handleNavInput(key);
+        } else {
+          // Log panel scroll
+          if (key.upArrow) {
+            setLogAutoFollow(false);
+            setLogScrollOffset((prev) => Math.max(0, prev - 1));
+          } else {
+            setLogScrollOffset((prev) => prev + 1);
+          }
+        }
         return;
       }
 
@@ -220,6 +239,25 @@ export function useDashboardKeyboard(
         setVerbosity((prev) => cycleVerbosity(prev));
         return;
       }
+
+      // Priority 13: PgUp — details panel scroll up
+      if (key.pageUp) {
+        setDetailsScrollOffset((prev) => Math.max(0, prev - 10));
+        return;
+      }
+
+      // Priority 14: PgDn — details panel scroll down
+      if (key.pageDown) {
+        setDetailsScrollOffset((prev) => prev + 10);
+        return;
+      }
+
+      // Priority 15: 'G'/End — resume log auto-follow
+      if (input === "G" || key.end) {
+        setLogAutoFollow(true);
+        setLogScrollOffset(0);
+        return;
+      }
     },
     [
       shutdown.isShuttingDown,
@@ -229,6 +267,9 @@ export function useDashboardKeyboard(
       focusedPanel,
       phaseFilter,
       showBlocked,
+      logScrollOffset,
+      logAutoFollow,
+      detailsScrollOffset,
       cancelFlow,
       shutdown,
       nav,
@@ -244,5 +285,19 @@ export function useDashboardKeyboard(
   // Wire up useInput — disabled during shutdown
   useInput(handleInput, { isActive: !shutdown.isShuttingDown });
 
-  return { nav, cancelFlow, shutdown, toggleAll, mode, filterInput, verbosity, focusedPanel, phaseFilter, showBlocked };
+  return {
+    nav,
+    cancelFlow,
+    shutdown,
+    toggleAll,
+    mode,
+    filterInput,
+    verbosity,
+    focusedPanel,
+    phaseFilter,
+    showBlocked,
+    logScrollOffset,
+    logAutoFollow,
+    detailsScrollOffset,
+  };
 }
