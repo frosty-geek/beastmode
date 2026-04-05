@@ -1,4 +1,4 @@
-import type { EnrichedManifest } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/index.js";
 
 export type Phase = "design" | "plan" | "implement" | "validate" | "release" | "done" | "cancelled";
 
@@ -13,10 +13,10 @@ export interface PhaseCount {
  * Count epics per phase. Returns only phases with count > 0,
  * in canonical phase order.
  */
-export function computePhaseDistribution(epics: EnrichedManifest[]): PhaseCount[] {
+export function computePhaseDistribution(epics: EnrichedEpic[]): PhaseCount[] {
   const counts = new Map<string, number>();
   for (const epic of epics) {
-    counts.set(epic.phase, (counts.get(epic.phase) ?? 0) + 1);
+    counts.set(epic.status, (counts.get(epic.status) ?? 0) + 1);
   }
   return ALL_PHASES
     .filter((p) => (counts.get(p) ?? 0) > 0)

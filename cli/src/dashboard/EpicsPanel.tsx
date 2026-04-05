@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Box, Text, measureElement } from "ink";
-import type { EnrichedManifest } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/index.js";
 import { PHASE_COLOR, CHROME, isDim } from "./monokai-palette.js";
 
 // --- Shared utilities ---
@@ -53,7 +53,7 @@ export function getEpicIcon(
 
 export interface EpicsPanelProps {
   /** Epic list (already filtered/sorted by parent) */
-  epics: EnrichedManifest[];
+  epics: EnrichedEpic[];
   /** Set of epic slugs with active sessions */
   activeSessions: Set<string>;
   /** Currently selected row index (0 = "(all)" entry) */
@@ -123,8 +123,8 @@ export default function EpicsPanel({
       const isSelected = rowIndex === selectedIndex;
       const isActive = activeSessions.has(epic.slug);
       const isConfirming = cancelConfirmingSlug === epic.slug;
-      const dim = isDim(epic.phase);
-      const icon = getEpicIcon(isSelected, isActive, epic.phase);
+      const dim = isDim(epic.status);
+      const icon = getEpicIcon(isSelected, isActive, epic.status);
 
       rows.push(
         <Box key={epic.slug}>
@@ -152,10 +152,10 @@ export default function EpicsPanel({
               </Text>
             ) : (
               <Text
-                color={PHASE_COLOR[epic.phase] as Parameters<typeof Text>[0]["color"]}
+                color={PHASE_COLOR[epic.status] as Parameters<typeof Text>[0]["color"]}
                 dimColor={dim}
               >
-                {epic.phase}
+                {epic.status}
               </Text>
             )}
           </Box>
