@@ -914,7 +914,7 @@ export async function syncGitHubForEpic(opts: {
       name: epicEntity.name,
       phase: epicEntity.phase,
       summary: epicEntity.summary,
-      features: features.map((f) => ({
+      features: features.map((f: { id: string; slug: string; status: string; description?: string; plan?: string }) => ({
         id: f.id,
         slug: f.slug,
         status: f.status,

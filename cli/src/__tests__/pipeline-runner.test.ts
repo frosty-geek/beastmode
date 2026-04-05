@@ -109,7 +109,7 @@ const mockJsonFileStore = vi.hoisted(() => {
       }
       return undefined;
     }),
-    listFeatures: vi.fn(() => []),
+    listFeatures: vi.fn((_epicId?: string) => []),
   };
 
   class JsonFileStore {

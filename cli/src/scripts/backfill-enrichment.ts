@@ -15,9 +15,12 @@ import { discoverGitHub } from "../github/discovery.js";
 import type { ResolvedGitHub } from "../github/discovery.js";
 import { hasRemote, pushBranches, pushTags } from "../git/push.js";
 import { amendCommitsInRange } from "../git/commit-issue-ref.js";
+import type { IssueRefFeature } from "../git/commit-issue-ref.js";
 import { linkBranches } from "../github/branch-link.js";
 import { git } from "../git/worktree.js";
 import { resolve } from "path";
+import { JsonFileStore } from "../store/json-file-store.js";
+import { loadSyncRefs } from "../github/sync-refs.js";
 
 /** Per-epic result tracking. */
 export interface EpicBackfillResult {
@@ -126,11 +129,18 @@ export async function backfill(
       // Step 1: GitHub sync (titles, bodies, labels)
       if (githubEnabled) {
         console.log(`[${manifest.slug}] step 1/5: github sync...`);
-        await deps.syncGitHubForEpic({
-          projectRoot,
-          epicSlug: manifest.slug,
-          resolved,
-        });
+        const jfs = new JsonFileStore(resolve(projectRoot, ".beastmode/state/store.json"));
+        jfs.load();
+        const epicEntity = jfs.find(manifest.slug);
+        if (epicEntity) {
+          await deps.syncGitHubForEpic({
+            projectRoot,
+            epicId: epicEntity.id,
+            epicSlug: manifest.slug,
+            store: jfs,
+            resolved,
+          });
+        }
         epicResult.steps.push("github-sync");
         console.log(`[${manifest.slug}] step 1/5: github sync done`);
       } else {
@@ -179,8 +189,16 @@ export async function backfill(
       const freshManifest = deps.load(projectRoot, manifest.slug) ?? manifest;
       if (freshManifest.github?.epic) {
         console.log(`[${manifest.slug}] step 4/5: amending commits for issue ref...`);
+        const syncRefs = loadSyncRefs(projectRoot);
+        const jfs2 = new JsonFileStore(resolve(projectRoot, ".beastmode/state/store.json"));
+        jfs2.load();
+        const epicEnt = jfs2.find(freshManifest.slug);
+        const epicId = epicEnt?.id ?? "";
+        const feats: IssueRefFeature[] = epicEnt ? jfs2.listFeatures(epicId).map((f: { id: string; slug: string }) => ({ id: f.id, slug: f.slug })) : [];
         const amendResult = await deps.amendCommitsInRange(
-          freshManifest,
+          syncRefs,
+          epicId,
+          feats,
           freshManifest.slug,
           freshManifest.phase,
           { cwd: projectRoot },

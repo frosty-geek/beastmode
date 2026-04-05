@@ -2,6 +2,33 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { BackfillDeps } from "../scripts/backfill-enrichment.js";
 import type { PipelineManifest } from "../manifest/store.js";
 
+// --- Module-level mocks for store + sync-refs used internally ---
+vi.mock("../store/json-file-store.js", () => ({
+  JsonFileStore: class MockJsonFileStore {
+    load() {}
+    save() {}
+    find(idOrSlug: string) {
+      if (idOrSlug === "test-epic" || idOrSlug === "epic-a" || idOrSlug === "epic-b") {
+        return { id: `id-${idOrSlug}`, slug: idOrSlug, name: idOrSlug, type: "epic" };
+      }
+      return undefined;
+    }
+    listFeatures() {
+      return [{ id: "feat-1", slug: "feature-a" }];
+    }
+    getEpic(id: string) {
+      return { id, slug: id.replace("id-", ""), name: id, type: "epic" };
+    }
+  },
+}));
+
+vi.mock("../github/sync-refs.js", () => ({
+  loadSyncRefs: vi.fn().mockReturnValue({}),
+  saveSyncRefs: vi.fn(),
+  getSyncRef: vi.fn(),
+  setSyncRef: vi.fn(),
+}));
+
 // --- Test helpers ---
 
 function makeManifest(overrides: Partial<PipelineManifest> = {}): PipelineManifest {
@@ -89,6 +116,7 @@ describe("backfill-enrichment (comprehensive)", () => {
     expect((deps.syncGitHubForEpic as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(
       expect.objectContaining({
         projectRoot: "/project",
+        epicId: "id-test-epic",
         epicSlug: "test-epic",
       }),
     );
@@ -196,7 +224,9 @@ describe("backfill-enrichment (comprehensive)", () => {
     const result = await backfill("/project", deps);
 
     expect((deps.amendCommitsInRange as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(
-      manifest,
+      expect.any(Object),  // syncRefs
+      "id-test-epic",      // epicId
+      expect.any(Array),   // features
       "test-epic",
       "implement",
       { cwd: "/project" },

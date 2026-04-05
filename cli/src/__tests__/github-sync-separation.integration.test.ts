@@ -7,7 +7,7 @@
 
 import { describe, test, expect, beforeEach } from "vitest";
 import { InMemoryTaskStore } from "../store/in-memory";
-import type { Epic, Feature } from "../store/types";
+import type { Epic } from "../store/types";
 
 describe("GitHub sync state separated from pipeline state", () => {
   let store: InMemoryTaskStore;
