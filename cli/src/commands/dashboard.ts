@@ -4,15 +4,10 @@ import type { BeastmodeConfig } from "../config.js";
 import { WatchLoop } from "./watch-loop.js";
 import type { WatchDeps } from "./watch-loop.js";
 import { listEnriched } from "../manifest/store.js";
-import {
-  dispatchPhase,
-  ReconcilingFactory,
-  selectStrategy,
-} from "./watch.js";
-import { SdkSessionFactory } from "../dispatch/factory.js";
+import { ReconcilingFactory } from "./watch.js";
 import type { SessionFactory } from "../dispatch/factory.js";
-import { CmuxSessionFactory, CmuxClient } from "../dispatch/cmux.js";
-import { ITermSessionFactory, It2Client } from "../dispatch/it2.js";
+import { ITermSessionFactory } from "../dispatch/it2.js";
+import { It2Client } from "../dispatch/it2.js";
 import { discoverGitHub } from "../github/discovery.js";
 import { FallbackEntryStore } from "../dashboard/lifecycle-entries.js";
 import { createDashboardLogger } from "../dashboard/dashboard-logger.js";
@@ -49,17 +44,8 @@ export async function dashboardCommand(
     verbosity,
   });
 
-  // --- Select dispatch strategy from config (same as watch command) ---
-  const selected = await selectStrategy(config.cli["dispatch-strategy"] ?? "sdk", undefined, logger);
-  let innerFactory: SessionFactory;
-
-  if (selected.strategy === "cmux") {
-    innerFactory = new CmuxSessionFactory(new CmuxClient());
-  } else if (selected.strategy === "iterm2") {
-    innerFactory = new ITermSessionFactory(new It2Client());
-  } else {
-    innerFactory = new SdkSessionFactory(dispatchPhase);
-  }
+  // --- Create iTerm2 dispatch factory ---
+  const innerFactory: SessionFactory = new ITermSessionFactory(new It2Client());
 
   const sessionFactory = new ReconcilingFactory(innerFactory, projectRoot, logger);
 
