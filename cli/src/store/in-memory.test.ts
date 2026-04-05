@@ -158,6 +158,65 @@ describe("InMemoryTaskStore", () => {
       store.deleteFeature(feature.id);
       expect(store.getFeature(feature.id)).toBeUndefined();
     });
+
+    it("should add a feature with explicit slug", () => {
+      const feature = store.addFeature({
+        parent: epic.id,
+        name: "Login Flow",
+        slug: "login-flow",
+      });
+      expect(feature.slug).toBe("login-flow");
+    });
+
+    it("should derive slug from name when not provided", () => {
+      const feature = store.addFeature({
+        parent: epic.id,
+        name: "Login Flow",
+      });
+      expect(feature.slug).toBe("login-flow");
+    });
+
+    it("should normalize slug via slugify", () => {
+      const feature = store.addFeature({
+        parent: epic.id,
+        name: "Test",
+        slug: "Login Flow!",
+      });
+      expect(feature.slug).toBe("login-flow");
+    });
+
+    it("should deduplicate slug on collision", () => {
+      const f1 = store.addFeature({
+        parent: epic.id,
+        name: "Login Flow",
+        slug: "login-flow",
+      });
+      const f2 = store.addFeature({
+        parent: epic.id,
+        name: "Login Flow 2",
+        slug: "login-flow",
+      });
+      expect(f1.slug).toBe("login-flow");
+      expect(f2.slug).not.toBe("login-flow");
+      expect(f2.slug.startsWith("login-flow-")).toBe(true);
+    });
+
+    it("should deduplicate slug across epics", () => {
+      const epic1 = store.addEpic({ name: "Epic 1" });
+      const epic2 = store.addEpic({ name: "Epic 2" });
+      const f1 = store.addFeature({
+        parent: epic1.id,
+        name: "Login",
+        slug: "login-flow",
+      });
+      const f2 = store.addFeature({
+        parent: epic2.id,
+        name: "Login",
+        slug: "login-flow",
+      });
+      expect(f1.slug).toBe("login-flow");
+      expect(f2.slug).not.toBe("login-flow");
+    });
   });
 
   describe("ready()", () => {

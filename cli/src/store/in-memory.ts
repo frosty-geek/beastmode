@@ -13,6 +13,8 @@ import {
   EntityType,
 } from "./types.js";
 
+import { slugify, deduplicateSlug } from "./slug.js";
+
 export class InMemoryTaskStore implements TaskStore {
   private entities = new Map<string, Entity>();
   private epicCounters = new Map<string, number>(); // parent ID -> next feature ordinal
@@ -45,6 +47,19 @@ export class InMemoryTaskStore implements TaskStore {
    */
   private now(): string {
     return new Date().toISOString();
+  }
+
+  /**
+   * Collect all existing slugs from entities
+   */
+  private collectSlugs(): Set<string> {
+    const slugs = new Set<string>();
+    for (const entity of this.entities.values()) {
+      if ("slug" in entity) {
+        slugs.add(entity.slug);
+      }
+    }
+    return slugs;
   }
 
   // --- Epic CRUD ---
@@ -128,12 +143,17 @@ export class InMemoryTaskStore implements TaskStore {
     if (!parentEpic) throw new Error(`Parent epic not found: ${opts.parent}`);
 
     const id = this.generateFeatureId(opts.parent);
+    const rawSlug = opts.slug ?? opts.name;
+    const normalizedSlug = slugify(rawSlug);
+    const existingSlugs = this.collectSlugs();
+    const finalSlug = deduplicateSlug(normalizedSlug, id, existingSlugs);
+
     const feature: Feature = {
       id,
       type: "feature",
       parent: opts.parent,
       name: opts.name,
-      slug: opts.slug || opts.name.toLowerCase().replace(/\s+/g, "-"),
+      slug: finalSlug,
       description: opts.description,
       status: "pending",
       depends_on: [],
