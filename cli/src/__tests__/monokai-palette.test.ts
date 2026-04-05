@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { PHASE_COLOR, CHROME, DEPTH, isDim } from "../dashboard/monokai-palette.js";
 
 describe("monokai-palette", () => {

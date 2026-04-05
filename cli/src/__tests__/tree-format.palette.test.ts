@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import chalk from "chalk";
 import { buildTreePrefix, formatTreeLine } from "../dashboard/tree-format.js";
 
@@ -52,11 +52,12 @@ describe("tree-format with monokai-palette", () => {
 
   test("formatTreeLine leaf-feature with phase renders colored prefix and timestamp", () => {
     const timestamp = new Date("2024-04-04T10:30:45Z").getTime();
+    const localTime = new Date(timestamp).toLocaleTimeString("en-GB", { hour12: false });
     const line = formatTreeLine("leaf-feature", "info", "implement", "Leaf message", timestamp);
 
     const plain = stripAnsi(line);
     expect(plain).toContain("│ │ ·");
-    expect(plain).toContain("10:30:45");
+    expect(plain).toContain(localTime);
     expect(plain).toContain("INFO");
     expect(plain).toContain("Leaf message");
   });
@@ -95,11 +96,12 @@ describe("tree-format with monokai-palette", () => {
 
   test("formatTreeLine system depth no prefix", () => {
     const timestamp = new Date("2024-04-04T10:30:45Z").getTime();
+    const localTime = new Date(timestamp).toLocaleTimeString("en-GB", { hour12: false });
     const line = formatTreeLine("system", "info", undefined, "System msg", timestamp);
 
     const plain = stripAnsi(line);
     expect(plain).not.toContain("│");
-    expect(plain).toContain("10:30:45");
+    expect(plain).toContain(localTime);
     expect(plain).toContain("INFO");
     expect(plain).toContain("System msg");
   });
