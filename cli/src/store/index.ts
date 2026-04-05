@@ -15,6 +15,8 @@ export type {
   EntityType,
   EpicStatus,
   FeatureStatus,
+  NextAction,
+  EnrichedEpic,
 } from "./types.js";
 
 export { InMemoryTaskStore } from "./in-memory.js";
