@@ -55,14 +55,14 @@ export default function ThreePanelLayout({
           </Box>
         </Box>
 
-        {/* Main content — vertical split: left column (EPICS + OVERVIEW) | right column (LOG) */}
+        {/* Main content — vertical split: left column (EPICS + DETAILS) | right column (LOG) */}
         <Box flexDirection="row" flexGrow={1}>
           {/* Left column — 35% width */}
           <Box flexDirection="column" width="35%">
             <PanelBox title="EPICS" height="60%">
               {epicsSlot}
             </PanelBox>
-            <PanelBox title="OVERVIEW" flexGrow={1}>
+            <PanelBox title="DETAILS" flexGrow={1}>
               {detailsSlot}
             </PanelBox>
           </Box>
