@@ -7,6 +7,16 @@
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
 
+// --- Mock Bun globals (needed by syncGitHub for hashing/tag resolution) ---
+globalThis.Bun = {
+  CryptoHasher: class {
+    constructor(_algo: string) {}
+    update(_data: string) {}
+    digest(_format: string) { return "abc123"; }
+  },
+  spawnSync: (_args: string[]) => ({ success: true, stdout: "", stderr: "" }),
+} as any;
+
 // --- Mock infrastructure ---
 
 const mockCalls: { fn: string; args: unknown[] }[] = [];
