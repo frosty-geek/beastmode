@@ -117,38 +117,42 @@ Rules:
 
 ### 4. Generate Integration Tests
 
-After feature decomposition, spawn the plan-integration-tester agent to produce behavioral integration specs for the epic.
+After feature decomposition, spawn the plan-integration-tester agent to produce behavioral integration specs grouped by feature.
 
-#### 4a. Spawn Agent
+#### 4a. Collect Features
+
+Build a feature batch from the decomposed features. For each feature, capture:
+- Feature name (lowercase, hyphenated identifier)
+- Associated user stories (the subset of PRD user stories this feature covers)
+
+#### 4b. Spawn Agent
 
 Spawn the `plan-integration-tester` agent as a subagent:
 
 - **Agent:** `plan-integration-tester` (from `.claude/agents/plan-integration-tester.md`)
-- **Input:** Epic name and the numbered user stories extracted from the PRD
+- **Input:** Epic name and the feature batch (each feature with its name and user stories)
 - **Method:** `Agent(subagent_type="general-purpose", prompt=<built prompt>)` — the prompt instructs the agent to follow the plan-integration-tester agent definition
 
-The agent reads the existing test tree, analyzes coverage against the PRD user stories, and produces an integration artifact at `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-integration.md`.
+The agent reads the existing test tree, analyzes coverage against the feature-level user stories, and produces an integration artifact at `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-integration.md` with scenarios grouped by feature name.
 
 **Handle agent status:**
 
-- **DONE or DONE_WITH_CONCERNS:** proceed to step 4b (generate feature)
+- **DONE or DONE_WITH_CONCERNS:** proceed to step 4c (distribute scenarios)
 - **NEEDS_CONTEXT or BLOCKED:** print a warning and skip integration test generation entirely. Proceed to step 5 (Finalize Features). This is warn-and-continue — not a hard gate.
 
-#### 4b. Generate Integration-Tests Feature
+#### 4c. Distribute Scenarios into Feature Plans
 
-On agent success, generate a dedicated `integration-tests` feature:
+On agent success, read the integration artifact and distribute scenarios inline:
 
 1. **Read the integration artifact** produced by the agent
-2. **Extract scenarios** from the artifact's "New Scenarios" and "Modified Scenarios" sections
-3. **Create the feature** with these properties:
-   - **Name:** `integration-tests`
-   - **User Stories:** same user stories covered by the integration artifact's scenarios
-   - **What to Build:** reference the integration artifact path; the implementer writes `.feature` files, step definitions, and configures the test runner
-   - **Acceptance Criteria:** one criterion per Gherkin scenario in the artifact (e.g., "Scenario X passes as an integration test")
-   - **Wave:** 1 (before all other features)
-4. **Bump wave numbers** — increment all other features' wave numbers by 1 to accommodate the new wave-1 feature
+2. **Parse per-feature sections** — match `### Feature: <feature-name>` headings in the "New Scenarios" section to the decomposed features
+3. **For each feature:**
+   - If matching scenarios exist: inject the Gherkin block into a `## Integration Test Scenarios` section in the feature's internal record
+   - If no matching scenarios: inject an empty `## Integration Test Scenarios` section with a comment: `<!-- No behavioral scenarios produced for this feature -->`
+   - If no matching scenarios: record a warning for the missing coverage
+4. **Preserve the integration artifact** as an audit trail (do not delete it)
 
-The plan skill does not contain BDD domain knowledge — it delegates entirely to the agent and mechanically transforms the artifact into a feature.
+The plan skill does not contain BDD domain knowledge — it delegates entirely to the agent and mechanically distributes the artifact's per-feature sections into feature plans.
 
 ### 5. Finalize Features
 
