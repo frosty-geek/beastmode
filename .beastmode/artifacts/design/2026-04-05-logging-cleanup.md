@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: 64e2b7
+slug: logging-cleanup
 epic: logging-cleanup
 ---
 
