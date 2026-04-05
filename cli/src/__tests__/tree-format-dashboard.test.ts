@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { buildTreePrefix, formatTreeLine, type TreeDepth } from "../dashboard/tree-format.js";
+import { buildTreePrefix, formatTreeLine } from "../dashboard/tree-format.js";
 
 describe("buildTreePrefix — new hierarchy", () => {
   test("cli depth has no prefix", () => {

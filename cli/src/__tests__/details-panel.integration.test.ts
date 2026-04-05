@@ -2,13 +2,7 @@ import { describe, test, expect } from "vitest";
 import {
   type DetailsPanelSelection,
   resolveDetailsContent,
-  type DetailsContentResult,
 } from "../dashboard/details-panel.js";
-import {
-  computePhaseDistribution,
-  formatGitStatus,
-  formatActiveSessions,
-} from "../dashboard/overview-panel.js";
 import type { EnrichedEpic } from "../store/types.js";
 
 /**

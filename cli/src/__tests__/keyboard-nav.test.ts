@@ -394,14 +394,13 @@ describe("focus panel logic", () => {
   });
 
   test("Tab toggles from log to epics", () => {
-    let focusedPanel: "epics" | "log" = "log";
-    focusedPanel = focusedPanel === "epics" ? "log" : "epics";
-    expect(focusedPanel).toBe("epics");
+    const toggle = (p: "epics" | "log") => p === "epics" ? "log" as const : "epics" as const;
+    expect(toggle("log")).toBe("epics");
   });
 
   test("Tab is ignored in filter mode", () => {
     let focusedPanel: "epics" | "log" = "epics";
-    const mode = "filter";
+    const mode: string = "filter";
     if (mode === "normal") {
       focusedPanel = focusedPanel === "epics" ? "log" : "epics";
     }
@@ -410,7 +409,7 @@ describe("focus panel logic", () => {
 
   test("Tab is ignored in confirm mode", () => {
     let focusedPanel: "epics" | "log" = "epics";
-    const mode = "confirm";
+    const mode: string = "confirm";
     if (mode === "normal") {
       focusedPanel = focusedPanel === "epics" ? "log" : "epics";
     }
@@ -458,7 +457,7 @@ describe("phase filter logic", () => {
 
   test("'p' is ignored in filter mode", () => {
     let phaseFilter: PhaseFilter = "all";
-    const mode = "filter";
+    const mode: string = "filter";
     if (mode === "normal") {
       phaseFilter = cyclePhase(phaseFilter);
     }
@@ -486,14 +485,14 @@ describe("blocked toggle logic", () => {
 
   test("'b' is ignored in filter mode", () => {
     let showBlocked = true;
-    const mode = "filter";
+    const mode: string = "filter";
     if (mode === "normal") showBlocked = !showBlocked;
     expect(showBlocked).toBe(true);
   });
 
   test("'b' is ignored in confirm mode", () => {
     let showBlocked = true;
-    const mode = "confirm";
+    const mode: string = "confirm";
     if (mode === "normal") showBlocked = !showBlocked;
     expect(showBlocked).toBe(true);
   });
@@ -595,18 +594,16 @@ describe("log scroll state logic", () => {
   });
 
   test("arrow keys route to log scroll when log focused", () => {
-    const focusedPanel = "log";
-    let selectedIndex = 2;
-    let logScrollOffset = 5;
-
-    if (focusedPanel === "epics") {
-      selectedIndex = Math.max(0, selectedIndex - 1);
-    } else {
-      logScrollOffset = Math.max(0, logScrollOffset - 1);
+    function handleArrow(panel: "epics" | "log", selIdx: number, scrollOff: number) {
+      if (panel === "epics") {
+        return { selectedIndex: Math.max(0, selIdx - 1), logScrollOffset: scrollOff };
+      }
+      return { selectedIndex: selIdx, logScrollOffset: Math.max(0, scrollOff - 1) };
     }
 
-    expect(selectedIndex).toBe(2);
-    expect(logScrollOffset).toBe(4);
+    const result = handleArrow("log", 2, 5);
+    expect(result.selectedIndex).toBe(2);
+    expect(result.logScrollOffset).toBe(4);
   });
 });
 

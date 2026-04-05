@@ -1,7 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { FEATURE_STATUS_COLOR, isFeatureDim } from "../dashboard/monokai-palette.js";
 import { buildFlatRows, rowSlugAtIndex } from "../dashboard/epics-tree-model.js";
-import type { SelectableRow } from "../dashboard/epics-tree-model.js";
 import type { EnrichedEpic, Feature } from "../store/types.js";
 
 describe("feature status colors", () => {

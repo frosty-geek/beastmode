@@ -2,7 +2,6 @@ import { describe, test, expect } from "vitest";
 import {
   type DetailsPanelSelection,
   resolveDetailsContent,
-  type DetailsContentResult,
 } from "../dashboard/details-panel.js";
 import type { EnrichedEpic } from "../store/types.js";
 

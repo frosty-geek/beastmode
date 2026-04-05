@@ -194,11 +194,11 @@ describe("focus border color computation", () => {
   });
 
   test("unfocused panel gets undefined borderColor", () => {
-    const focusedPanel = "epics";
-    const epicsBorder = focusedPanel === "epics" ? "#color" : undefined;
-    const logBorder = focusedPanel === "log" ? "#color" : undefined;
-    expect(epicsBorder).toBe("#color");
-    expect(logBorder).toBeUndefined();
+    function computeBorder(focused: "epics" | "log", panel: "epics" | "log") {
+      return focused === panel ? "#color" : undefined;
+    }
+    expect(computeBorder("epics", "epics")).toBe("#color");
+    expect(computeBorder("epics", "log")).toBeUndefined();
   });
 });
 

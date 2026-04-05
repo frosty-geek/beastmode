@@ -4,7 +4,7 @@ import type { Feature } from "../store/types.js";
 import { buildTreeState } from "../dashboard/hooks/use-dashboard-tree-state.js";
 import { countTreeLines } from "../dashboard/LogPanel.js";
 import { formatTreeLine } from "../dashboard/tree-format.js";
-import type { TreeState, CliNode, EpicNode, FeatureNode, TreeEntry } from "../dashboard/tree-types.js";
+import type { TreeState, EpicNode, FeatureNode } from "../dashboard/tree-types.js";
 
 function mockFeature(overrides: Partial<Feature> & { slug: string; status: Feature["status"] }): Feature {
   return {
@@ -12,8 +12,6 @@ function mockFeature(overrides: Partial<Feature> & { slug: string; status: Featu
     type: "feature",
     parent: "epic-1",
     name: overrides.slug,
-    slug: overrides.slug,
-    status: overrides.status,
     depends_on: [],
     created_at: "2026-01-01",
     updated_at: "2026-01-01",

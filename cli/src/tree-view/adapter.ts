@@ -2,7 +2,6 @@ import type { TreeState as RecursiveTreeState, TreeNode, TreeEntry as RecursiveE
 import type {
   TreeState as FlatTreeState,
   EpicNode,
-  PhaseNode,
   FeatureNode,
   TreeEntry as FlatEntry,
   SystemEntry,
@@ -10,12 +9,13 @@ import type {
 
 let _seq = 0;
 
-function toFlatEntry(entry: RecursiveEntry): FlatEntry {
+function toFlatEntry(entry: RecursiveEntry, phase: string): FlatEntry {
   return {
     timestamp: entry.timestamp,
     level: entry.level,
     message: entry.message,
     seq: ++_seq,
+    phase,
   };
 }
 
@@ -28,29 +28,42 @@ function toSystemEntry(entry: RecursiveEntry): SystemEntry {
   };
 }
 
-function toFeatureNode(node: TreeNode): FeatureNode {
+function toFeatureNode(node: TreeNode, phase: string): FeatureNode {
   return {
     slug: node.label,
-    entries: node.entries.map(toFlatEntry),
-  };
-}
-
-function toPhaseNode(node: TreeNode): PhaseNode {
-  return {
-    phase: node.label,
-    features: node.children
-      .filter((c) => c.type === "feature")
-      .map(toFeatureNode),
-    entries: node.entries.map(toFlatEntry),
+    status: "in-progress",
+    entries: node.entries.map((e) => toFlatEntry(e, phase)),
   };
 }
 
 function toEpicNode(node: TreeNode): EpicNode {
+  // Flatten phase children: collect all features and entries across phases
+  const features: FeatureNode[] = [];
+  const entries: FlatEntry[] = [];
+
+  // Epic-level direct entries (no phase context)
+  for (const e of node.entries) {
+    entries.push(toFlatEntry(e, "unknown"));
+  }
+
+  // Phase children → flatten into features and entries
+  for (const phaseChild of node.children.filter((c) => c.type === "phase")) {
+    const phase = phaseChild.label;
+    // Phase-level entries become epic direct entries with phase tag
+    for (const e of phaseChild.entries) {
+      entries.push(toFlatEntry(e, phase));
+    }
+    // Feature children carry the phase from their parent
+    for (const featChild of phaseChild.children.filter((c) => c.type === "feature")) {
+      features.push(toFeatureNode(featChild, phase));
+    }
+  }
+
   return {
     slug: node.label,
-    phases: node.children
-      .filter((c) => c.type === "phase")
-      .map(toPhaseNode),
+    status: "in-progress",
+    features,
+    entries,
   };
 }
 
@@ -60,7 +73,7 @@ function toEpicNode(node: TreeNode): EpicNode {
  */
 export function toFlatTreeState(state: RecursiveTreeState): FlatTreeState {
   return {
+    cli: { entries: state.systemEntries.map(toSystemEntry) },
     epics: state.epics.map(toEpicNode),
-    system: state.systemEntries.map(toSystemEntry),
   };
 }

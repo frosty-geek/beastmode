@@ -49,22 +49,23 @@ describe("Focus Border Integration", () => {
 
     test("only focused panel receives borderColor, unfocused gets undefined", () => {
       type FocusedPanel = "epics" | "log";
-      const focusedPanel: FocusedPanel = "epics";
       const tick = 10;
       const borderColor = NYAN_PALETTE[tick % 256];
 
-      const epicsBorderColor = focusedPanel === "epics" ? borderColor : undefined;
-      const logBorderColor = focusedPanel === "log" ? borderColor : undefined;
+      function computeBorders(panel: FocusedPanel) {
+        return {
+          epics: panel === "epics" ? borderColor : undefined,
+          log: panel === "log" ? borderColor : undefined,
+        };
+      }
 
-      expect(epicsBorderColor).toBe(borderColor);
-      expect(logBorderColor).toBeUndefined();
+      const first = computeBorders("epics");
+      expect(first.epics).toBe(borderColor);
+      expect(first.log).toBeUndefined();
 
-      const newFocus: FocusedPanel = "log";
-      const newEpicsBorder = newFocus === "epics" ? borderColor : undefined;
-      const newLogBorder = newFocus === "log" ? borderColor : undefined;
-
-      expect(newEpicsBorder).toBeUndefined();
-      expect(newLogBorder).toBe(borderColor);
+      const second = computeBorders("log");
+      expect(second.epics).toBeUndefined();
+      expect(second.log).toBe(borderColor);
     });
   });
 });

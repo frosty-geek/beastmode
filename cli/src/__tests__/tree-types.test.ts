@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import type { TreeState, CliNode, EpicNode, FeatureNode, TreeEntry, SystemEntry } from "../dashboard/tree-types.js";
+import type { TreeState, CliNode, EpicNode, FeatureNode, TreeEntry } from "../dashboard/tree-types.js";
 
 describe("tree-types structure", () => {
   test("TreeEntry has phase field", () => {

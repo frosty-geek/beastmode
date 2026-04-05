@@ -449,7 +449,6 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
           activeSessions={activeSessions}
           selectedIndex={keyboard.nav.selectedIndex}
           cancelConfirmingSlug={cancelConfirmingSlug}
-          expandedEpicSlug={expandedEpicSlug}
         />
       }
       detailsSlot={
