@@ -12,8 +12,8 @@ const mockCreate = vi.hoisted(() => vi.fn(async (slug: string) => ({
   path: `/tmp/test-project/.claude/worktrees/${slug}`,
   branch: `feature/${slug}`,
 })));
-const mockRebase = vi.hoisted(() => vi.fn(async (_phase: string, _opts?: any) => ({
-  outcome: "success" as const,
+const mockRebase = vi.hoisted(() => vi.fn(async (_phase: string, _opts?: any): Promise<{ outcome: string; message: string }> => ({
+  outcome: "success",
   message: "rebased onto main",
 })));
 const mockArchive = vi.hoisted(() => vi.fn(async (_slug: string, _opts?: any) => `archive/test-epic`));
@@ -403,7 +403,7 @@ describe("pipeline/runner", () => {
     });
 
     it("runs reconciliation on validate failure (REGRESS path)", async () => {
-      const result = await run(makeConfig({
+      await run(makeConfig({
         phase: "validate",
         dispatch: async () => ({ success: false }),
       }));

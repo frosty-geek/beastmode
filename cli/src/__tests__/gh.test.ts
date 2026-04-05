@@ -744,7 +744,7 @@ describe("warn-and-continue: no function throws", () => {
     vi.doMock("../github/cli", () => ({
       gh: mockGh,
       ghGraphQL: async <T = unknown>(
-        query: string,
+        _query: string,
         _variables: Record<string, string | number> = {},
         opts: { cwd?: string } = {},
       ): Promise<T | undefined> => {
@@ -790,7 +790,7 @@ describe("ghRepoNodeId()", () => {
   });
 
   test("returns undefined when response is missing repository", () => {
-    const data: { repository?: { id: string } } | undefined = undefined;
+    const data = undefined as { repository?: { id: string } } | undefined;
     expect(data?.repository?.id).toBeUndefined();
   });
 
@@ -800,8 +800,6 @@ describe("ghRepoNodeId()", () => {
   });
 
   test("builds correct GraphQL query for repo ID lookup", () => {
-    const owner = "BugRoger";
-    const name = "beastmode";
     const query = `query($owner: String!, $name: String!) {
       repository(owner: $owner, name: $name) { id }
     }`;
@@ -854,9 +852,6 @@ describe("ghIssueNodeId()", () => {
   });
 
   test("builds correct GraphQL query for issue ID lookup", () => {
-    const owner = "org";
-    const name = "repo";
-    const number = 42;
     const query = `query($owner: String!, $name: String!, $number: Int!) {
       repository(owner: $owner, name: $name) { issue(number: $number) { id } }
     }`;

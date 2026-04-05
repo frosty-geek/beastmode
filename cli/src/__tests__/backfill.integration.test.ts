@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it } from "vitest";
 
 /**
  * Integration test for backfill feature — derived from Gherkin scenarios.
