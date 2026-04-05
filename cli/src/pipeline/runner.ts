@@ -30,6 +30,7 @@ import type { ResolvedGitHub } from "../github/discovery.js";
 import { ensureEarlyIssues } from "../github/early-issues.js";
 import { setGitHubEpic, setFeatureGitHubIssue, setEpicBodyHash, setFeatureBodyHash } from "../manifest/pure.js";
 import { createTag } from "../git/tags.js";
+import { amendCommitWithIssueRef } from "../git/commit-issue-ref.js";
 import {
   reconcileDesign,
   reconcilePlan,
@@ -323,6 +324,22 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     logger.warn(`GitHub sync failed (non-blocking): ${message}`);
+  }
+
+  // -- Step 8.5: commit-issue-ref --------------------------------------------
+  // Amend the most recent commit to append a GitHub issue reference (#N).
+  // Runs post-sync so issue numbers from early-issues or sync are available.
+  try {
+    const manifest = store.load(config.projectRoot, epicSlug);
+    if (manifest) {
+      const amendResult = await amendCommitWithIssueRef(manifest, { cwd: worktreePath });
+      if (amendResult.amended) {
+        logger.detail?.(`commit ref: (#${amendResult.issueNumber})`);
+      }
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.warn(`commit issue ref failed (non-blocking): ${message}`);
   }
 
   // -- Step 9: git.worktree.cleanup -------------------------------------------
