@@ -14,7 +14,7 @@
 ## Known Pre-existing Failures
 - `state-scanner.test.ts` line 109: expects `design -> single` but v0.59.0 changed dispatch to `design -> skip` — not in scope for any current epic, do not triage repeatedly
 - ALWAYS record the pre-existing failure count baseline from main in validation reports — prevents re-triaging known failures across epics
-- Baseline as of 2026-04-05 (post dashboard-dispatch-fix): 76 test files passing, 21 type errors (pre-existing in untouched test files)
+- Baseline as of 2026-04-05 (post github-issue-enrichment): 124 test files passing out of 223 total, 99 failing (pre-existing Bun-in-Node incompatibilities); 21 type errors (pre-existing in untouched test files)
 
 ## Type Error Fixup Patterns
 Common type errors introduced by new test files that require fixup before the type gate passes:
