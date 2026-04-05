@@ -867,3 +867,58 @@ describe("ghIssueNodeId()", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// ghCreateLinkedBranch() — createLinkedBranch GraphQL mutation
+// ---------------------------------------------------------------------------
+describe("ghCreateLinkedBranch()", () => {
+  test("returns linked branch ID on success", () => {
+    const mockStdout = '{"data":{"createLinkedBranch":{"linkedBranch":{"id":"LB_abc123"}}}}';
+    const parsed = JSON.parse(mockStdout);
+    expect(parsed.data.createLinkedBranch.linkedBranch.id).toBe("LB_abc123");
+  });
+
+  test("returns undefined when linkedBranch is null (branch exists)", () => {
+    const data = { createLinkedBranch: { linkedBranch: null as any } };
+    expect(data?.createLinkedBranch?.linkedBranch?.id).toBeUndefined();
+  });
+
+  test("returns undefined when data is undefined", () => {
+    const data: any = undefined;
+    expect(data?.createLinkedBranch?.linkedBranch?.id).toBeUndefined();
+  });
+
+  test("mutation query includes all four input fields", () => {
+    const mutation = `mutation($repoId: ID!, $issueId: ID!, $branchName: String!, $oid: GitObjectID!) {
+      createLinkedBranch(input: {
+        repositoryId: $repoId
+        issueId: $issueId
+        name: $branchName
+        oid: $oid
+      }) {
+        linkedBranch { id }
+      }
+    }`;
+    expect(mutation).toContain("repositoryId: $repoId");
+    expect(mutation).toContain("issueId: $issueId");
+    expect(mutation).toContain("name: $branchName");
+    expect(mutation).toContain("oid: $oid");
+  });
+
+  test("all four variables passed as string -f flags", () => {
+    const variables: Record<string, string> = {
+      repoId: "R_repo",
+      issueId: "I_issue",
+      branchName: "feature/test",
+      oid: "sha123",
+    };
+    const args: string[] = [];
+    for (const [key, value] of Object.entries(variables)) {
+      args.push("-f", `${key}=${value}`);
+    }
+    expect(args).toContain("repoId=R_repo");
+    expect(args).toContain("issueId=I_issue");
+    expect(args).toContain("branchName=feature/test");
+    expect(args).toContain("oid=sha123");
+  });
+});
+

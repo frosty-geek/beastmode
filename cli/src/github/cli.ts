@@ -145,6 +145,39 @@ export async function ghIssueNodeId(
 }
 
 /**
+ * Create a linked branch on a GitHub issue via GraphQL mutation.
+ *
+ * The mutation creates a remote branch AND links it to the issue in one step.
+ * Returns the linked branch ID on success, or undefined if the branch
+ * already existed (linkedBranch: null) or the call failed.
+ */
+export async function ghCreateLinkedBranch(
+  repoId: string,
+  issueId: string,
+  branchName: string,
+  oid: string,
+  opts: { cwd?: string; logger?: Logger } = {},
+): Promise<string | undefined> {
+  const data = await ghGraphQL<{
+    createLinkedBranch: { linkedBranch: { id: string } | null };
+  }>(
+    `mutation($repoId: ID!, $issueId: ID!, $branchName: String!, $oid: GitObjectID!) {
+      createLinkedBranch(input: {
+        repositoryId: $repoId
+        issueId: $issueId
+        name: $branchName
+        oid: $oid
+      }) {
+        linkedBranch { id }
+      }
+    }`,
+    { repoId, issueId, branchName, oid },
+    opts,
+  );
+  return data?.createLinkedBranch?.linkedBranch?.id;
+}
+
+/**
  * Create or update a GitHub issue label. Idempotent via --force.
  */
 export async function ghLabelCreate(
