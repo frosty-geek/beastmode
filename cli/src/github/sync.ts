@@ -26,7 +26,7 @@ import type { SyncRefs } from "./sync-refs.js";
 import { loadSyncRefs, saveSyncRefs, getSyncRef, setSyncRef } from "./sync-refs.js";
 import { extractSection, extractSections } from "../artifacts/reader.js";
 import { existsSync, readFileSync } from "fs";
-import { resolve } from "path";
+import { resolve, relative, isAbsolute } from "path";
 import {
   ghIssueCreate,
   ghIssueEdit,
@@ -878,6 +878,28 @@ async function syncProjectStatus(
 }
 
 /**
+ * Build an artifacts record from the store epic's flat phase fields.
+ * Maps { design?: string, plan?: string, ... } to Record<string, string[]>.
+ */
+function buildArtifactsMap(
+  entity: { design?: string; plan?: string; implement?: string; validate?: string; release?: string },
+  projectRoot?: string,
+): Record<string, string[]> | undefined {
+  const map: Record<string, string[]> = {};
+  const phases = ["design", "plan", "implement", "validate", "release"] as const;
+  for (const phase of phases) {
+    const rawPath = entity[phase];
+    if (rawPath) {
+      const normalized = projectRoot && isAbsolute(rawPath)
+        ? relative(projectRoot, rawPath)
+        : rawPath;
+      map[phase] = [normalized];
+    }
+  }
+  return Object.keys(map).length > 0 ? map : undefined;
+}
+
+/**
  * Convenience wrapper: load epic + features from store, run syncGitHub, apply mutations to sync refs.
  * Used by watch-command for post-reconciliation sync. Warn-and-continue.
  */
@@ -912,7 +934,7 @@ export async function syncGitHubForEpic(opts: {
       id: epicEntity.id,
       slug: opts.epicSlug,
       name: epicEntity.name,
-      phase: epicEntity.phase,
+      phase: epicEntity.status,
       summary: epicEntity.summary,
       features: features.map((f: { id: string; slug: string; status: string; description?: string; plan?: string }) => ({
         id: f.id,
@@ -921,7 +943,7 @@ export async function syncGitHubForEpic(opts: {
         description: f.description,
         plan: f.plan,
       })),
-      artifacts: epicEntity.artifacts,
+      artifacts: buildArtifactsMap(epicEntity, opts.projectRoot),
     };
 
     const result = await syncGitHub(epicInput, syncRefs, config, resolved, {

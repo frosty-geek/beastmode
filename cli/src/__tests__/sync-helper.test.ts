@@ -195,4 +195,79 @@ describe("syncGitHubForEpic", () => {
 
     expect(true).toBe(true);
   });
+
+  test("maps epicEntity.status to EpicSyncInput.phase", async () => {
+    const epic = store.addEpic({ name: "Phase Test", slug: "phase-test" });
+    store.updateEpic(epic.id, { status: "design" });
+
+    await syncGitHubForEpic({
+      projectRoot: tmpDir,
+      epicId: epic.id,
+      epicSlug: "phase-test",
+      store,
+      resolved: { repo: "org/repo" },
+    });
+
+    const createCalls = callsTo("ghIssueCreate");
+    expect(createCalls.length).toBeGreaterThanOrEqual(1);
+    const labels = createCalls[0].args[3] as string[];
+    expect(labels).toContain("phase/design");
+    expect(labels).not.toContain("phase/undefined");
+  });
+
+  test("builds artifacts record from flat store fields", async () => {
+    const epic = store.addEpic({ name: "Artifacts Test", slug: "artifacts-test" });
+    store.updateEpic(epic.id, {
+      status: "plan",
+      design: ".beastmode/artifacts/design/2026-04-05-test.md",
+    });
+
+    const designDir = join(tmpDir, ".beastmode", "artifacts", "design");
+    const { mkdirSync, writeFileSync } = await import("fs");
+    mkdirSync(designDir, { recursive: true });
+    writeFileSync(
+      join(designDir, "2026-04-05-test.md"),
+      "---\nphase: design\n---\n\n## Problem Statement\n\nTest problem.\n\n## Solution\n\nTest solution.\n",
+    );
+
+    await syncGitHubForEpic({
+      projectRoot: tmpDir,
+      epicId: epic.id,
+      epicSlug: "artifacts-test",
+      store,
+      resolved: { repo: "org/repo" },
+    });
+
+    const createCalls = callsTo("ghIssueCreate");
+    expect(createCalls.length).toBeGreaterThanOrEqual(1);
+    const body = createCalls[0].args[2] as string;
+    expect(body).toContain("Test problem.");
+  });
+
+  test("normalizes absolute artifact paths to repo-relative", async () => {
+    const epic = store.addEpic({ name: "Path Test", slug: "path-test" });
+    const absPath = join(tmpDir, ".beastmode", "artifacts", "design", "2026-04-05-test.md");
+    store.updateEpic(epic.id, {
+      status: "plan",
+      design: absPath,
+    });
+
+    const designDir = join(tmpDir, ".beastmode", "artifacts", "design");
+    const { mkdirSync, writeFileSync } = await import("fs");
+    mkdirSync(designDir, { recursive: true });
+    writeFileSync(absPath, "---\nphase: design\n---\n\n## Problem Statement\n\nPath test.\n");
+
+    await syncGitHubForEpic({
+      projectRoot: tmpDir,
+      epicId: epic.id,
+      epicSlug: "path-test",
+      store,
+      resolved: { repo: "org/repo" },
+    });
+
+    const createCalls = callsTo("ghIssueCreate");
+    expect(createCalls.length).toBeGreaterThanOrEqual(1);
+    const body = createCalls[0].args[2] as string;
+    expect(body).not.toContain(tmpDir);
+  });
 });
