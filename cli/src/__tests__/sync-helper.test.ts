@@ -270,4 +270,67 @@ describe("syncGitHubForEpic", () => {
     const body = createCalls[0].args[2] as string;
     expect(body).not.toContain(tmpDir);
   });
+
+  test("feature plan content populates feature body enrichment", async () => {
+    const epic = store.addEpic({ name: "Enrich Test", slug: "enrich-test" });
+    store.updateEpic(epic.id, { status: "implement" });
+
+    // Add feature with plan path
+    const feat = store.addFeature({
+      parent: epic.id,
+      name: "my-feat",
+      slug: "my-feat",
+      description: "A cool feature",
+    });
+    store.updateFeature(feat.id, {
+      plan: ".beastmode/artifacts/plan/2026-04-05-enrich-test-my-feat.md",
+    });
+
+    // Pre-populate epic ref
+    saveSyncRefs(tmpDir, { [epic.id]: { issue: 10 } });
+
+    // Create plan artifact
+    const planDir = join(tmpDir, ".beastmode", "artifacts", "plan");
+    const { mkdirSync, writeFileSync } = await import("fs");
+    mkdirSync(planDir, { recursive: true });
+    writeFileSync(
+      join(planDir, "2026-04-05-enrich-test-my-feat.md"),
+      `---
+phase: plan
+---
+
+## User Stories
+
+1. As a user, I want to test enrichment.
+
+## What to Build
+
+Build the enrichment pipeline.
+
+## Acceptance Criteria
+
+- [ ] Enrichment works
+`,
+    );
+
+    await syncGitHubForEpic({
+      projectRoot: tmpDir,
+      epicId: epic.id,
+      epicSlug: "enrich-test",
+      store,
+      resolved: { repo: "org/repo" },
+    });
+
+    // Feature create call body should contain plan sections
+    const createCalls = callsTo("ghIssueCreate");
+    const featureCreate = createCalls.find((c) => {
+      const title = c.args[1] as string;
+      return title.includes("my-feat");
+    });
+    expect(featureCreate).toBeDefined();
+    const body = featureCreate!.args[2] as string;
+    expect(body).toContain("As a user, I want to test enrichment");
+    expect(body).toContain("Build the enrichment pipeline");
+    expect(body).toContain("Enrichment works");
+  });
 });
