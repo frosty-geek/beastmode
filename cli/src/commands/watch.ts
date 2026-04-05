@@ -143,8 +143,16 @@ export async function dispatchPhase(opts: {
   // Create worktree
   const wt = await worktree.create(worktreeSlug, { cwd: opts.projectRoot });
 
+  const id = `${worktreeSlug}-${Date.now()}`;
+  const startTime = Date.now();
+
+  const events = new SessionEmitter();
+
   // -- Rebase worktree onto main (matches runner.ts step 2) ----------------
-  await rebase(opts.phase, { cwd: wt.path });
+  const rebaseResult = await rebase(opts.phase, { cwd: wt.path });
+  if (rebaseResult.outcome === "stale") {
+    events.pushEntry({ type: "text", timestamp: Date.now(), text: `rebase: ${rebaseResult.message}` });
+  }
 
   // -- Write HITL settings (matches runner.ts step 3) ----------------------
   const config = loadConfig(opts.projectRoot);
@@ -160,11 +168,6 @@ export async function dispatchPhase(opts: {
   const fpPreToolUseHooks = buildFilePermissionPreToolUseHooks(fpProse, config["file-permissions"].timeout);
   const fpPostToolUseHooks = buildFilePermissionPostToolUseHooks(opts.phase);
   writeFilePermissionSettings({ claudeDir, preToolUseHooks: fpPreToolUseHooks, postToolUseHooks: fpPostToolUseHooks });
-
-  const id = `${worktreeSlug}-${Date.now()}`;
-  const startTime = Date.now();
-
-  const events = new SessionEmitter();
 
   const promise = (async (): Promise<SessionResult> => {
     let sessionResult: SessionResult;

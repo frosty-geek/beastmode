@@ -4,6 +4,7 @@ import type { BeastmodeConfig } from "../config.js";
 import type { EnrichedManifest } from "../manifest/store.js";
 import type { WatchLoopEventMap, DispatchedSession } from "../dispatch/types.js";
 import type { WatchLoop } from "../commands/watch-loop.js";
+import type { LogLevel } from "../logger.js";
 import ThreePanelLayout from "./ThreePanelLayout.js";
 import EpicsPanel from "./EpicsPanel.js";
 import OverviewPanel from "./OverviewPanel.js";
@@ -15,13 +16,18 @@ import { useTerminalSize } from "./hooks/use-terminal-size.js";
 import { getKeyHints } from "./key-hints.js";
 import { cancelEpicAction } from "./actions/cancel-epic.js";
 import { FallbackEntryStore, lifecycleToLogEntry } from "./lifecycle-entries.js";
-import { createLogger } from "../logger.js";
+import { createDashboardLogger } from "./dashboard-logger.js";
+import type { SystemEntryRef } from "./dashboard-logger.js";
 
 export interface AppProps {
   config: BeastmodeConfig;
   verbosity: number;
   loop?: WatchLoop;
   projectRoot?: string;
+  /** Shared fallback entry store — created by dashboard command, fed by DashboardLogger. */
+  fallbackStore?: FallbackEntryStore;
+  /** Shared system entries ref — created by dashboard command, fed by DashboardLogger. */
+  systemRef?: SystemEntryRef;
 }
 
 function formatClock(): string {
@@ -31,7 +37,7 @@ function formatClock(): string {
     .join(":");
 }
 
-export default function App({ config, verbosity, loop, projectRoot }: AppProps) {
+export default function App({ config, verbosity, loop, projectRoot, fallbackStore, systemRef }: AppProps) {
   const { exit } = useApp();
   const [clock, setClock] = useState(formatClock());
   const [epics, setEpics] = useState<EnrichedManifest[]>([]);
@@ -43,7 +49,22 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
   const { rows } = useTerminalSize();
   const loopRef = useRef(loop);
   loopRef.current = loop;
-  const fallbackStoreRef = useRef(new FallbackEntryStore());
+  // Use shared stores from dashboard command if provided, otherwise create local ones
+  const fallbackStoreRef = useRef(fallbackStore ?? new FallbackEntryStore());
+  const systemEntriesRef = useRef(systemRef?.entries ?? []);
+  const systemSeqRef = useRef(0);
+
+  // Dashboard logger for cancel actions (uses shared stores)
+  const dashboardLoggerRef = useRef(
+    createDashboardLogger({
+      fallbackStore: fallbackStoreRef.current,
+      systemRef: systemRef ?? {
+        entries: systemEntriesRef.current,
+        nextSeq: () => systemSeqRef.current++,
+      },
+      verbosity,
+    }),
+  );
 
   // --- Visible epics (filtered by active filter and toggle-all) ---
   const slugAtIndex = useCallback(
@@ -64,10 +85,10 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
         projectRoot,
         tracker: l.getTracker(),
         githubEnabled: config.github.enabled,
-        logger: createLogger(verbosity, {}),
+        logger: dashboardLoggerRef.current.child({ epic: slug }),
       });
     },
-    [projectRoot, config.github.enabled, verbosity],
+    [projectRoot, config.github.enabled],
   );
 
   const handleShutdown = useCallback(async () => {
@@ -121,6 +142,7 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
     sessions: trackerSessions,
     selectedEpicSlug,
     fallbackEntries: fallbackStoreRef.current,
+    systemEntries: systemEntriesRef.current,
   });
 
   // --- Clock tick every 1s ---
@@ -170,12 +192,28 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       setTrackerSessions(loop.getTracker().getAll());
     };
 
-    const onStarted = () => setWatchRunning(true);
-    const onStopped = () => setWatchRunning(false);
+    const pushSystemEntry = (message: string, level: LogLevel = "info") => {
+      systemEntriesRef.current.push({
+        timestamp: Date.now(),
+        level,
+        message,
+        seq: systemSeqRef.current++,
+      });
+    };
+
+    const onStarted = () => {
+      setWatchRunning(true);
+      pushSystemEntry("watch loop started");
+    };
+    const onStopped = () => {
+      setWatchRunning(false);
+      pushSystemEntry("watch loop stopped");
+    };
 
     const onSessionStarted = (ev: WatchLoopEventMap["session-started"][0]) => {
       setActiveSessions((prev) => new Set([...prev, ev.epicSlug]));
       refreshSessions();
+      pushSystemEntry(`session started: ${ev.epicSlug} [${ev.phase}]`);
       fallbackStoreRef.current.push(
         ev.epicSlug,
         ev.phase,
@@ -191,6 +229,8 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
         return next;
       });
       refreshSessions();
+      const status = ev.success ? "completed" : "failed";
+      pushSystemEntry(`session ${status}: ${ev.epicSlug} [${ev.phase}]`, ev.success ? "info" : "error");
       fallbackStoreRef.current.push(
         ev.epicSlug,
         ev.phase,
@@ -203,9 +243,11 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       const activeEpicSlugs = new Set(loop.getTracker().getAll().map((s) => s.epicSlug));
       setActiveSessions(activeEpicSlugs);
       refreshSessions();
+      pushSystemEntry(`scan complete — ${activeEpicSlugs.size} active session(s)`);
     };
 
     const onError = (ev: WatchLoopEventMap["error"][0]) => {
+      pushSystemEntry(`error: ${ev.message}`, "error");
       if (ev.epicSlug) {
         fallbackStoreRef.current.push(
           ev.epicSlug,
@@ -216,12 +258,57 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       }
     };
 
+    const onEpicBlocked = (ev: WatchLoopEventMap["epic-blocked"][0]) => {
+      pushSystemEntry(`blocked: ${ev.epicSlug} at ${ev.gate} — ${ev.reason}`);
+      fallbackStoreRef.current.push(
+        ev.epicSlug,
+        "unknown",
+        undefined,
+        lifecycleToLogEntry("epic-blocked", ev),
+      );
+    };
+
+    const onReleaseHeld = (ev: WatchLoopEventMap["release:held"][0]) => {
+      pushSystemEntry(`release held: ${ev.waitingSlug} blocked by ${ev.blockingSlug}`);
+      fallbackStoreRef.current.push(
+        ev.waitingSlug,
+        "release",
+        undefined,
+        lifecycleToLogEntry("release:held", ev),
+      );
+    };
+
+    const onSessionDead = (ev: WatchLoopEventMap["session-dead"][0]) => {
+      pushSystemEntry(`session dead: ${ev.epicSlug} [${ev.phase}]`, "error");
+      fallbackStoreRef.current.push(
+        ev.epicSlug,
+        ev.phase,
+        ev.featureSlug,
+        lifecycleToLogEntry("session-dead", ev),
+      );
+    };
+
+    const onEpicCancelled = (ev: WatchLoopEventMap["epic-cancelled"][0]) => {
+      pushSystemEntry(`cancelled: ${ev.epicSlug}`);
+      fallbackStoreRef.current.push(
+        ev.epicSlug,
+        "unknown",
+        undefined,
+        lifecycleToLogEntry("epic-cancelled", ev),
+      );
+      refreshSessions();
+    };
+
     loop.on("started", onStarted);
     loop.on("stopped", onStopped);
     loop.on("session-started", onSessionStarted);
     loop.on("session-completed", onSessionCompleted);
     loop.on("scan-complete", onScanComplete);
     loop.on("error", onError);
+    loop.on("epic-blocked", onEpicBlocked);
+    loop.on("release:held", onReleaseHeld);
+    loop.on("session-dead", onSessionDead);
+    loop.on("epic-cancelled", onEpicCancelled);
 
     return () => {
       loop.off("started", onStarted);
@@ -230,6 +317,10 @@ export default function App({ config, verbosity, loop, projectRoot }: AppProps) 
       loop.off("session-completed", onSessionCompleted);
       loop.off("scan-complete", onScanComplete);
       loop.off("error", onError);
+      loop.off("epic-blocked", onEpicBlocked);
+      loop.off("release:held", onReleaseHeld);
+      loop.off("session-dead", onSessionDead);
+      loop.off("epic-cancelled", onEpicCancelled);
     };
   }, [loop]);
 

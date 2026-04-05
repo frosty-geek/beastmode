@@ -26,8 +26,9 @@ export const CHROME = {
   muted: "#727072",
 } as const;
 
-/** Background depth tiers — lightest (chrome) to mid (panels). Terminal bg is deepest. */
+/** Background depth tiers — terminal bg is deepest, chrome and panels are raised. */
 export const DEPTH = {
+  bg: "#2D2A2E",
   chrome: "#403E41",
   panel: "#353236",
 } as const;

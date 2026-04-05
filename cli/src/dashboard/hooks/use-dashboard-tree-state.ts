@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { DispatchedSession } from "../../dispatch/types.js";
 import type { LogEntry, SessionEmitter } from "../../dispatch/factory.js";
-import type { TreeState, EpicNode, TreeEntry } from "../tree-types.js";
+import type { TreeState, EpicNode, TreeEntry, SystemEntry } from "../tree-types.js";
 import type { LogLevel } from "../../logger.js";
 import type { FallbackEntryStore } from "../lifecycle-entries.js";
 
@@ -12,6 +12,8 @@ export interface UseDashboardTreeStateOptions {
   selectedEpicSlug?: string;
   /** Fallback entries from non-SDK dispatch strategies. */
   fallbackEntries?: FallbackEntryStore;
+  /** System-level log entries (watch lifecycle events). */
+  systemEntries?: SystemEntry[];
 }
 
 export interface UseDashboardTreeStateResult {
@@ -19,16 +21,29 @@ export interface UseDashboardTreeStateResult {
   state: TreeState;
 }
 
+/** Map a LogEntry.type to a LogLevel for the tree view. */
+function entryTypeToLevel(entry: LogEntry): LogLevel {
+  switch (entry.type) {
+    case "text":
+      return "info";
+    case "tool-start":
+      return "detail";
+    case "tool-result":
+      return "debug";
+    case "heartbeat":
+      return "trace";
+    case "result":
+      return entry.text.toLowerCase().includes("error") ? "error" : "info";
+    default:
+      return "info";
+  }
+}
+
 /** Map a LogEntry to a TreeEntry. */
 function toTreeEntry(entry: LogEntry): TreeEntry {
-  const isError =
-    entry.type === "result" &&
-    entry.text.toLowerCase().includes("error");
-  const level: LogLevel = isError ? "error" : "info";
-
   return {
     timestamp: entry.timestamp,
-    level,
+    level: entryTypeToLevel(entry),
     message: entry.text,
     seq: entry.seq,
   };
@@ -42,6 +57,7 @@ export function buildTreeState(
   sessions: Array<{ epicSlug: string; phase: string; featureSlug?: string }>,
   getEntries: (session: { epicSlug: string; phase: string; featureSlug?: string }) => LogEntry[],
   fallbackEntries?: FallbackEntryStore,
+  systemEntries?: SystemEntry[],
 ): TreeState {
   const epicMap = new Map<string, EpicNode>();
 
@@ -86,7 +102,7 @@ export function buildTreeState(
 
   return {
     epics: Array.from(epicMap.values()),
-    system: [],
+    system: systemEntries ?? [],
   };
 }
 
@@ -98,6 +114,7 @@ export function useDashboardTreeState({
   sessions,
   selectedEpicSlug,
   fallbackEntries,
+  systemEntries,
 }: UseDashboardTreeStateOptions): UseDashboardTreeStateResult {
   const [, setRevision] = useState(0);
 
@@ -138,6 +155,8 @@ export function useDashboardTreeState({
   }, [fallbackEntries]);
 
   // Build tree state on each render (revision bump triggers rebuild)
+  // System entries only shown in aggregate mode (no specific epic selected)
+  const visibleSystemEntries = selectedEpicSlug === undefined ? systemEntries : undefined;
   const state = buildTreeState(
     filteredSessions,
     (session) => {
@@ -150,6 +169,7 @@ export function useDashboardTreeState({
       return ds?.events?.getBuffer() ?? [];
     },
     fallbackEntries,
+    visibleSystemEntries,
   );
 
   return { state };

@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import MinSizeGate from "./MinSizeGate.js";
 import PanelBox from "./PanelBox.js";
 import NyanBanner from "./NyanBanner.js";
+import { CHROME } from "./monokai-palette.js";
 
 export interface ThreePanelLayoutProps {
   /** Watch loop running state. */
@@ -40,53 +41,45 @@ export default function ThreePanelLayout({
   return (
     <MinSizeGate>
       <Box flexDirection="column" width="100%" height={rows ?? "100%"}>
-        {/* Outer chrome — header line with title, watch status, and clock */}
-        <Box
-          borderStyle="single"
-          borderColor="cyan"
-          flexDirection="column"
-          flexGrow={1}
-        >
-          {/* Banner + status bar */}
-          <Box flexDirection="row" justifyContent="space-between" paddingX={1}>
-            <NyanBanner />
-            <Box flexDirection="column" alignItems="flex-end" justifyContent="flex-start">
-              <Box>
-                <Text color={watchRunning ? "green" : "red"}>
-                  {watchRunning ? "watch: running" : "watch: stopped"}
-                </Text>
-                <Text> </Text>
-                <Text dimColor>{clock}</Text>
-              </Box>
+        {/* Header bar — banner + watch status */}
+        <Box flexDirection="row" justifyContent="space-between" paddingX={1} paddingY={1}>
+          <NyanBanner />
+          <Box flexDirection="column" alignItems="flex-end" justifyContent="flex-start">
+            <Box>
+              <Text color={watchRunning ? CHROME.watchRunning : CHROME.watchStopped}>
+                {watchRunning ? "watch: running" : "watch: stopped"}
+              </Text>
+              <Text> </Text>
+              <Text color={CHROME.muted}>{clock}</Text>
             </Box>
           </Box>
+        </Box>
 
-          {/* Top section: ~35% height, two panels side by side */}
-          <Box flexDirection="row" height="35%">
-            <PanelBox title="EPICS" width="30%">
+        {/* Main content — vertical split: left column (EPICS + OVERVIEW) | right column (LOG) */}
+        <Box flexDirection="row" flexGrow={1}>
+          {/* Left column — 35% width */}
+          <Box flexDirection="column" width="35%">
+            <PanelBox title="EPICS" height="60%">
               {epicsSlot}
             </PanelBox>
-            <PanelBox title="OVERVIEW" width="70%">
+            <PanelBox title="OVERVIEW" flexGrow={1}>
               {detailsSlot}
             </PanelBox>
           </Box>
 
-          {/* Bottom section: ~65% height, full-width log panel */}
-          <PanelBox title="LOG" flexGrow={1}>
+          {/* Right column — 65% width, LOG at full height */}
+          <PanelBox title="LOG" width="65%">
             {logSlot}
           </PanelBox>
         </Box>
 
-        {/* Cancel confirmation prompt — between chrome and hints bar */}
-        {cancelPrompt}
-
-        {/* Bottom bar — key hints, outside the bordered area */}
+        {/* Bottom bar — key hints or cancel prompt */}
         <Box paddingX={1}>
-          {isShuttingDown ? (
+          {cancelPrompt ?? (isShuttingDown ? (
             <Text color="yellow">shutting down...</Text>
           ) : (
-            <Text dimColor>{keyHints}</Text>
-          )}
+            <Text color={CHROME.muted}>{keyHints}</Text>
+          ))}
         </Box>
       </Box>
     </MinSizeGate>

@@ -1,7 +1,6 @@
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import type { BeastmodeConfig } from "../config.js";
-import { createLogger } from "../logger.js";
 import { WatchLoop } from "./watch-loop.js";
 import type { WatchDeps } from "./watch-loop.js";
 import { listEnriched } from "../manifest/store.js";
@@ -15,6 +14,9 @@ import type { SessionFactory } from "../dispatch/factory.js";
 import { CmuxSessionFactory, CmuxClient } from "../dispatch/cmux.js";
 import { ITermSessionFactory, It2Client } from "../dispatch/it2.js";
 import { discoverGitHub } from "../github/discovery.js";
+import { FallbackEntryStore } from "../dashboard/lifecycle-entries.js";
+import { createDashboardLogger } from "../dashboard/dashboard-logger.js";
+import type { SystemEntryRef } from "../dashboard/dashboard-logger.js";
 
 /** Discover the project root (walks up to find .beastmode/). */
 function findProjectRoot(from: string = process.cwd()): string {
@@ -32,7 +34,20 @@ export async function dashboardCommand(
   verbosity: number = 0,
 ): Promise<void> {
   const projectRoot = findProjectRoot();
-  const logger = createLogger(verbosity, {});
+
+  // Shared entry stores — both the dashboard logger and the React App read from these
+  const fallbackStore = new FallbackEntryStore();
+  let systemSeqCounter = 0;
+  const systemRef: SystemEntryRef = {
+    entries: [],
+    nextSeq: () => systemSeqCounter++,
+  };
+
+  const logger = createDashboardLogger({
+    fallbackStore,
+    systemRef,
+    verbosity,
+  });
 
   // --- Select dispatch strategy from config (same as watch command) ---
   const selected = await selectStrategy(config.cli["dispatch-strategy"] ?? "sdk", undefined, logger);
@@ -89,7 +104,7 @@ export async function dashboardCommand(
   process.stdout.write("\x1b[?1049h");
 
   const { waitUntilExit } = render(
-    React.createElement(App, { config, verbosity, loop, projectRoot }),
+    React.createElement(App, { config, verbosity, loop, projectRoot, fallbackStore, systemRef }),
   );
 
   // Start the watch loop after rendering so events flow to the React tree

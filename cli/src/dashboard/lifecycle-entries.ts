@@ -10,8 +10,21 @@ import type { LogEntry } from "../dispatch/factory.js";
 import type {
   SessionStartedEvent,
   SessionCompletedEvent,
+  SessionDeadEvent,
   WatchErrorEvent,
+  ReleaseHeldEvent,
+  EpicCancelledEvent,
 } from "../dispatch/types.js";
+
+/** Payload union for all supported lifecycle event kinds. */
+type LifecyclePayload =
+  | SessionStartedEvent
+  | SessionCompletedEvent
+  | SessionDeadEvent
+  | WatchErrorEvent
+  | ReleaseHeldEvent
+  | EpicCancelledEvent
+  | { epicSlug: string; gate: string; reason: string };
 
 /**
  * Convert a WatchLoop lifecycle event into a LogEntry (without seq — caller assigns).
@@ -25,12 +38,28 @@ export function lifecycleToLogEntry(
   payload: SessionCompletedEvent,
 ): Omit<LogEntry, "seq">;
 export function lifecycleToLogEntry(
+  kind: "session-dead",
+  payload: SessionDeadEvent,
+): Omit<LogEntry, "seq">;
+export function lifecycleToLogEntry(
   kind: "error",
   payload: WatchErrorEvent,
 ): Omit<LogEntry, "seq">;
 export function lifecycleToLogEntry(
+  kind: "epic-blocked",
+  payload: { epicSlug: string; gate: string; reason: string },
+): Omit<LogEntry, "seq">;
+export function lifecycleToLogEntry(
+  kind: "release:held",
+  payload: ReleaseHeldEvent,
+): Omit<LogEntry, "seq">;
+export function lifecycleToLogEntry(
+  kind: "epic-cancelled",
+  payload: EpicCancelledEvent,
+): Omit<LogEntry, "seq">;
+export function lifecycleToLogEntry(
   kind: string,
-  payload: SessionStartedEvent | SessionCompletedEvent | WatchErrorEvent,
+  payload: LifecyclePayload,
 ): Omit<LogEntry, "seq"> {
   const timestamp = Date.now();
 
@@ -50,10 +79,28 @@ export function lifecycleToLogEntry(
       };
     }
 
+    case "session-dead": {
+      const p = payload as SessionDeadEvent;
+      return { type: "result", timestamp, text: `session dead (tty: ${p.tty})` };
+    }
+
     case "error": {
       const p = payload as WatchErrorEvent;
       return { type: "result", timestamp, text: `error: ${p.message}` };
     }
+
+    case "epic-blocked": {
+      const p = payload as { epicSlug: string; gate: string; reason: string };
+      return { type: "text", timestamp, text: `blocked at ${p.gate}: ${p.reason}` };
+    }
+
+    case "release:held": {
+      const p = payload as ReleaseHeldEvent;
+      return { type: "text", timestamp, text: `release held: blocked by ${p.blockingSlug}` };
+    }
+
+    case "epic-cancelled":
+      return { type: "text", timestamp, text: "cancelled" };
 
     default:
       return { type: "text", timestamp, text: `unknown event: ${kind}` };
