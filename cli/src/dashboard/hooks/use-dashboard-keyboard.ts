@@ -71,6 +71,8 @@ export interface DashboardKeyboardDeps {
   detailsContentHeight: number;
   /** Visible height of the details panel */
   detailsVisibleHeight: number;
+  /** Callback when Enter is pressed on an epic row — toggles expansion */
+  onToggleExpand: (slug: string | undefined) => void;
 }
 
 export interface DashboardKeyboardState {
@@ -118,6 +120,7 @@ export function useDashboardKeyboard(
     logTotalLines,
     detailsContentHeight,
     detailsVisibleHeight,
+    onToggleExpand,
   } = deps;
 
   const nav = useKeyboardNav(itemCount);
@@ -212,6 +215,13 @@ export function useDashboardKeyboard(
         return;
       }
 
+      // Priority 6.5: Enter — toggle epic expansion (epics panel only)
+      if (key.return && focusedPanel === "epics") {
+        const slug = slugAtIndex(nav.selectedIndex);
+        onToggleExpand(slug);
+        return;
+      }
+
       // Priority 7: toggle all
       if (input === "a" || input === "A") {
         toggleAll.handleToggleInput(input);
@@ -300,6 +310,7 @@ export function useDashboardKeyboard(
       slugAtIndex,
       onFilterApply,
       onFilterClear,
+      onToggleExpand,
     ],
   );
 
