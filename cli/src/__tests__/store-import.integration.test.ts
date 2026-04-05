@@ -98,8 +98,8 @@ describe("@manifest-absorption: Store import migrates manifests into the store",
     const { importTestable } = await import("../commands/store-import.js");
     const result = await importTestable(store, projectRoot);
 
-    const tokenCache = result.features.find((f: any) => f.slug === "token-cache");
-    const authProvider = result.features.find((f: any) => f.slug === "auth-provider");
+    const tokenCache = result.features.find((f: any) => f.slug === "token-cache")!;
+    const authProvider = result.features.find((f: any) => f.slug === "auth-provider")!;
     expect(tokenCache.depends_on).toContain(authProvider.id);
   });
 
@@ -156,7 +156,7 @@ describe("@manifest-absorption: Store import migrates manifests into the store",
     writeManifest(projectRoot, "auth-system", makeManifest());
 
     const { importTestable } = await import("../commands/store-import.js");
-    const result1 = await importTestable(store, projectRoot);
+    await importTestable(store, projectRoot);
 
     // Write manifest again (simulating it wasn't deleted)
     writeManifest(projectRoot, "auth-system", makeManifest());
@@ -194,10 +194,10 @@ describe("@manifest-absorption: Store import migrates manifests into the store",
     const { importTestable } = await import("../commands/store-import.js");
     const result = await importTestable(store, projectRoot);
 
-    expect(result.epics[0].worktree.branch).toBe("feature/auth-system");
-    expect(result.epics[0].worktree.path).toBe(".claude/worktrees/auth-system");
+    expect(result.epics[0].worktree!.branch).toBe("feature/auth-system");
+    expect(result.epics[0].worktree!.path).toBe(".claude/worktrees/auth-system");
     // Verify NOT renamed to ID-based naming
-    expect(result.epics[0].worktree.branch).not.toMatch(/^feature\/bm-/);
-    expect(result.epics[0].worktree.path).not.toMatch(/bm-[0-9a-f]{4}/);
+    expect(result.epics[0].worktree!.branch).not.toMatch(/^feature\/bm-/);
+    expect(result.epics[0].worktree!.path).not.toMatch(/bm-[0-9a-f]{4}/);
   });
 });
