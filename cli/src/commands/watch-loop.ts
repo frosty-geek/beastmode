@@ -146,7 +146,7 @@ export class WatchLoop extends EventEmitter {
       try {
         await this.deps.sessionFactory.checkLiveness(activeSessions);
       } catch (err) {
-        this.logger.warn(`Liveness check failed: ${err}`);
+        this.logger.warn("liveness check failed", { error: String(err) });
       }
       this.livenessCheckIds.clear();
     }
@@ -156,7 +156,7 @@ export class WatchLoop extends EventEmitter {
       const result = await this.deps.scanEpics(this.config.projectRoot);
       epics = Array.isArray(result) ? result : result.epics;
     } catch (err) {
-      this.logger.warn(`State scan failed: ${err}`);
+        this.logger.warn("state scan failed", { error: String(err) });
       return;
     }
 
@@ -316,7 +316,7 @@ export class WatchLoop extends EventEmitter {
             cwd: resolve(this.config.projectRoot, ".claude", "worktrees", epic.slug),
           });
         } catch (branchErr) {
-          this.logger.warn(`impl branch creation failed for ${featureSlug}: ${branchErr}`);
+          this.logger.warn("impl branch creation failed", { feature: featureSlug, error: String(branchErr) });
         }
 
         const handle = await this.deps.sessionFactory.create({
@@ -390,7 +390,7 @@ export class WatchLoop extends EventEmitter {
             const wtPath = resolve(this.config.projectRoot, ".claude", "worktrees", session.worktreeSlug);
             await createTag(session.epicSlug, session.phase, { cwd: wtPath });
           } catch (err) {
-            this.logger.warn(`Failed to create phase tag: ${err}`);
+            this.logger.warn("phase tag creation failed", { error: String(err) });
           }
         }
 
@@ -417,7 +417,7 @@ export class WatchLoop extends EventEmitter {
         await this.processEpic(epic);
       }
     } catch (err) {
-      this.logger.warn(`Re-scan of ${epicSlug} failed: ${err}`);
+      this.logger.warn("epic re-scan failed", { epic: epicSlug, error: String(err) });
     }
   }
 

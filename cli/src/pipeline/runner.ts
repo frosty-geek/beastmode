@@ -135,11 +135,11 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       const wt = await worktree.create(epicSlug, { cwd: config.projectRoot });
       worktreePath = wt.path;
     }
-    logger.info(`worktree: ${worktreePath}`);
+    logger.info("worktree ready", { path: worktreePath });
 
     // -- Step 2: git.worktree.rebase ------------------------------------------
     const rebaseResult = await rebase(config.phase, { cwd: worktreePath, logger });
-    logger.debug(`rebase: ${rebaseResult.outcome}`);
+    logger.debug("rebase complete", { outcome: rebaseResult.outcome });
     if (rebaseResult.outcome === "stale") {
       logger.warn(`worktree is stale — agent may encounter missing dependencies`);
     }
@@ -163,10 +163,10 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   if (config.phase === "implement" && config.featureSlug) {
     try {
       const implBranch = await createImplBranch(config.epicSlug, config.featureSlug, { cwd: worktreePath });
-      logger.info(`impl branch: ${implBranch}`);
+      logger.info("impl branch created", { branch: implBranch });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.warn(`impl branch creation failed: ${message}`);
+      logger.warn("impl branch creation failed", { error: message });
     }
   }
 
@@ -185,7 +185,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.warn(`early issue creation failed (non-blocking): ${message}`);
+      logger.warn("early issue creation failed", { error: message });
     }
   }
 
@@ -234,11 +234,11 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     }
 
     if (reconcileResult) {
-      logger.info(`reconciled -> ${reconcileResult.phase}`);
+      logger.info("reconciled", { phase: reconcileResult.phase });
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.warn(`reconciliation failed: ${message}`);
+    logger.warn("reconciliation failed", { error: message });
   }
 
   // Create phase tag at current HEAD for regression support
@@ -247,7 +247,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   } catch (err: unknown) {
     // Non-blocking -- tag creation failure shouldn't halt pipeline
     const message = err instanceof Error ? err.message : String(err);
-    logger.warn(`tag creation failed: ${message}`);
+    logger.warn("tag creation failed", { error: message });
   }
 
   // Design phase: rename hex slug to real slug
@@ -263,9 +263,9 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       );
       if (renameResult.renamed) {
         epicSlug = renameResult.finalSlug;
-        logger.info(`renamed -> ${renameResult.finalSlug}`);
+        logger.info("renamed", { slug: renameResult.finalSlug });
       } else if (renameResult.error) {
-        logger.warn(`Slug rename failed: ${renameResult.error}`);
+        logger.warn("slug rename failed", { error: renameResult.error });
       }
     }
   }
@@ -326,7 +326,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.warn(`GitHub sync failed (non-blocking): ${message}`);
+    logger.warn("GitHub sync failed", { error: message });
   }
 
   // -- Step 8.5: commit-issue-ref --------------------------------------------
@@ -337,12 +337,12 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     if (manifest) {
       const amendResult = await amendCommitWithIssueRef(manifest, { cwd: worktreePath });
       if (amendResult.amended) {
-        logger.debug(`commit ref: (#${amendResult.issueNumber})`);
+        logger.debug("commit ref added", { issue: amendResult.issueNumber });
       }
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.warn(`commit issue ref failed (non-blocking): ${message}`);
+    logger.warn("commit issue ref failed", { error: message });
   }
 
   // -- Step 9: git.worktree.cleanup -------------------------------------------
@@ -350,7 +350,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     try {
       logger.info("release teardown -- archiving branch...");
       const tagName = await worktree.archive(epicSlug, { cwd: config.projectRoot });
-      logger.info(`archived as ${tagName}`);
+      logger.info("archived", { tag: tagName });
 
       await worktree.remove(epicSlug, { cwd: config.projectRoot });
       logger.info("worktree removed");
@@ -363,7 +363,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       logger.info("manifest marked done");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      logger.error(`release teardown failed: ${message}`);
+      logger.error("release teardown failed", { error: message });
       logger.error("worktree preserved for manual cleanup");
       return { success: false, worktreePath, epicSlug, reconcileResult };
     }

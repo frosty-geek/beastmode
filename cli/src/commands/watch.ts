@@ -286,18 +286,18 @@ export async function selectStrategy(
   if (configured === "iterm2") {
     const result = await deps.checkIterm2();
     if (!result.available) {
-      logger.error(`iTerm2 dispatch strategy requested but not available: ${result.reason}`);
+      logger.error("iTerm2 dispatch strategy unavailable", { reason: result.reason });
       logger.error(IT2_SETUP_INSTRUCTIONS);
       throw new Error("iTerm2 dispatch strategy unavailable");
     }
-    logger.info(`Using iTerm2 dispatch strategy (session: ${result.sessionId})`);
+    logger.info("Using iTerm2 dispatch strategy", { session: result.sessionId });
     return { strategy: "iterm2", sessionId: result.sessionId };
   }
 
   if (configured === "auto") {
     const iterm2Result = await deps.checkIterm2();
     if (iterm2Result.available) {
-      logger.info(`Auto-detected iTerm2 (session: ${iterm2Result.sessionId})`);
+      logger.info("Auto-detected iTerm2", { session: iterm2Result.sessionId });
       return { strategy: "iterm2", sessionId: iterm2Result.sessionId };
     }
     const cmuxOk = await deps.checkCmux();
@@ -356,10 +356,10 @@ export async function watchCommand(args: string[], verbosity: number = 0): Promi
       const resolved = await discoverGitHub(projectRoot, config.github["project-name"], logger);
       sessionFactory.resolved = resolved;
       if (resolved) {
-        logger.info(`GitHub discovery: ${resolved.repo} (project #${resolved.projectNumber ?? "none"})`);
+        logger.info("GitHub discovery complete", { repo: resolved.repo, project: resolved.projectNumber ?? null });
       }
     } catch (err) {
-      logger.warn(`GitHub discovery failed (non-blocking): ${err}`);
+      logger.warn("GitHub discovery failed", { error: String(err) });
     }
   }
 

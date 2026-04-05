@@ -52,7 +52,7 @@ export async function compactCommand(): Promise<void> {
     } else if (exitCode === 0) {
       logger.info("Compaction complete.");
     } else {
-      logger.error(`Compaction failed (exit code ${exitCode}).`);
+      logger.error("compaction failed", { exitCode });
       process.exit(exitCode ?? 1);
     }
   } finally {

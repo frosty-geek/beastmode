@@ -64,7 +64,7 @@ export async function phaseCommand(
 
     if (resolution.kind === "ambiguous") {
       const ids = resolution.matches.map(e => e.id).join(", ");
-      logger.error(`Ambiguous identifier "${worktreeSlug}" matches multiple entities: ${ids}. Use the fully qualified ID instead.`);
+      logger.error("ambiguous identifier", { identifier: worktreeSlug, matches: ids });
       process.exit(1);
     }
 
@@ -72,7 +72,7 @@ export async function phaseCommand(
       // Fallback to manifest lookup (coexistence period)
       const existing = store.find(projectRoot, worktreeSlug);
       if (!existing) {
-        logger.error(`Epic "${worktreeSlug}" not found — run "beastmode design" first`);
+        logger.error("epic not found", { slug: worktreeSlug });
         process.exit(1);
       }
     }
@@ -105,7 +105,7 @@ export async function phaseCommand(
     writeFilePermissionSettings({ claudeDir, preToolUseHooks: fpPreToolUseHooks, postToolUseHooks: fpPostToolUseHooks });
 
     const result = await runInteractive({ phase, args, cwd });
-    logger.info(`${phase} ${result.exit_status} in ${formatDuration(result.duration_ms)}`);
+    logger.info("phase complete", { phase, status: result.exit_status, duration: formatDuration(result.duration_ms) });
     if (result.exit_status === "error") process.exit(1);
     if (result.exit_status === "cancelled") process.exit(130);
     return;
