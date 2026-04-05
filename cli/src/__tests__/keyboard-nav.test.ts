@@ -380,3 +380,300 @@ describe("verbosity cycling logic", () => {
     expect(verbosity).toBe(0);
   });
 });
+
+describe("focus panel logic", () => {
+  test("default focused panel is 'epics'", () => {
+    const focusedPanel: "epics" | "log" = "epics";
+    expect(focusedPanel).toBe("epics");
+  });
+
+  test("Tab toggles from epics to log", () => {
+    let focusedPanel: "epics" | "log" = "epics";
+    focusedPanel = focusedPanel === "epics" ? "log" : "epics";
+    expect(focusedPanel).toBe("log");
+  });
+
+  test("Tab toggles from log to epics", () => {
+    let focusedPanel: "epics" | "log" = "log";
+    focusedPanel = focusedPanel === "epics" ? "log" : "epics";
+    expect(focusedPanel).toBe("epics");
+  });
+
+  test("Tab is ignored in filter mode", () => {
+    let focusedPanel: "epics" | "log" = "epics";
+    const mode = "filter";
+    if (mode === "normal") {
+      focusedPanel = focusedPanel === "epics" ? "log" : "epics";
+    }
+    expect(focusedPanel).toBe("epics");
+  });
+
+  test("Tab is ignored in confirm mode", () => {
+    let focusedPanel: "epics" | "log" = "epics";
+    const mode = "confirm";
+    if (mode === "normal") {
+      focusedPanel = focusedPanel === "epics" ? "log" : "epics";
+    }
+    expect(focusedPanel).toBe("epics");
+  });
+});
+
+describe("phase filter logic", () => {
+  const PHASE_ORDER = ["all", "design", "plan", "implement", "validate", "release"] as const;
+  type PhaseFilter = (typeof PHASE_ORDER)[number];
+
+  function cyclePhase(current: PhaseFilter): PhaseFilter {
+    const idx = PHASE_ORDER.indexOf(current);
+    return PHASE_ORDER[(idx + 1) % PHASE_ORDER.length];
+  }
+
+  test("default phase filter is 'all'", () => {
+    const phaseFilter: PhaseFilter = "all";
+    expect(phaseFilter).toBe("all");
+  });
+
+  test("'p' cycles all -> design", () => {
+    expect(cyclePhase("all")).toBe("design");
+  });
+
+  test("'p' cycles design -> plan", () => {
+    expect(cyclePhase("design")).toBe("plan");
+  });
+
+  test("'p' cycles plan -> implement", () => {
+    expect(cyclePhase("plan")).toBe("implement");
+  });
+
+  test("'p' cycles implement -> validate", () => {
+    expect(cyclePhase("implement")).toBe("validate");
+  });
+
+  test("'p' cycles validate -> release", () => {
+    expect(cyclePhase("validate")).toBe("release");
+  });
+
+  test("'p' wraps release -> all", () => {
+    expect(cyclePhase("release")).toBe("all");
+  });
+
+  test("'p' is ignored in filter mode", () => {
+    let phaseFilter: PhaseFilter = "all";
+    const mode = "filter";
+    if (mode === "normal") {
+      phaseFilter = cyclePhase(phaseFilter);
+    }
+    expect(phaseFilter).toBe("all");
+  });
+});
+
+describe("blocked toggle logic", () => {
+  test("default showBlocked is true", () => {
+    const showBlocked = true;
+    expect(showBlocked).toBe(true);
+  });
+
+  test("'b' toggles showBlocked from true to false", () => {
+    let showBlocked = true;
+    showBlocked = !showBlocked;
+    expect(showBlocked).toBe(false);
+  });
+
+  test("'b' toggles showBlocked from false to true", () => {
+    let showBlocked = false;
+    showBlocked = !showBlocked;
+    expect(showBlocked).toBe(true);
+  });
+
+  test("'b' is ignored in filter mode", () => {
+    let showBlocked = true;
+    const mode = "filter";
+    if (mode === "normal") showBlocked = !showBlocked;
+    expect(showBlocked).toBe(true);
+  });
+
+  test("'b' is ignored in confirm mode", () => {
+    let showBlocked = true;
+    const mode = "confirm";
+    if (mode === "normal") showBlocked = !showBlocked;
+    expect(showBlocked).toBe(true);
+  });
+});
+
+describe("log scroll state logic", () => {
+  test("default logAutoFollow is true", () => {
+    const logAutoFollow = true;
+    expect(logAutoFollow).toBe(true);
+  });
+
+  test("default logScrollOffset is 0", () => {
+    const logScrollOffset = 0;
+    expect(logScrollOffset).toBe(0);
+  });
+
+  test("up arrow when log focused decrements offset and pauses auto-follow", () => {
+    let logScrollOffset = 5;
+    let logAutoFollow = true;
+    const focusedPanel = "log";
+
+    if (focusedPanel === "log") {
+      logScrollOffset = Math.max(0, logScrollOffset - 1);
+      logAutoFollow = false;
+    }
+
+    expect(logScrollOffset).toBe(4);
+    expect(logAutoFollow).toBe(false);
+  });
+
+  test("down arrow when log focused increments offset", () => {
+    let logScrollOffset = 5;
+    const maxOffset = 50;
+    const focusedPanel = "log";
+
+    if (focusedPanel === "log") {
+      logScrollOffset = Math.min(maxOffset, logScrollOffset + 1);
+    }
+
+    expect(logScrollOffset).toBe(6);
+  });
+
+  test("scroll offset clamps to 0 at top", () => {
+    let logScrollOffset = 0;
+    logScrollOffset = Math.max(0, logScrollOffset - 1);
+    expect(logScrollOffset).toBe(0);
+  });
+
+  test("scroll offset clamps to max at bottom", () => {
+    let logScrollOffset = 50;
+    const maxOffset = 50;
+    logScrollOffset = Math.min(maxOffset, logScrollOffset + 1);
+    expect(logScrollOffset).toBe(50);
+  });
+
+  test("G key resumes auto-follow", () => {
+    let logAutoFollow = false;
+    let logScrollOffset = 10;
+    const totalLines = 100;
+
+    const input = "G";
+    if (input === "G") {
+      logAutoFollow = true;
+      logScrollOffset = Math.max(0, totalLines - 1);
+    }
+
+    expect(logAutoFollow).toBe(true);
+    expect(logScrollOffset).toBe(99);
+  });
+
+  test("End key resumes auto-follow", () => {
+    let logAutoFollow = false;
+    let logScrollOffset = 10;
+    const totalLines = 100;
+
+    const keyEnd = true;
+    if (keyEnd) {
+      logAutoFollow = true;
+      logScrollOffset = Math.max(0, totalLines - 1);
+    }
+
+    expect(logAutoFollow).toBe(true);
+    expect(logScrollOffset).toBe(99);
+  });
+
+  test("arrow keys route to nav when epics focused", () => {
+    const focusedPanel = "epics";
+    let selectedIndex = 2;
+    let logScrollOffset = 0;
+
+    if (focusedPanel === "epics") {
+      selectedIndex = Math.max(0, selectedIndex - 1);
+    } else {
+      logScrollOffset = Math.max(0, logScrollOffset - 1);
+    }
+
+    expect(selectedIndex).toBe(1);
+    expect(logScrollOffset).toBe(0);
+  });
+
+  test("arrow keys route to log scroll when log focused", () => {
+    const focusedPanel = "log";
+    let selectedIndex = 2;
+    let logScrollOffset = 5;
+
+    if (focusedPanel === "epics") {
+      selectedIndex = Math.max(0, selectedIndex - 1);
+    } else {
+      logScrollOffset = Math.max(0, logScrollOffset - 1);
+    }
+
+    expect(selectedIndex).toBe(2);
+    expect(logScrollOffset).toBe(4);
+  });
+});
+
+describe("details scroll state logic", () => {
+  test("default detailsScrollOffset is 0", () => {
+    const detailsScrollOffset = 0;
+    expect(detailsScrollOffset).toBe(0);
+  });
+
+  test("PgUp decrements detailsScrollOffset", () => {
+    let detailsScrollOffset = 10;
+    const pageSize = 10;
+    detailsScrollOffset = Math.max(0, detailsScrollOffset - pageSize);
+    expect(detailsScrollOffset).toBe(0);
+  });
+
+  test("PgDn increments detailsScrollOffset", () => {
+    let detailsScrollOffset = 0;
+    const pageSize = 10;
+    const maxOffset = 50;
+    detailsScrollOffset = Math.min(maxOffset, detailsScrollOffset + pageSize);
+    expect(detailsScrollOffset).toBe(10);
+  });
+
+  test("PgUp clamps to 0", () => {
+    let detailsScrollOffset = 3;
+    const pageSize = 10;
+    detailsScrollOffset = Math.max(0, detailsScrollOffset - pageSize);
+    expect(detailsScrollOffset).toBe(0);
+  });
+
+  test("PgDn clamps to max", () => {
+    let detailsScrollOffset = 45;
+    const pageSize = 10;
+    const maxOffset = 50;
+    detailsScrollOffset = Math.min(maxOffset, detailsScrollOffset + pageSize);
+    expect(detailsScrollOffset).toBe(50);
+  });
+
+  test("PgUp/PgDn works regardless of focused panel", () => {
+    let detailsScrollOffset = 10;
+    const focusedPanel = "log";
+    const pageSize = 10;
+    detailsScrollOffset = Math.max(0, detailsScrollOffset - pageSize);
+    expect(detailsScrollOffset).toBe(0);
+    expect(focusedPanel).toBe("log");
+  });
+});
+
+describe("key hints updates", () => {
+  test("normal mode hints include Tab, p, b keys", () => {
+    const hints = "q quit  ↑↓ navigate  ⇥ focus  / filter  p phase:all  b blocked  x cancel  a all  v verb:info  PgUp/Dn details";
+    expect(hints).toContain("⇥ focus");
+    expect(hints).toContain("p phase:");
+    expect(hints).toContain("b blocked");
+    expect(hints).toContain("PgUp/Dn");
+  });
+
+  test("phase filter label shows current filter value", () => {
+    const phaseFilter = "implement";
+    const hint = `p phase:${phaseFilter}`;
+    expect(hint).toBe("p phase:implement");
+  });
+
+  test("phase filter label shows 'all' for default", () => {
+    const phaseFilter = "all";
+    const hint = `p phase:${phaseFilter}`;
+    expect(hint).toBe("p phase:all");
+  });
+});

@@ -9,11 +9,16 @@
  * 2. Confirm mode (cancel flow) → y/n/Escape only
  * 3. Filter mode → text input, Enter to apply, Escape to clear/exit
  * 4. Shutdown keys (q, Q, Ctrl+C)
- * 5. Arrow keys → navigation
- * 6. 'a'/'A' → toggle done/cancelled visibility
- * 7. 'x'/'X' → initiate cancel for selected epic (not on "(all)" row)
- * 8. '/' → enter filter mode
- * 9. 'v'/'V' → cycle verbosity level
+ * 5. Tab → toggle focus panel (epics/log)
+ * 6. PgUp/PgDn → details panel scroll (global)
+ * 7. Arrow keys → navigation (routed by focused panel)
+ * 8. G/End → resume log auto-follow (when log focused)
+ * 9. 'a'/'A' → toggle done/cancelled visibility
+ * 10. 'p'/'P' → cycle phase filter
+ * 11. 'b'/'B' → toggle blocked visibility
+ * 12. 'x'/'X' → initiate cancel for selected epic (not on "(all)" row)
+ * 13. '/' → enter filter mode
+ * 14. 'v'/'V' → cycle verbosity level
  */
 
 import { useState, useCallback } from "react";
@@ -32,6 +37,21 @@ import type { ToggleAllState } from "./use-toggle-all.js";
 /** Interaction mode for the dashboard keyboard */
 export type DashboardMode = "normal" | "filter" | "confirm";
 
+/** Focused panel in flat layout */
+export type FocusedPanel = "epics" | "log";
+
+/** Phase filter for dashboard view */
+export type PhaseFilter = "all" | "design" | "plan" | "implement" | "validate" | "release";
+
+const PHASE_ORDER: readonly PhaseFilter[] = [
+  "all", "design", "plan", "implement", "validate", "release",
+];
+
+export function cyclePhaseFilter(current: PhaseFilter): PhaseFilter {
+  const idx = PHASE_ORDER.indexOf(current);
+  return PHASE_ORDER[(idx + 1) % PHASE_ORDER.length];
+}
+
 export interface DashboardKeyboardDeps {
   /** Number of visible rows including (all) entry */
   itemCount: number;
@@ -47,6 +67,14 @@ export interface DashboardKeyboardDeps {
   onFilterClear: () => void;
   /** Initial verbosity level from CLI args (0-3) */
   initialVerbosity: number;
+  /** Total number of visible lines in the log tree (for scroll clamping) */
+  logTotalLines: number;
+  /** Total content height of the details panel (for scroll clamping) */
+  detailsContentHeight: number;
+  /** Visible height of the details panel */
+  detailsVisibleHeight: number;
+  /** Callback when Enter is pressed on an epic row — toggles expansion */
+  onToggleExpand: (slug: string | undefined) => void;
 }
 
 export interface DashboardKeyboardState {
@@ -64,6 +92,18 @@ export interface DashboardKeyboardState {
   filterInput: string;
   /** Current verbosity level (0=info, 1=detail, 2=debug, 3=trace) */
   verbosity: number;
+  /** Currently focused panel */
+  focusedPanel: FocusedPanel;
+  /** Current phase filter */
+  phaseFilter: PhaseFilter;
+  /** Whether to show blocked items */
+  showBlocked: boolean;
+  /** Log scroll offset (line index from top) */
+  logScrollOffset: number;
+  /** Whether log auto-follows newest entries */
+  logAutoFollow: boolean;
+  /** Details panel scroll offset */
+  detailsScrollOffset: number;
 }
 
 export function useDashboardKeyboard(
@@ -77,6 +117,10 @@ export function useDashboardKeyboard(
     onFilterApply,
     onFilterClear,
     initialVerbosity,
+    logTotalLines,
+    detailsContentHeight,
+    detailsVisibleHeight,
+    onToggleExpand,
   } = deps;
 
   const nav = useKeyboardNav(itemCount);
@@ -87,6 +131,12 @@ export function useDashboardKeyboard(
   const [mode, setMode] = useState<DashboardMode>("normal");
   const [filterInput, setFilterInput] = useState("");
   const [verbosity, setVerbosity] = useState(initialVerbosity);
+  const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>("epics");
+  const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
+  const [showBlocked, setShowBlocked] = useState(true);
+  const [logScrollOffset, setLogScrollOffset] = useState(0);
+  const [logAutoFollow, setLogAutoFollow] = useState(true);
+  const [detailsScrollOffset, setDetailsScrollOffset] = useState(0);
 
   const handleInput = useCallback(
     (input: string, key: Key) => {
@@ -139,19 +189,80 @@ export function useDashboardKeyboard(
       shutdown.handleShutdownInput(input, key, onShutdown);
       if (input === "q" || input === "Q" || (input === "c" && key.ctrl)) return;
 
-      // Priority 5: arrow key navigation
-      if (key.upArrow || key.downArrow) {
-        nav.handleNavInput(key);
+      // Priority 5: Tab — toggle focus panel
+      if (key.tab) {
+        setFocusedPanel((prev) => (prev === "epics" ? "log" : "epics"));
         return;
       }
 
-      // Priority 6: toggle all
+      // Priority 6: PgUp/PgDn — details panel scroll (global)
+      if (key.pageUp) {
+        setDetailsScrollOffset((prev) =>
+          Math.max(0, prev - detailsVisibleHeight),
+        );
+        return;
+      }
+      if (key.pageDown) {
+        const maxOffset = Math.max(0, detailsContentHeight - detailsVisibleHeight);
+        setDetailsScrollOffset((prev) =>
+          Math.min(maxOffset, prev + detailsVisibleHeight),
+        );
+        return;
+      }
+
+      // Priority 7: arrow key navigation — routed by focused panel
+      if (key.upArrow || key.downArrow) {
+        if (focusedPanel === "epics") {
+          nav.handleNavInput(key);
+        } else {
+          // Log panel scroll
+          if (key.upArrow) {
+            setLogAutoFollow(false);
+            setLogScrollOffset((prev) => Math.max(0, prev - 1));
+          } else {
+            setLogScrollOffset((prev) =>
+              Math.min(Math.max(0, logTotalLines - 1), prev + 1),
+            );
+          }
+        }
+        return;
+      }
+
+      // Priority 7.5: Enter — toggle epic expansion (only in epics panel)
+      if (key.return && focusedPanel === "epics") {
+        const slug = slugAtIndex(nav.selectedIndex);
+        onToggleExpand(slug);
+        return;
+      }
+
+      // Priority 8: G/End — resume log auto-follow
+      if (input === "G" || key.end) {
+        if (focusedPanel === "log") {
+          setLogAutoFollow(true);
+          setLogScrollOffset(Math.max(0, logTotalLines - 1));
+          return;
+        }
+      }
+
+      // Priority 9: toggle all
       if (input === "a" || input === "A") {
         toggleAll.handleToggleInput(input);
         return;
       }
 
-      // Priority 7: cancel initiation (not on "(all)" row — index 0)
+      // Priority 10: phase filter cycling
+      if (input === "p" || input === "P") {
+        setPhaseFilter((prev) => cyclePhaseFilter(prev));
+        return;
+      }
+
+      // Priority 11: blocked toggle
+      if (input === "b" || input === "B") {
+        setShowBlocked((prev) => !prev);
+        return;
+      }
+
+      // Priority 12: cancel initiation (not on "(all)" row — index 0)
       if (input === "x" || input === "X") {
         if (nav.selectedIndex > 0) {
           const slug = slugAtIndex(nav.selectedIndex);
@@ -163,14 +274,14 @@ export function useDashboardKeyboard(
         return;
       }
 
-      // Priority 8: enter filter mode
+      // Priority 13: enter filter mode
       if (input === "/") {
         setFilterInput("");
         setMode("filter");
         return;
       }
 
-      // Priority 9: verbosity cycling
+      // Priority 14: verbosity cycling
       if (input === "v" || input === "V") {
         setVerbosity((prev) => cycleVerbosity(prev));
         return;
@@ -181,6 +292,12 @@ export function useDashboardKeyboard(
       mode,
       filterInput,
       verbosity,
+      focusedPanel,
+      phaseFilter,
+      showBlocked,
+      logScrollOffset,
+      logAutoFollow,
+      detailsScrollOffset,
       cancelFlow,
       shutdown,
       nav,
@@ -190,11 +307,29 @@ export function useDashboardKeyboard(
       slugAtIndex,
       onFilterApply,
       onFilterClear,
+      onToggleExpand,
+      logTotalLines,
+      detailsContentHeight,
+      detailsVisibleHeight,
     ],
   );
 
   // Wire up useInput — disabled during shutdown
   useInput(handleInput, { isActive: !shutdown.isShuttingDown });
 
-  return { nav, cancelFlow, shutdown, toggleAll, mode, filterInput, verbosity };
+  return {
+    nav,
+    cancelFlow,
+    shutdown,
+    toggleAll,
+    mode,
+    filterInput,
+    verbosity,
+    focusedPanel,
+    phaseFilter,
+    showBlocked,
+    logScrollOffset,
+    logAutoFollow,
+    detailsScrollOffset,
+  };
 }
