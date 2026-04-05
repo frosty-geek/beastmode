@@ -18,7 +18,7 @@ function addEpic(
   store.updateEpic(epic.id, { status, updated_at: createdAt });
   // Patch created_at via direct entity access
   const entity = store.getEpic(epic.id)!;
-  (entity as Record<string, unknown>).created_at = createdAt;
+  (entity as unknown as Record<string, unknown>).created_at = createdAt;
 }
 
 function setupBackground(): InMemoryTaskStore {
