@@ -5,7 +5,7 @@ import { WatchLoop } from "../commands/watch-loop.js";
 import type { WatchDeps } from "../commands/watch-loop.js";
 import type { EnrichedManifest } from "../manifest/store.js";
 import type { SessionResult } from "../dispatch/types.js";
-import { SdkSessionFactory } from "../dispatch/factory.js";
+import type { SessionFactory } from "../dispatch/factory.js";
 import { DispatchTracker } from "../dispatch/tracker.js";
 import { acquireLock, releaseLock, readLockfile } from "../lockfile.js";
 
@@ -19,6 +19,10 @@ function setupTestRoot(): void {
 
 function teardownTestRoot(): void {
   rmSync(TEST_ROOT, { recursive: true, force: true });
+}
+
+function mockFactory(fn: (opts: any) => Promise<any>): SessionFactory {
+  return { create: fn };
 }
 
 // --- Lockfile tests ---
@@ -205,7 +209,7 @@ describe("WatchLoop", () => {
   function mockDeps(overrides: Partial<WatchDeps> = {}): WatchDeps {
     return {
       scanEpics: async () => [],
-      sessionFactory: new SdkSessionFactory(async (opts) => ({
+      sessionFactory: mockFactory(async (opts) => ({
         id: `${opts.epicSlug}-${opts.phase}-${Date.now()}`,
         worktreeSlug: `${opts.epicSlug}-${opts.phase}`,
         promise: Promise.resolve({
@@ -240,7 +244,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return [readyEpic];
         return [{ ...readyEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         dispatched.push(`${opts.phase} ${opts.args.join(" ")}`);
         return {
           id: `dispatch-${Date.now()}`,
@@ -298,7 +302,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return [implementEpic];
         return [{ ...implementEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         dispatched.push(
           `${opts.phase} ${opts.args.join(" ")} feature=${opts.featureSlug}`,
         );
@@ -360,7 +364,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return [implementEpic];
         return [{ ...implementEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         worktreeSlugs.push(opts.epicSlug);
         return {
           id: `dispatch-${opts.featureSlug}-${Date.now()}`,
@@ -418,7 +422,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return [implementEpic];
         return [{ ...implementEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => ({
+      sessionFactory: mockFactory(async (opts) => ({
         id: `dispatch-${opts.featureSlug}-${Date.now()}`,
         worktreeSlug: opts.epicSlug,
         promise: Promise.resolve({
@@ -467,7 +471,7 @@ describe("WatchLoop", () => {
 
     const deps = mockDeps({
       scanEpics: async () => [readyEpic],
-      sessionFactory: new SdkSessionFactory(async () => {
+      sessionFactory: mockFactory(async () => {
         dispatchCount++;
         return {
           id: `dispatch-${dispatchCount}`,
@@ -526,7 +530,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return epics;
         return epics.map((e) => ({ ...e, nextAction: null }));
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         dispatched.push(opts.epicSlug);
         return {
           id: `dispatch-${opts.epicSlug}`,
@@ -571,7 +575,7 @@ describe("WatchLoop", () => {
 
     const deps = mockDeps({
       scanEpics: async () => [completedEpic],
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         dispatched.push(opts.epicSlug);
         return {
           id: "nope",
@@ -618,7 +622,7 @@ describe("WatchLoop", () => {
         // After release completes, epic has no next action
         return [{ ...releaseEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (_opts) => {
+      sessionFactory: mockFactory(async (_opts) => {
         return {
           id: `release-${Date.now()}`,
           worktreeSlug: `release-epic-release`,
@@ -675,7 +679,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return [releaseEpic];
         return [{ ...releaseEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         return {
           id: `release-${Date.now()}`,
           worktreeSlug: `cleanup-epic-release`,
@@ -732,7 +736,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return [releaseEpic];
         return [{ ...releaseEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         return {
           id: `release-${Date.now()}`,
           worktreeSlug: `fragile-epic-release`,
@@ -793,7 +797,7 @@ describe("WatchLoop", () => {
         // After failed release, epic still exists but gate blocks re-dispatch
         return [{ ...releaseEpic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async () => ({
+      sessionFactory: mockFactory(async () => ({
         id: `fail-release-${Date.now()}`,
         worktreeSlug: `fail-epic-release`,
         promise: Promise.resolve({
@@ -846,7 +850,7 @@ describe("WatchLoop", () => {
         // After successful release, manifest is removed — scanner returns empty
         return [];
       },
-      sessionFactory: new SdkSessionFactory(async (_opts) => {
+      sessionFactory: mockFactory(async (_opts) => {
         dispatchCount++;
         return {
           id: `release-${Date.now()}`,
@@ -908,7 +912,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return epics;
         return epics.map((e) => ({ ...e, nextAction: null }));
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         dispatched.push(opts.epicSlug);
         return {
           id: `release-${opts.epicSlug}`,
@@ -974,7 +978,7 @@ describe("WatchLoop", () => {
           epics[1],
         ];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         dispatched.push(opts.epicSlug);
         if (opts.epicSlug === "epic-a") {
           return {
@@ -1051,7 +1055,7 @@ describe("WatchLoop", () => {
         if (scanCount === 1) return epics;
         return epics.map((e) => ({ ...e, nextAction: null }));
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
+      sessionFactory: mockFactory(async (opts) => {
         dispatched.push(opts.epicSlug);
         return {
           id: `plan-${opts.epicSlug}`,
