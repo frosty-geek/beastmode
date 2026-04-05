@@ -123,7 +123,7 @@ export class InMemoryTaskStore implements TaskStore {
     );
   }
 
-  addFeature(opts: { parent: string; name: string; description?: string }): Feature {
+  addFeature(opts: { parent: string; name: string; slug?: string; description?: string }): Feature {
     const parentEpic = this.getEpic(opts.parent);
     if (!parentEpic) throw new Error(`Parent epic not found: ${opts.parent}`);
 
@@ -133,6 +133,7 @@ export class InMemoryTaskStore implements TaskStore {
       type: "feature",
       parent: opts.parent,
       name: opts.name,
+      slug: opts.slug || opts.name.toLowerCase().replace(/\s+/g, "-"),
       description: opts.description,
       status: "pending",
       depends_on: [],
@@ -153,6 +154,7 @@ export class InMemoryTaskStore implements TaskStore {
       id: feature.id, // immutable
       type: "feature", // immutable
       parent: feature.parent, // immutable
+      slug: feature.slug, // immutable
       created_at: feature.created_at, // immutable
       updated_at: this.now(),
     };

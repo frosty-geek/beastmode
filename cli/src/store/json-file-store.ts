@@ -122,7 +122,7 @@ export class JsonFileStore implements TaskStore {
     return this.inner.listFeatures(epicId);
   }
 
-  addFeature(opts: { parent: string; name: string; description?: string }): Feature {
+  addFeature(opts: { parent: string; name: string; slug?: string; description?: string }): Feature {
     return this.inner.addFeature(opts);
   }
 
