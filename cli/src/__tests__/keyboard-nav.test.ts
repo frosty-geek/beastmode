@@ -564,13 +564,28 @@ describe("log scroll state logic", () => {
     expect(logScrollOffset).toBe(99);
   });
 
+  test("End key resumes auto-follow", () => {
+    let logAutoFollow = false;
+    let logScrollOffset = 10;
+    const totalLines = 100;
+
+    const keyEnd = true;
+    if (keyEnd) {
+      logAutoFollow = true;
+      logScrollOffset = Math.max(0, totalLines - 1);
+    }
+
+    expect(logAutoFollow).toBe(true);
+    expect(logScrollOffset).toBe(99);
+  });
+
   test("arrow keys route to nav when epics focused", () => {
     const focusedPanel = "epics";
     let selectedIndex = 2;
     let logScrollOffset = 0;
 
     if (focusedPanel === "epics") {
-      selectedIndex = Math.max(0, selectedIndex - 1); // up arrow
+      selectedIndex = Math.max(0, selectedIndex - 1);
     } else {
       logScrollOffset = Math.max(0, logScrollOffset - 1);
     }
@@ -590,7 +605,7 @@ describe("log scroll state logic", () => {
       logScrollOffset = Math.max(0, logScrollOffset - 1);
     }
 
-    expect(selectedIndex).toBe(2); // unchanged
+    expect(selectedIndex).toBe(2);
     expect(logScrollOffset).toBe(4);
   });
 });
@@ -633,12 +648,11 @@ describe("details scroll state logic", () => {
 
   test("PgUp/PgDn works regardless of focused panel", () => {
     let detailsScrollOffset = 10;
-    const focusedPanel = "log"; // doesn't matter
+    const focusedPanel = "log";
     const pageSize = 10;
-    // PgUp is global
     detailsScrollOffset = Math.max(0, detailsScrollOffset - pageSize);
     expect(detailsScrollOffset).toBe(0);
-    expect(focusedPanel).toBe("log"); // focus unchanged
+    expect(focusedPanel).toBe("log");
   });
 });
 
