@@ -118,7 +118,7 @@ vi.mock("../hooks/file-permission-settings.js", () => ({
 }));
 
 // Import AFTER mocking
-const { ReconcilingFactory } = await import("../commands/watch.js");
+const { ReconcilingFactory } = await import("../dispatch/reconciling.js");
 import { createLogger } from "../logger.js";
 
 // ---------------------------------------------------------------------------
