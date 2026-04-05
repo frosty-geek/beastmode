@@ -1,7 +1,6 @@
-import { describe, test, expect, beforeEach } from "vitest";
+import { describe, test, expect } from "vitest";
 import { writeHitlSettings, cleanHitlSettings } from "../hooks/hitl-settings";
-import type { WriteSettingsOptions } from "../hooks/hitl-settings";
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, existsSync } from "fs";
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -29,8 +28,6 @@ const mockPreToolUseHook = {
 describe("writeHitlSettings", () => {
   test("creates settings.local.json when none exists", () => {
     const claudeDir = makeTempClaudeDir();
-    // Remove any auto-created file
-    const settingsPath = join(claudeDir, "settings.local.json");
 
     writeHitlSettings({
       claudeDir,
@@ -43,6 +40,7 @@ describe("writeHitlSettings", () => {
     const hooks = settings.hooks as Record<string, unknown[]>;
     expect(hooks.PreToolUse).toHaveLength(1);
     expect(hooks.PostToolUse).toHaveLength(1);
+    expect(hooks.Stop).toHaveLength(1);
   });
 
   test("preserves existing enabledPlugins", () => {
@@ -98,6 +96,21 @@ describe("writeHitlSettings", () => {
     expect(hooks.PostToolUse[0].hooks[0].command).toContain("validate");
   });
 
+  test("Stop hook calls generate-output.ts", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "design",
+    });
+
+    const settings = readSettings(claudeDir);
+    const hooks = settings.hooks as Record<string, Array<{matcher: string; hooks: Array<{command?: string}>}>>;
+    expect(hooks.Stop).toHaveLength(1);
+    expect(hooks.Stop[0].matcher).toBe("");
+    expect(hooks.Stop[0].hooks[0].command).toContain("generate-output.ts");
+  });
+
   test("replaces existing HITL hooks on re-write", () => {
     const claudeDir = makeTempClaudeDir();
 
@@ -117,9 +130,10 @@ describe("writeHitlSettings", () => {
 
     const settings = readSettings(claudeDir);
     const hooks = settings.hooks as Record<string, Array<{matcher: string; hooks: Array<{command?: string}>}>>;
-    // Should have exactly one PreToolUse and one PostToolUse — not duplicated
+    // Should have exactly one PreToolUse, one PostToolUse, one Stop — not duplicated
     expect(hooks.PreToolUse).toHaveLength(1);
     expect(hooks.PostToolUse).toHaveLength(1);
+    expect(hooks.Stop).toHaveLength(1);
     // PostToolUse should have the latest phase
     expect(hooks.PostToolUse[0].hooks[0].command).toContain("plan");
   });
@@ -180,6 +194,9 @@ describe("cleanHitlSettings", () => {
           ],
           PostToolUse: [
             { matcher: "AskUserQuestion", hooks: [{ type: "command", command: "test" }] },
+          ],
+          Stop: [
+            { matcher: "", hooks: [{ type: "command", command: "bun run generate-output.ts" }] },
           ],
         },
       }),

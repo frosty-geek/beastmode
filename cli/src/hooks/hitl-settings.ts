@@ -100,6 +100,14 @@ export function writeHitlSettings(options: WriteSettingsOptions): void {
     postToolUseHook,
   );
 
+  // Add Stop hook for output.json generation
+  const stopHook = buildStopHook();
+  settings.hooks.Stop = replaceHitlHook(
+    settings.hooks.Stop,
+    "",
+    stopHook,
+  );
+
   // Atomic write
   mkdirSync(claudeDir, { recursive: true });
   const tmpPath = settingsPath + ".tmp";
@@ -141,6 +149,15 @@ export function cleanHitlSettings(claudeDir: string): void {
       delete settings.hooks.PostToolUse;
     }
   }
+  // Remove Stop hook for output.json generation
+  if (settings.hooks.Stop) {
+    settings.hooks.Stop = settings.hooks.Stop.filter(
+      (h) => !h.hooks?.some((hk) => hk.command?.includes("generate-output.ts")),
+    );
+    if (settings.hooks.Stop.length === 0) {
+      delete settings.hooks.Stop;
+    }
+  }
 
   // Remove hooks key entirely if empty
   if (Object.keys(settings.hooks).length === 0) {
@@ -175,6 +192,22 @@ function buildPostToolUseHook(phase: string): HookEntry {
       {
         type: "command",
         command: `bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/hitl-log.ts" ${phase}`,
+      },
+    ],
+  };
+}
+
+/**
+ * Build the Stop hook for output.json generation.
+ * Calls generate-output.ts after Claude finishes responding.
+ */
+function buildStopHook(): HookEntry {
+  return {
+    matcher: "",
+    hooks: [
+      {
+        type: "command",
+        command: `bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/generate-output.ts"`,
       },
     ],
   };
