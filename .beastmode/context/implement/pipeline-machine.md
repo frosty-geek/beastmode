@@ -9,6 +9,9 @@
 - REGRESS event (`{ type: "REGRESS", targetPhase }`) is valid from every non-terminal epic state — guard enforces targetPhase <= currentPhase and targetPhase != "design"
 - REGRESS actions: set phase to targetPhase, reset all features to pending when regressing to or past implement, clear blocked fields, clear downstream artifact entries
 - VALIDATE_FAILED event is fully removed — replaced by REGRESS with targetPhase "implement"
+- REGRESS_FEATURES event (`{ type: "REGRESS_FEATURES", failingFeatures: string[] }`) is valid from validate state only — guard `hasFailingFeatures` requires non-empty array; actions apply `regressFeatures()` pure function which resets only named features to pending (incrementing reDispatchCount), leaves passing features completed, and marks features with reDispatchCount > 2 as blocked; phase transitions to implement
+- REGRESS_FEATURES is the preferred regression path from validate — REGRESS (blanket) is the fallback when per-feature identification is unavailable
+- reDispatchCount on ManifestFeature tracks how many times a feature has been re-dispatched by validate; budget is 2 (third failure marks feature blocked)
 
 ## Assign Separation Pattern
 - ALWAYS place assign() calls inside setup() actions — XState v5.30 requires this for type inference
