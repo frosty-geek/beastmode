@@ -99,6 +99,22 @@ vi.mock("../github/early-issues.js", () => ({
   ensureEarlyIssues: mockEnsureEarlyIssues,
 }));
 
+// Mock git/push
+const mockHasRemote = vi.hoisted(() => vi.fn(async () => true));
+const mockPushBranches = vi.hoisted(() => vi.fn(async () => {}));
+const mockPushTags = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("../git/push.js", () => ({
+  hasRemote: mockHasRemote,
+  pushBranches: mockPushBranches,
+  pushTags: mockPushTags,
+}));
+
+// Mock git/commit-issue-ref
+const mockAmendCommitWithIssueRef = vi.hoisted(() => vi.fn(async () => ({ amended: false })));
+vi.mock("../git/commit-issue-ref.js", () => ({
+  amendCommitWithIssueRef: mockAmendCommitWithIssueRef,
+}));
+
 // Note: hooks/hitl-settings and hooks/file-permission-settings are NOT mocked.
 // Real functions run against mocked worktree paths (/tmp/test-project/...).
 // This avoids Bun mock.module() pollution — mock.module is process-global in Bun
@@ -175,6 +191,10 @@ function resetAllMocks() {
   mockSyncGitHubForEpic.mockClear();
   mockDiscoverGitHub.mockClear();
   mockEnsureEarlyIssues.mockClear();
+  mockHasRemote.mockClear();
+  mockPushBranches.mockClear();
+  mockPushTags.mockClear();
+  mockAmendCommitWithIssueRef.mockClear();
 
   // Restore default implementations
   mockLoadOutput.mockImplementation(
@@ -200,6 +220,10 @@ function resetAllMocks() {
   mockReconcileRelease.mockImplementation(async () => ({ phase: "done", manifest: { slug: "test-epic" } }));
   mockDiscoverGitHub.mockImplementation(async () => null);
   mockArchive.mockImplementation(async () => `archive/test-epic`);
+  mockHasRemote.mockImplementation(async () => true);
+  mockPushBranches.mockImplementation(async () => {});
+  mockPushTags.mockImplementation(async () => {});
+  mockAmendCommitWithIssueRef.mockImplementation(async () => ({ amended: false }));
 }
 
 // ---------- tests ----------
@@ -616,6 +640,60 @@ describe("pipeline/runner", () => {
       expect(mockCreate).not.toHaveBeenCalled();
       // Rebase should still run
       expect(mockRebase).toHaveBeenCalled();
+    });
+  });
+
+  describe("git push (Step 8.7)", () => {
+    it("pushes branches and tags when remote exists", async () => {
+      await run(makeConfig());
+
+      expect(mockHasRemote).toHaveBeenCalled();
+      expect(mockPushBranches).toHaveBeenCalled();
+      expect(mockPushTags).toHaveBeenCalled();
+    });
+
+    it("skips push when no remote", async () => {
+      mockHasRemote.mockImplementation(async () => false);
+
+      await run(makeConfig());
+
+      expect(mockPushBranches).not.toHaveBeenCalled();
+      expect(mockPushTags).not.toHaveBeenCalled();
+    });
+
+    it("passes epicSlug and phase to pushBranches", async () => {
+      await run(makeConfig({ phase: "plan", epicSlug: "my-epic" }));
+
+      expect(mockPushBranches).toHaveBeenCalledWith(expect.objectContaining({
+        epicSlug: "my-epic",
+        phase: "plan",
+      }));
+    });
+
+    it("passes featureSlug to pushBranches for implement phase", async () => {
+      await run(makeConfig({ phase: "implement", epicSlug: "my-epic", featureSlug: "my-feat" }));
+
+      expect(mockPushBranches).toHaveBeenCalledWith(expect.objectContaining({
+        epicSlug: "my-epic",
+        phase: "implement",
+        featureSlug: "my-feat",
+      }));
+    });
+
+    it("continues when push throws", async () => {
+      mockHasRemote.mockRejectedValue(new Error("git broke"));
+
+      const result = await run(makeConfig());
+
+      expect(result.success).toBe(true);
+    });
+
+    it("is not gated on github.enabled", async () => {
+      // github.enabled is false in makeConfig default
+      await run(makeConfig());
+
+      expect(mockHasRemote).toHaveBeenCalled();
+      expect(mockPushBranches).toHaveBeenCalled();
     });
   });
 });

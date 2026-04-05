@@ -12,6 +12,8 @@
  *   6. manifest.reconcile       -- Update manifest from phase results
  *   7. manifest.advance         -- Advance phase, enrich metadata
  *   8. github.mirror            -- One-way sync to GitHub
+ *   8.5. commit-issue-ref       -- Amend commit with issue number
+ *   8.7. git.push               -- Push branches and tags to remote
  *   9. git.worktree.cleanup     -- Release only: archive + remove
  */
 
@@ -31,6 +33,7 @@ import { ensureEarlyIssues } from "../github/early-issues.js";
 import { setGitHubEpic, setFeatureGitHubIssue, setEpicBodyHash, setFeatureBodyHash } from "../manifest/pure.js";
 import { createTag } from "../git/tags.js";
 import { amendCommitWithIssueRef } from "../git/commit-issue-ref.js";
+import { hasRemote, pushBranches, pushTags } from "../git/push.js";
 import {
   reconcileDesign,
   reconcilePlan,
@@ -343,6 +346,26 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     logger.warn(`commit issue ref failed (non-blocking): ${message}`);
+  }
+
+  // -- Step 8.7: git.push --------------------------------------------------
+  // Push branches and tags to remote. Pure git operation — not gated on
+  // github.enabled. Warn-and-continue on failure.
+  try {
+    const remoteExists = await hasRemote({ cwd: worktreePath });
+    if (remoteExists) {
+      await pushBranches({
+        epicSlug,
+        phase: config.phase,
+        featureSlug: config.featureSlug,
+        cwd: worktreePath,
+      });
+      await pushTags({ cwd: worktreePath });
+      logger.detail?.("pushed branches and tags");
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.warn(`git push failed (non-blocking): ${message}`);
   }
 
   // -- Step 9: git.worktree.cleanup -------------------------------------------
