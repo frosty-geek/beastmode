@@ -119,6 +119,18 @@ describe("FallbackEntryStore", () => {
     expect(store.get("e", "implement", undefined)).toHaveLength(1);
   });
 
+  test("LogEntry level field is optional and preserved by store", () => {
+    const store = new FallbackEntryStore();
+    store.push("e", "plan", undefined, {
+      type: "text",
+      timestamp: 1000,
+      text: "test",
+      level: "debug",
+    });
+    const entries = store.get("e", "plan", undefined);
+    expect(entries[0]).toHaveProperty("level", "debug");
+  });
+
   test("revision increments on each push", () => {
     const store = new FallbackEntryStore();
     const r0 = store.revision;
