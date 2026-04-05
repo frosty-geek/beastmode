@@ -201,6 +201,37 @@
     "format": ["progress-bar"],
     "publishQuiet": true
   },
+  "logging-cleanup": {
+    "paths": [
+      "features/logger-interface.feature",
+      "features/structured-log-data.feature",
+      "features/hierarchical-filtering.feature",
+      "features/dashboard-full-stream.feature",
+      "features/pluggable-sink-model.feature",
+      "features/console-migration.feature",
+      "features/level-reclassification.feature"
+    ],
+    "import": [
+      "features/step_definitions/logging-cleanup.steps.ts",
+      "features/support/logging-world.ts",
+      "features/support/logging-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "logging-verbosity": {
+    "paths": [
+      "features/dashboard-verbosity-cycling.feature",
+      "features/dashboard-verbosity-indicator.feature"
+    ],
+    "import": [
+      "features/step_definitions/dashboard-dispatch-fix.steps.ts",
+      "features/support/dashboard-dispatch-world.ts",
+      "features/support/dashboard-dispatch-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
   "github-enrichment": {
     "paths": [
       "features/github-enrichment/epic-body-content.feature",

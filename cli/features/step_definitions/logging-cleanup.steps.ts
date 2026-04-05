@@ -120,12 +120,17 @@ When(
   "the logger emits a {word} message {string}",
   function (this: LoggingWorld, level: string, message: string) {
     const lvl = level as LogLevel;
-    switch (lvl) {
-      case "debug": this.logger.debug(message); break;
-      case "info": this.logger.info(message); break;
-      case "warn": this.logger.warn(message); break;
-      case "error": this.logger.error(message); break;
-      default: assert.fail(`Unknown log level: ${level}`);
+    // When dual-sink mode is active, emit to both sinks
+    if (this.dashboardSink) {
+      this.emitToBothSinks(lvl, message);
+    } else {
+      switch (lvl) {
+        case "debug": this.logger.debug(message); break;
+        case "info": this.logger.info(message); break;
+        case "warn": this.logger.warn(message); break;
+        case "error": this.logger.error(message); break;
+        default: assert.fail(`Unknown log level: ${level}`);
+      }
     }
   },
 );
@@ -508,7 +513,7 @@ Then(
 // =============================================================================
 
 Given("the CLI runtime source files are scanned", function (this: LoggingWorld) {
-  this.consoleViolations = scanForConsoleUsage(["../scripts"]);
+  this.consoleViolations = scanForConsoleUsage(["scripts", "__tests__"]);
 });
 
 Given("the CLI is invoked with invalid arguments", function (this: LoggingWorld) {
@@ -563,7 +568,7 @@ Then(
 );
 
 Then("standalone scripts are excluded from this check", function (this: LoggingWorld) {
-  const scriptViolations = this.consoleViolations.filter((v) => v.file.startsWith("../scripts"));
+  const scriptViolations = this.consoleViolations.filter((v) => v.file.startsWith("scripts"));
   assert.strictEqual(scriptViolations.length, 0, "Scripts directory should be excluded from scan");
 });
 

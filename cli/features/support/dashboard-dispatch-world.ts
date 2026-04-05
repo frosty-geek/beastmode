@@ -125,9 +125,9 @@ export class DashboardDispatchWorld extends World {
 
   /** Check if App.tsx has verbosity cycling state management. */
   hasVerbosityCycling(): boolean {
-    return this.appSource.includes("cycleVerbosity") ||
-           this.appSource.includes("setVerbosity") ||
-           (this.appSource.includes("verbosity") && this.appSource.includes("% 4"));
+    return this.keyboardHookSource.includes("cycleVerbosity") ||
+           this.keyboardHookSource.includes("setVerbosity") ||
+           (this.appSource.includes("verbosity") && (this.appSource.includes("% 4") || this.appSource.includes("% 2")));
   }
 
   /** Check if keyboard hook handles 'v' key. */
