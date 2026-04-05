@@ -10,7 +10,7 @@ import EpicsPanel from "./EpicsPanel.js";
 import DetailsPanel from "./DetailsPanel.js";
 import type { DetailsPanelSelection } from "./details-panel.js";
 import type { GitStatus } from "./overview-panel.js";
-import LogPanel from "./LogPanel.js";
+import LogPanel, { filterTreeByPhase, filterTreeByBlocked, countTreeLines } from "./LogPanel.js";
 import { useDashboardTreeState } from "./hooks/use-dashboard-tree-state.js";
 import { useDashboardKeyboard } from "./hooks/use-dashboard-keyboard.js";
 import { useTerminalSize } from "./hooks/use-terminal-size.js";
@@ -20,7 +20,6 @@ import { FallbackEntryStore, lifecycleToLogEntry } from "./lifecycle-entries.js"
 import { createLogger } from "../logger.js";
 import { DashboardSink } from "./dashboard-sink.js";
 import type { SystemEntryRef } from "./dashboard-logger.js";
-import { NYAN_PALETTE } from "./nyan-colors.js";
 import { TICK_INTERVAL_MS } from "./NyanBanner.js";
 import { buildFlatRows, rowSlugAtIndex } from "./epics-tree-model.js";
 import type { SelectableRow } from "./epics-tree-model.js";
@@ -54,6 +53,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
   const { rows } = useTerminalSize();
   const [tick, setTick] = useState(0);
+  const logTotalLinesRef = useRef(0);
   const loopRef = useRef(loop);
   loopRef.current = loop;
   // Use shared stores from dashboard command if provided, otherwise create local ones
@@ -126,9 +126,6 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
 
   // --- Keyboard hook (flat model — no view stack) ---
   // itemCount uses epics.length as upper bound; clamped below after filtering.
-  // onToggleExpand is a no-op until the epics-tree feature lands
-  const handleToggleExpand = useCallback((_slug: string | undefined) => {}, []);
-
   const keyboard = useDashboardKeyboard({
     itemCount: epics.length + 1, // +1 for "(all)" row
     onCancelEpic: handleCancelEpic,
@@ -138,7 +135,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     onFilterClear: handleFilterClear,
     initialVerbosity: verbosity,
     onToggleExpand: handleToggleExpand,
-    logTotalLines: 0,
+    logTotalLines: logTotalLinesRef.current,
     detailsContentHeight: 0,
     detailsVisibleHeight: Math.max(1, Math.floor((rows ?? 24) * 0.4 * 0.6) - 2),
   });
@@ -195,6 +192,12 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     fallbackEntries: fallbackStoreRef.current,
     systemEntries: systemEntriesRef.current,
   });
+
+  // --- Filter pipeline for log tree ---
+  const phaseFiltered = filterTreeByPhase(treeState, keyboard.phaseFilter);
+  const filteredTreeState = filterTreeByBlocked(phaseFiltered, keyboard.showBlocked);
+  const logTotalLines = countTreeLines(filteredTreeState);
+  logTotalLinesRef.current = logTotalLines;
 
   // --- Clock tick every 1s ---
   useEffect(() => {
@@ -433,19 +436,13 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     <Text color="yellow">Cancel {cancelConfirmingSlug}? (y/n)</Text>
   ) : undefined;
 
-  // --- Focus border — animated color for the focused panel ---
-  const focusBorderColor = NYAN_PALETTE[tick % NYAN_PALETTE.length];
-  const epicsBorderColor = keyboard.focusedPanel === "epics" ? focusBorderColor : undefined;
-  const logBorderColor = keyboard.focusedPanel === "log" ? focusBorderColor : undefined;
-
   return (
     <ThreePanelLayout
       watchRunning={watchRunning}
       clock={clock}
       rows={rows}
-      tick={tick}
-      epicsBorderColor={epicsBorderColor}
-      logBorderColor={logBorderColor}
+      focusedPanel={keyboard.focusedPanel}
+      nyanTick={tick}
       epicsSlot={
         <EpicsPanel
           epics={filteredEpics}
@@ -466,7 +463,14 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
           visibleHeight={Math.max(1, Math.floor((rows ?? 24) * 0.4 * 0.6) - 2)}
         />
       }
-      logSlot={<LogPanel state={treeState} verbosity={keyboard.verbosity} />}
+      logSlot={
+        <LogPanel
+          state={filteredTreeState}
+          verbosity={keyboard.verbosity}
+          scrollOffset={keyboard.logScrollOffset}
+          autoFollow={keyboard.logAutoFollow}
+        />
+      }
       keyHints={keyHintText}
       isShuttingDown={keyboard.shutdown.isShuttingDown}
       cancelPrompt={cancelPrompt}
