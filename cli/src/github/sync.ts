@@ -191,6 +191,22 @@ export function formatFeatureBody(
 }
 
 /**
+ * Build the epic issue title from the human-readable epic name.
+ * Falls back to slug if epic name is unavailable.
+ */
+export function epicTitle(slug: string, epicName?: string): string {
+  return epicName || slug;
+}
+
+/**
+ * Build the feature issue title with epic name prefix.
+ * Format: "{epic}: {feature}" or just "{feature}" if epic name unavailable.
+ */
+export function featureTitle(epicName: string | undefined, featureSlug: string): string {
+  return epicName ? `${epicName}: ${featureSlug}` : featureSlug;
+}
+
+/**
  * Generate a release closing comment for an epic issue.
  * Posted once when an epic transitions to done phase.
  */
@@ -564,7 +580,7 @@ export async function syncGitHub(
     });
     epicNumber = await ghIssueCreate(
       repo,
-      manifest.slug,
+      epicTitle(manifest.slug, manifest.epic),
       initialEpicBody,
       ["type/epic", `phase/${manifest.phase}`],
       { logger: opts.logger },
@@ -587,6 +603,10 @@ export async function syncGitHub(
 
   // --- Epic Body Update ---
   if (!epicJustCreated) {
+    // Update epic title to use human-readable name
+    const expectedEpicTitle = epicTitle(manifest.slug, manifest.epic);
+    await ghIssueEdit(repo, epicNumber, { title: expectedEpicTitle }, { logger: opts.logger });
+
     const epicBody = formatEpicBody({
       slug: manifest.slug,
       phase: manifest.phase,
@@ -645,7 +665,7 @@ export async function syncGitHub(
   // --- Feature Sync ---
 
   for (const feature of manifest.features) {
-    await syncFeature(repo, owner, epicNumber, feature, resolved, result, opts);
+    await syncFeature(repo, owner, epicNumber, manifest.epic, feature, resolved, result, opts);
   }
 
   // --- Epic Close (if done or cancelled) ---
@@ -703,6 +723,7 @@ async function syncFeature(
   repo: string,
   owner: string,
   epicNumber: number,
+  epicName: string | undefined,
   feature: ManifestFeature,
   resolved: ResolvedGitHub,
   result: SyncResult,
@@ -740,7 +761,7 @@ async function syncFeature(
     );
     featureNumber = await ghIssueCreate(
       repo,
-      feature.slug,
+      featureTitle(epicName, feature.slug),
       featureBody,
       ["type/feature", STATUS_TO_LABEL[feature.status] ?? "status/ready"],
       { logger: opts.logger },
@@ -793,6 +814,10 @@ async function syncFeature(
 
   // --- Feature Body Update ---
   if (!featureJustCreated) {
+    // Update feature title with epic name prefix
+    const expectedFeatureTitle = featureTitle(epicName, feature.slug);
+    await ghIssueEdit(repo, featureNumber, { title: expectedFeatureTitle }, { logger: opts.logger });
+
     const featureBody = formatFeatureBody(
       { slug: feature.slug, description: feature.description, userStory, whatToBuild, acceptanceCriteria },
       epicNumber,

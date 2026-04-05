@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import type { PipelineManifest, ManifestFeature } from "../manifest/store";
-import { formatEpicBody, formatFeatureBody, formatClosingComment, buildCompareUrl } from "../github/sync";
+import { formatEpicBody, formatFeatureBody, formatClosingComment, buildCompareUrl, epicTitle, featureTitle } from "../github/sync";
 
 function makeManifest(
   overrides: Partial<PipelineManifest> = {},
@@ -581,5 +581,37 @@ describe("buildCompareUrl", () => {
       });
       expect(url).toBe("https://github.com/org/repo/compare/main...feature/my-epic");
     }
+  });
+});
+
+// --- epicTitle ---
+
+describe("epicTitle", () => {
+  test("returns epic name when available", () => {
+    expect(epicTitle("a1b2c3", "logging-cleanup")).toBe("logging-cleanup");
+  });
+
+  test("falls back to slug when epic name is undefined", () => {
+    expect(epicTitle("a1b2c3", undefined)).toBe("a1b2c3");
+  });
+
+  test("falls back to slug when epic name is empty string", () => {
+    expect(epicTitle("a1b2c3", "")).toBe("a1b2c3");
+  });
+});
+
+// --- featureTitle ---
+
+describe("featureTitle", () => {
+  test("prefixes feature slug with epic name", () => {
+    expect(featureTitle("logging-cleanup", "core-logger")).toBe("logging-cleanup: core-logger");
+  });
+
+  test("uses just feature slug when epic name is undefined", () => {
+    expect(featureTitle(undefined, "core-logger")).toBe("core-logger");
+  });
+
+  test("uses just feature slug when epic name is empty", () => {
+    expect(featureTitle("", "core-logger")).toBe("core-logger");
   });
 });
