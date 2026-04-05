@@ -439,6 +439,63 @@ describe("formatEpicBody", () => {
   });
 });
 
+// --- buildCompareUrl ---
+
+describe("buildCompareUrl", () => {
+  test("active epic returns branch-based compare URL", () => {
+    const url = buildCompareUrl({
+      repo: "org/repo",
+      branch: "feature/my-epic",
+      slug: "my-epic",
+      phase: "implement",
+    });
+    expect(url).toBe("https://github.com/org/repo/compare/main...feature/my-epic");
+  });
+
+  test("released epic with archive tag returns tag-based compare URL", () => {
+    const url = buildCompareUrl({
+      repo: "org/repo",
+      branch: "feature/my-epic",
+      slug: "my-epic",
+      phase: "done",
+      archiveTag: "archive/my-epic",
+      versionTag: "v1.2.0",
+    });
+    expect(url).toBe("https://github.com/org/repo/compare/v1.2.0...archive/my-epic");
+  });
+
+  test("released epic without archive tag falls back to branch-based URL", () => {
+    const url = buildCompareUrl({
+      repo: "org/repo",
+      branch: "feature/my-epic",
+      slug: "my-epic",
+      phase: "done",
+    });
+    expect(url).toBe("https://github.com/org/repo/compare/main...feature/my-epic");
+  });
+
+  test("released epic with archive tag but no version tag falls back to branch-based URL", () => {
+    const url = buildCompareUrl({
+      repo: "org/repo",
+      branch: "feature/my-epic",
+      slug: "my-epic",
+      phase: "done",
+      archiveTag: "archive/my-epic",
+    });
+    expect(url).toBe("https://github.com/org/repo/compare/main...feature/my-epic");
+  });
+
+  test("cancelled epic returns branch-based URL", () => {
+    const url = buildCompareUrl({
+      repo: "org/repo",
+      branch: "feature/my-epic",
+      slug: "my-epic",
+      phase: "cancelled",
+    });
+    expect(url).toBe("https://github.com/org/repo/compare/main...feature/my-epic");
+  });
+});
+
 // --- formatFeatureBody ---
 
 describe("formatFeatureBody", () => {
