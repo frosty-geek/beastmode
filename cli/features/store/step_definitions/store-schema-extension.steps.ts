@@ -10,18 +10,8 @@ import type { StoreWorld } from "../support/store-world.js";
 import type { Feature, Epic } from "../../../src/store/types.js";
 import { strict as assert } from "assert";
 
-// --- Background & Initialization ---
-
-Given("a store is initialized", function (this: StoreWorld) {
-  // Already handled by Before hook calling this.setup()
-  this.setup();
-});
-
-// --- Epic Setup ---
-
-Given("an epic {string} exists in the store", function (this: StoreWorld, epicName: string) {
-  this.createEpic(epicName);
-});
+// "a store is initialized" and "an epic {string} exists in the store"
+// are defined in store-ready.steps.ts and store-entity.steps.ts respectively.
 
 // --- Scenario 1: Feature carries a slug field ---
 

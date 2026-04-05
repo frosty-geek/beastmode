@@ -208,6 +208,7 @@
     "import": [
       "features/store/step_definitions/store-schema-extension.steps.ts",
       "features/store/step_definitions/store-entity.steps.ts",
+      "features/store/step_definitions/store-ready.steps.ts",
       "features/store/support/store-world.ts",
       "features/store/support/store-hooks.ts"
     ],
