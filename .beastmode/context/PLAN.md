@@ -68,3 +68,13 @@ Plan skill may spawn domain-specialist subagents to produce planning artifacts t
 - ALWAYS run full reverse-dependency analysis (grep for all import paths being changed) when planning file moves — enumerate every consumer, including transitive importers in unrelated domains (dashboard, lockfile, etc.)
 
 context/plan/file-collapse.md
+
+## Inline Gherkin Distribution
+
+- ALWAYS invoke the `plan-integration-tester` agent once with all features in a batch (each feature with its name and associated user stories) — not a per-feature invocation, not a flat PRD story list
+- Agent output is grouped by feature name via `### Feature: <feature-name>` headers in the New Scenarios section
+- ALWAYS distribute agent output inline into each feature plan as a `## Integration Test Scenarios` section — no dedicated Wave 1 integration-tests feature
+- If a feature has no matching scenarios, inject an empty `## Integration Test Scenarios` section with a comment noting the absence
+- Integration artifact (`.beastmode/artifacts/plan/YYYY-MM-DD-<epic>-integration.md`) is still written as an audit trail — plan reads it and distributes, does not replace it
+- Agent failure (NEEDS_CONTEXT, BLOCKED) is warn-and-continue — skip integration test distribution entirely, proceed to feature finalization
+- NEVER create a dedicated `integration-tests` wave 1 feature or use wave injection to accommodate it

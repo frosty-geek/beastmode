@@ -70,4 +70,8 @@ A single generic regression mechanism eliminates the special-case VALIDATE_FAILE
 .beastmode/artifacts/design/2026-04-01-phase-rerun.md
 .beastmode/artifacts/implement/2026-04-01-phase-rerun-regress-machine.md
 
+## Addendum: Targeted Regression (bdd-loop, 2026-04-05)
+
+A second regression path, `REGRESS_FEATURES`, was added for validate-phase targeted re-dispatch. Unlike `REGRESS`, it resets only the specific failing features to pending (incrementing their `reDispatchCount`), leaves passing features completed, and marks features that exceed the two-dispatch budget as blocked. The fallback `REGRESS` (blanket reset) remains active when validate cannot identify specific failing features. `regressFeatures()` pure function implements the targeted logic.
+
 context/design/pipeline-machine/
