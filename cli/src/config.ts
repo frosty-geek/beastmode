@@ -6,11 +6,8 @@ export interface GitHubConfig {
   "project-name"?: string;
 }
 
-export type DispatchStrategy = "sdk" | "cmux" | "iterm2" | "auto";
-
 export interface CliConfig {
   interval?: number;
-  "dispatch-strategy"?: DispatchStrategy;
 }
 
 export interface HitlConfig {
@@ -38,7 +35,7 @@ export const DEFAULT_HITL_PROSE = "always defer to human";
 
 const DEFAULT_CONFIG: BeastmodeConfig = {
   github: { enabled: false },
-  cli: { interval: 60, "dispatch-strategy": "sdk" },
+  cli: { interval: 60 },
   hitl: {
     design: DEFAULT_HITL_PROSE,
     plan: DEFAULT_HITL_PROSE,
@@ -119,8 +116,6 @@ export function loadConfig(projectRoot: string): BeastmodeConfig {
     interval:
       ((raw.cli as Record<string, unknown>)?.interval as number) ??
       DEFAULT_CONFIG.cli.interval,
-    "dispatch-strategy":
-      (((raw.cli as Record<string, unknown>)?.["dispatch-strategy"] as string) ?? "sdk") as DispatchStrategy,
   } satisfies CliConfig;
 
   const rawHitl = (raw.hitl ?? {}) as Record<string, unknown>;

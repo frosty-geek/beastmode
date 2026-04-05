@@ -56,34 +56,6 @@ github:
     expect(config.cli.interval).toBe(60);
   });
 
-  test("defaults dispatch-strategy to sdk when absent", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
-    const config = loadConfig(tempDir);
-    expect(config.cli["dispatch-strategy"]).toBe("sdk");
-  });
-
-  test("parses dispatch-strategy from config.yaml", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
-    mkdirSync(join(tempDir, ".beastmode"), { recursive: true });
-    writeFileSync(
-      join(tempDir, ".beastmode", "config.yaml"),
-      `cli:\n  dispatch-strategy: cmux\n`,
-    );
-    const config = loadConfig(tempDir);
-    expect(config.cli["dispatch-strategy"]).toBe("cmux");
-  });
-
-  test("parses dispatch-strategy auto", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
-    mkdirSync(join(tempDir, ".beastmode"), { recursive: true });
-    writeFileSync(
-      join(tempDir, ".beastmode", "config.yaml"),
-      `cli:\n  dispatch-strategy: auto\n`,
-    );
-    const config = loadConfig(tempDir);
-    expect(config.cli["dispatch-strategy"]).toBe("auto");
-  });
-
   test("default hitl config returns safe defaults", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "beastmode-test-"));
     const config = loadConfig(tempDir);
