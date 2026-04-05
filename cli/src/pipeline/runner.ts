@@ -14,6 +14,7 @@
  *   8. github.mirror            -- One-way sync to GitHub
  *   8.5. commit-issue-ref       -- Amend commit with issue number
  *   8.7. git.push               -- Push branches and tags to remote
+ *   8.9. branch-link            -- Link branches to GitHub issues
  *   9. git.worktree.cleanup     -- Release only: archive + remove
  */
 
@@ -33,6 +34,7 @@ import { ensureEarlyIssues } from "../github/early-issues.js";
 import { setGitHubEpic, setFeatureGitHubIssue, setEpicBodyHash, setFeatureBodyHash } from "../manifest/pure.js";
 import { createTag } from "../git/tags.js";
 import { amendCommitWithIssueRef } from "../git/commit-issue-ref.js";
+import { linkBranches } from "../github/branch-link.js";
 import { hasRemote, pushBranches, pushTags } from "../git/push.js";
 import {
   reconcileDesign,
@@ -366,6 +368,36 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     logger.warn(`git push failed (non-blocking): ${message}`);
+  }
+
+  // -- Step 8.9: branch-link -------------------------------------------------
+  // Link branches to GitHub issues via createLinkedBranch GraphQL mutation.
+  // Gated on github.enabled — pure git push (step 8.7) always runs.
+  // Warn-and-continue on failure.
+  try {
+    const beastConfig = config.config;
+    if (beastConfig.github.enabled) {
+      const manifest = store.load(config.projectRoot, epicSlug);
+      if (manifest?.github) {
+        const featureIssueNumber = config.featureSlug
+          ? manifest.features.find((f) => f.slug === config.featureSlug)?.github?.issue
+          : undefined;
+        await linkBranches({
+          repo: manifest.github.repo,
+          epicSlug,
+          epicIssueNumber: manifest.github.epic,
+          featureSlug: config.featureSlug,
+          featureIssueNumber,
+          phase: config.phase,
+          cwd: worktreePath,
+          logger,
+        });
+        logger.detail?.("branch linking complete");
+      }
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.warn(`branch linking failed (non-blocking): ${message}`);
   }
 
   // -- Step 9: git.worktree.cleanup -------------------------------------------
