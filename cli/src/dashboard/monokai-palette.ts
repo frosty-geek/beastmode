@@ -33,7 +33,7 @@ export const DEPTH = {
   panel: "#353236",
 } as const;
 
-/** Returns true for phases that should render dimmed. */
-export function isDim(phase: string): boolean {
-  return phase === "done" || phase === "cancelled";
+/** Returns true for phases/statuses that should render dimmed. */
+export function isDim(status: string): boolean {
+  return status === "done" || status === "cancelled" || status === "blocked" || status === "pending";
 }
