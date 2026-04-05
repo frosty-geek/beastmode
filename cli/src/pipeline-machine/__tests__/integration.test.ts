@@ -8,11 +8,15 @@ import type { EpicContext, FeatureContext } from "../types";
 
 function makeEpicContext(overrides: Partial<EpicContext> = {}): EpicContext {
   return {
+    id: "bm-test",
     slug: "test-epic",
-    phase: "design",
+    name: "Test Epic",
+    status: "design",
     features: [],
     artifacts: {},
-    lastUpdated: "2026-03-31T00:00:00Z",
+    depends_on: [],
+    created_at: "2026-03-31T00:00:00Z",
+    updated_at: "2026-03-31T00:00:00Z",
     ...overrides,
   };
 }
@@ -25,7 +29,9 @@ function startEpicActor(ctx?: Partial<EpicContext>) {
 
 function makeFeatureContext(overrides: Partial<FeatureContext> = {}): FeatureContext {
   return {
+    id: "bm-test.1",
     slug: "test-feature",
+    name: "Test Feature",
     plan: "test-plan.md",
     status: "pending",
     ...overrides,

@@ -1,30 +1,33 @@
 import { describe, test, expect } from "vitest";
-import type { EnrichedManifest } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/types.js";
 import {
   computePhaseDistribution,
   formatGitStatus,
   formatActiveSessions,
 } from "../dashboard/overview-panel.js";
 
-function mockEpic(overrides: Partial<EnrichedManifest> = {}): EnrichedManifest {
+function mockEpic(overrides: Partial<EnrichedEpic> = {}): EnrichedEpic {
   return {
+    id: "test-id",
+    type: "epic",
     slug: "test-epic",
-    phase: "design",
+    name: "Test Epic",
+    status: "design",
     features: [],
-    artifacts: {},
-    lastUpdated: "2026-04-04",
-    manifestPath: "/tmp/test.manifest.json",
     nextAction: null,
+    depends_on: [],
+    created_at: "2026-04-04T00:00:00Z",
+    updated_at: "2026-04-04T00:00:00Z",
     ...overrides,
-  } as EnrichedManifest;
+  } as EnrichedEpic;
 }
 
 describe("computePhaseDistribution", () => {
   test("counts epics per phase", () => {
     const epics = [
-      mockEpic({ slug: "a", phase: "design" }),
-      mockEpic({ slug: "b", phase: "design" }),
-      mockEpic({ slug: "c", phase: "implement" }),
+      mockEpic({ slug: "a", status: "design" }),
+      mockEpic({ slug: "b", status: "design" }),
+      mockEpic({ slug: "c", status: "implement" }),
     ];
     const result = computePhaseDistribution(epics);
     expect(result).toEqual([
@@ -39,9 +42,9 @@ describe("computePhaseDistribution", () => {
 
   test("preserves canonical phase order", () => {
     const epics = [
-      mockEpic({ slug: "a", phase: "release" }),
-      mockEpic({ slug: "b", phase: "design" }),
-      mockEpic({ slug: "c", phase: "validate" }),
+      mockEpic({ slug: "a", status: "release" }),
+      mockEpic({ slug: "b", status: "design" }),
+      mockEpic({ slug: "c", status: "validate" }),
     ];
     const result = computePhaseDistribution(epics);
     const phases = result.map((r) => r.phase);
@@ -49,15 +52,15 @@ describe("computePhaseDistribution", () => {
   });
 
   test("omits phases with zero count", () => {
-    const epics = [mockEpic({ slug: "a", phase: "plan" })];
+    const epics = [mockEpic({ slug: "a", status: "plan" })];
     const result = computePhaseDistribution(epics);
     expect(result.length).toBe(1);
     expect(result[0]).toEqual({ phase: "plan", count: 1 });
   });
 
   test("handles all seven phases", () => {
-    const phases = ["design", "plan", "implement", "validate", "release", "done", "cancelled"] as const;
-    const epics = phases.map((p, i) => mockEpic({ slug: `e${i}`, phase: p }));
+    const statuses = ["design", "plan", "implement", "validate", "release", "done", "cancelled"] as const;
+    const epics = statuses.map((s, i) => mockEpic({ slug: `e${i}`, status: s }));
     const result = computePhaseDistribution(epics);
     expect(result.length).toBe(7);
     for (const entry of result) {

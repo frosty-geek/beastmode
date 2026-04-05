@@ -9,11 +9,15 @@ import type { FeatureContext } from "../types";
 
 function makeEpicContext(overrides: Partial<EpicContext> = {}): EpicContext {
   return {
+    id: "bm-test",
     slug: "test-epic",
-    phase: "design",
+    name: "Test Epic",
+    status: "design",
     features: [],
     artifacts: {},
-    lastUpdated: "2026-03-31T00:00:00Z",
+    depends_on: [],
+    created_at: "2026-03-31T00:00:00Z",
+    updated_at: "2026-03-31T00:00:00Z",
     ...overrides,
   };
 }
@@ -28,7 +32,9 @@ function makeFeatureContext(
   overrides: Partial<FeatureContext> = {},
 ): FeatureContext {
   return {
+    id: "bm-test.1",
     slug: "test-feature",
+    name: "Test Feature",
     plan: "test-plan.md",
     status: "pending",
     ...overrides,
@@ -104,15 +110,17 @@ describe("basic snapshot round-trip", () => {
 
 describe("manifest-shaped fixture input", () => {
   test("actor created from manifest-like context starts in design and advances", () => {
-    // Simulate the shape of a PipelineManifest as input context
+    // Simulate the shape of an Epic as input context
     const fixtureContext: EpicContext = {
+      id: "bm-fixture",
       slug: "fixture-epic",
-      phase: "design",
+      name: "Fixture Epic",
+      status: "design",
       features: [],
       artifacts: { design: ["design.md"], plan: ["plan.md"] },
-      worktree: { branch: "feature/fixture", path: "/tmp/fixture" },
-      github: { epic: 42, repo: "owner/repo" },
-      lastUpdated: "2026-03-31T00:00:00Z",
+      depends_on: [],
+      created_at: "2026-03-31T00:00:00Z",
+      updated_at: "2026-03-31T00:00:00Z",
     };
 
     const actor = createActor(epicMachine, { input: fixtureContext });
@@ -140,28 +148,18 @@ describe("manifest-shaped fixture input", () => {
 
     expect(actor2.getSnapshot().value).toBe("implement");
     expect(actor2.getSnapshot().context.slug).toBe("fixture-epic");
-    expect(actor2.getSnapshot().context.github).toEqual({
-      epic: 42,
-      repo: "owner/repo",
-    });
-    expect(actor2.getSnapshot().context.worktree).toEqual({
-      branch: "feature/fixture",
-      path: "/tmp/fixture",
-    });
   });
 });
 
 // ── 3. Round-trip preserves all fields ───────────────────────────
 
 describe("round-trip preserves all context fields", () => {
-  test("slug, features, artifacts, github, worktree, lastUpdated all survive", () => {
+  test("slug, features, artifacts, updated_at all survive", () => {
     const actor = startEpicActor({
       slug: "full-context-epic",
       features: [],
       artifacts: { design: ["d1.md", "d2.md"] },
-      worktree: { branch: "feature/full", path: "/tmp/full" },
-      github: { epic: 99, repo: "org/repo" },
-      lastUpdated: "2026-03-31T12:00:00Z",
+      updated_at: "2026-03-31T12:00:00Z",
     });
 
     // Advance through design -> plan -> implement
@@ -198,13 +196,8 @@ describe("round-trip preserves all context fields", () => {
       status: "pending",
     });
     expect(ctx.artifacts).toEqual({ design: ["d1.md", "d2.md"] });
-    expect(ctx.worktree).toEqual({
-      branch: "feature/full",
-      path: "/tmp/full",
-    });
-    expect(ctx.github).toEqual({ epic: 99, repo: "org/repo" });
-    // lastUpdated gets refreshed on each transition, so just verify it is a valid ISO string
-    expect(new Date(ctx.lastUpdated).toISOString()).toBe(ctx.lastUpdated);
+    // updated_at gets refreshed on each transition, so just verify it is a valid ISO string
+    expect(new Date(ctx.updated_at).toISOString()).toBe(ctx.updated_at);
   });
 
   test("empty features array survives round-trip", () => {
@@ -268,20 +261,6 @@ describe("feature machine round-trip", () => {
     actor2.send({ type: "COMPLETE" });
     expect(actor2.getSnapshot().value).toBe("completed");
     expect(actor2.getSnapshot().status).toBe("done");
-  });
-
-  test("feature context with github metadata survives round-trip", () => {
-    const actor = startFeatureActor({ github: { issue: 77 } });
-    actor.send({ type: "START" });
-
-    const persisted = actor.getPersistedSnapshot();
-    const actor2 = createActor(featureMachine, {
-      snapshot: JSON.parse(JSON.stringify(persisted)),
-      input: makeFeatureContext(),
-    });
-    actor2.start();
-
-    expect(actor2.getSnapshot().context.github).toEqual({ issue: 77 });
   });
 });
 

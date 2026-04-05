@@ -7,11 +7,15 @@ import type { EpicContext } from "../types";
 
 function makeContext(overrides: Partial<EpicContext> = {}): EpicContext {
   return {
+    id: "bm-test",
     slug: "test-epic",
-    phase: "design",
+    name: "Test Epic",
+    status: "design",
     features: [],
     artifacts: {},
-    lastUpdated: "2026-03-31T00:00:00Z",
+    depends_on: [],
+    created_at: "2026-03-31T00:00:00Z",
+    updated_at: "2026-03-31T00:00:00Z",
     ...overrides,
   };
 }
@@ -39,7 +43,7 @@ describe("initial state and context", () => {
     const actor = startActor({ slug: "my-epic" });
     const ctx = actor.getSnapshot().context;
     expect(ctx.slug).toBe("my-epic");
-    expect(ctx.phase).toBe("design");
+    expect(ctx.status).toBe("design");
     expect(ctx.features).toEqual([]);
     expect(ctx.artifacts).toEqual({});
   });
@@ -417,7 +421,7 @@ describe("REGRESS regression", () => {
 
   test("REGRESS clears downstream artifacts", () => {
     const ctx = makeContext({
-      phase: "validate",
+      status: "validate",
       features: [{ slug: "f", plan: "p", status: "completed" }],
       artifacts: { design: ["d.md"], plan: ["p.md"], implement: ["i.md"], validate: ["v.md"] },
     });
@@ -472,7 +476,7 @@ describe("REGRESS guard conditions", () => {
 // ── 7. Terminal states reject all events ─────────────────────────
 
 describe("terminal states reject all events", () => {
-  const allEvents: EpicContext["phase"] extends string ? Array<{ type: string; [k: string]: unknown }> : never = [
+  const allEvents: EpicContext["status"] extends string ? Array<{ type: string; [k: string]: unknown }> : never = [
     { type: "DESIGN_COMPLETED" },
     { type: "PLAN_COMPLETED", features: twoFeatures },
     { type: "FEATURE_COMPLETED", featureSlug: "feat-a" },
@@ -641,13 +645,13 @@ describe("action effects", () => {
     expect(features[2].status).toBe("pending");
   });
 
-  test("lastUpdated is refreshed on transitions", () => {
-    const actor = startActor({ lastUpdated: "2020-01-01T00:00:00Z" });
-    const before = actor.getSnapshot().context.lastUpdated;
+  test("updated_at is refreshed on transitions", () => {
+    const actor = startActor({ updated_at: "2020-01-01T00:00:00Z" });
+    const before = actor.getSnapshot().context.updated_at;
     expect(before).toBe("2020-01-01T00:00:00Z");
 
     actor.send({ type: "DESIGN_COMPLETED" });
-    const after = actor.getSnapshot().context.lastUpdated;
+    const after = actor.getSnapshot().context.updated_at;
     expect(after).not.toBe("2020-01-01T00:00:00Z");
     // Should be a valid ISO timestamp
     expect(new Date(after).toISOString()).toBe(after);
@@ -691,7 +695,7 @@ describe("action effects", () => {
 describe("REGRESS_FEATURES event", () => {
   test("validate -> implement when failingFeatures has entries", () => {
     const ctx = makeContext({
-      phase: "validate",
+      status: "validate",
       features: [
         { slug: "feat-a", plan: "", status: "completed" },
         { slug: "feat-b", plan: "", status: "completed" },
@@ -711,7 +715,7 @@ describe("REGRESS_FEATURES event", () => {
 
   test("stays in validate when failingFeatures is empty", () => {
     const ctx = makeContext({
-      phase: "validate",
+      status: "validate",
       features: [
         { slug: "feat-a", plan: "", status: "completed" },
       ],
@@ -728,7 +732,7 @@ describe("REGRESS_FEATURES event", () => {
 
   test("clears downstream artifacts on REGRESS_FEATURES", () => {
     const ctx = makeContext({
-      phase: "validate",
+      status: "validate",
       features: [
         { slug: "feat-a", plan: "", status: "completed" },
       ],
@@ -755,7 +759,7 @@ describe("REGRESS_FEATURES event", () => {
 
   test("REGRESS_FEATURES increments reDispatchCount", () => {
     const ctx = makeContext({
-      phase: "validate",
+      status: "validate",
       features: [
         { slug: "feat-a", plan: "", status: "completed", reDispatchCount: 1 },
       ],

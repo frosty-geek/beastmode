@@ -9,6 +9,17 @@
     "format": ["progress-bar"],
     "publishQuiet": true
   },
+  "validate-feedback": {
+    "paths": ["features/validate-feedback-loop.feature"],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/validate-feedback.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
   "watch": {
     "paths": ["features/watch-loop-happy-path.feature"],
     "import": [
@@ -105,6 +116,7 @@
   "pipeline-all": {
     "paths": [
       "features/pipeline-happy-path.feature",
+      "features/validate-feedback-loop.feature",
       "features/regression-loop.feature",
       "features/design-slug-rename.feature",
       "features/pipeline-error-resilience.feature",
@@ -116,6 +128,7 @@
     ],
     "import": [
       "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/validate-feedback.steps.ts",
       "features/step_definitions/regression.steps.ts",
       "features/step_definitions/slug-rename.steps.ts",
       "features/step_definitions/error-resilience.steps.ts",
@@ -185,7 +198,8 @@
       "features/store/store-typed-artifacts.feature",
       "features/store/store-json-output.feature",
       "features/store/store-pluggable-backend.feature",
-      "features/store/store-blocked.feature"
+      "features/store/store-blocked.feature",
+      "features/store/store-schema-extension.feature"
     ],
     "import": [
       "features/store/step_definitions/store-ready.steps.ts",
@@ -195,6 +209,19 @@
       "features/store/step_definitions/store-cli.steps.ts",
       "features/store/step_definitions/store-backend.steps.ts",
       "features/store/step_definitions/store-blocked.steps.ts",
+      "features/store/step_definitions/store-schema-extension.steps.ts",
+      "features/store/support/store-world.ts",
+      "features/store/support/store-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "store-schema-extension": {
+    "paths": ["features/store/store-schema-extension.feature"],
+    "import": [
+      "features/store/step_definitions/store-schema-extension.steps.ts",
+      "features/store/step_definitions/store-entity.steps.ts",
+      "features/store/step_definitions/store-ready.steps.ts",
       "features/store/support/store-world.ts",
       "features/store/support/store-hooks.ts"
     ],

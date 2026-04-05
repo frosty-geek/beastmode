@@ -95,6 +95,14 @@ export class StoreWorld extends World {
       this.featuresByName.set(fromName, updated);
     }
   }
+
+  /** Helper: create a feature with explicit slug */
+  createFeatureWithSlug(name: string, epicName: string, slug: string): Feature {
+    const epic = this.getEpicByName(epicName);
+    const feature = this.store.addFeature({ parent: epic.id, name, slug });
+    this.featuresByName.set(name, feature);
+    return feature;
+  }
 }
 
 setWorldConstructor(StoreWorld);

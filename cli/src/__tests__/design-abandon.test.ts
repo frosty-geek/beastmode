@@ -75,9 +75,10 @@ describe("design abandon guard — secondary guard in pipeline/runner.ts", () =>
   });
 });
 
-describe("manifest store.remove() idempotency", () => {
-  test("store module exports remove function", async () => {
-    const store = await import("../manifest/store");
-    expect(typeof store.remove).toBe("function");
+describe("store entity deletion idempotency", () => {
+  test("JsonFileStore exports deleteEpic function", async () => {
+    const { JsonFileStore } = await import("../store/index.js");
+    const store = new JsonFileStore("/tmp/test-store.json");
+    expect(typeof store.deleteEpic).toBe("function");
   });
 });

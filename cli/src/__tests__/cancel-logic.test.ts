@@ -1,7 +1,7 @@
 /**
  * Tests for shared cancel-logic module.
  *
- * Strategy: real filesystem for artifacts (step 4) and manifest (step 6),
+ * Strategy: real filesystem for artifacts (step 4) and store entity (step 6),
  * mock.module for git-dependent operations (steps 1-3) and gh CLI (step 5).
  */
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
@@ -34,7 +34,7 @@ vi.mock("../github/cli.js", () => ({
 import { cancelEpic } from "../commands/cancel-logic.js";
 import type { CancelConfig } from "../commands/cancel-logic.js";
 import { createNullLogger } from "../logger.js";
-import * as store from "../manifest/store.js";
+import { JsonFileStore } from "../store/index.js";
 
 // ---------------------------------------------------------------------------
 // Test scaffolding
@@ -50,23 +50,23 @@ function stateDir(): string {
   return resolve(TEST_ROOT, ".beastmode", "state");
 }
 
+function storePath(): string {
+  return resolve(stateDir(), "store.json");
+}
+
 function artifactsDir(phase: string): string {
   return resolve(TEST_ROOT, ".beastmode", "artifacts", phase);
 }
 
-/** Create a manifest on disk via the store so cancel-logic can find it. */
-function seedManifest(
+/** Create a store entity so cancel-logic can find it. */
+function seedEntity(
   slug: string,
-  overrides?: { epic?: string; github?: { epic: number; repo: string } },
-) {
-  store.create(TEST_ROOT, slug, undefined);
-  // If we need to patch in extra fields, reload, merge, save
-  if (overrides) {
-    const m = store.get(TEST_ROOT, slug);
-    if (overrides.epic) (m as unknown as Record<string, unknown>).epic = overrides.epic;
-    if (overrides.github) (m as unknown as Record<string, unknown>).github = overrides.github;
-    store.save(TEST_ROOT, slug, m);
-  }
+  overrides?: { epicName?: string },
+): void {
+  const store = new JsonFileStore(storePath());
+  store.load();
+  store.addEpic({ name: overrides?.epicName ?? slug, slug });
+  store.save();
 }
 
 /** Seed artifact files that should match the epic pattern. */
@@ -75,9 +75,7 @@ function seedArtifacts(epic: string, phases: string[] = ["design", "plan"]) {
   for (const phase of phases) {
     const dir = artifactsDir(phase);
     mkdirSync(dir, { recursive: true });
-    // Pattern: contains `-${epic}-` (mid-string)
     writeFileSync(resolve(dir, `${date}-${epic}-research.md`), "content");
-    // Pattern: contains `-${epic}.` (end-of-name)
     writeFileSync(resolve(dir, `${date}-${epic}.output.json`), "{}");
   }
 }
@@ -113,7 +111,6 @@ describe("cancelEpic", () => {
     mockGit.mockReset();
     mockDeleteAllTags.mockReset();
     mockGh.mockReset();
-    // Restore default success behavior after reset
     mockRemoveWorktree.mockImplementation(async () => {});
     mockGit.mockImplementation(async () => ({ stdout: "", stderr: "", exitCode: 0 }));
     mockDeleteAllTags.mockImplementation(async () => {});
@@ -121,11 +118,8 @@ describe("cancelEpic", () => {
   });
   afterEach(() => cleanup());
 
-  // -----------------------------------------------------------------------
-  // 1. Full cleanup sequence
-  // -----------------------------------------------------------------------
-  test("full cleanup — all 6 steps succeed", async () => {
-    seedManifest("my-epic");
+  test("full cleanup — all 5 steps succeed (no github)", async () => {
+    seedEntity("my-epic");
 
     const result = await cancelEpic(baseConfig());
 
@@ -133,109 +127,63 @@ describe("cancelEpic", () => {
     expect(result.cleaned).toContain("archive-tag");
     expect(result.cleaned).toContain("phase-tags");
     expect(result.cleaned).toContain("artifacts");
-    expect(result.cleaned).toContain("manifest");
+    expect(result.cleaned).toContain("store-entity");
     expect(result.warned).toHaveLength(0);
-    expect(result.cleaned).toHaveLength(5); // no github-issue (disabled)
+    expect(result.cleaned).toHaveLength(5);
   });
 
-  test("full cleanup with github enabled — all 6 steps succeed", async () => {
-    seedManifest("my-epic", { github: { epic: 42, repo: "org/repo" } });
+  test("idempotent — second cancel succeeds when entity already gone", async () => {
+    seedEntity("my-epic");
 
-    const result = await cancelEpic(
-      baseConfig({ githubEnabled: true }),
-    );
-
-    expect(result.cleaned).toContain("worktree");
-    expect(result.cleaned).toContain("archive-tag");
-    expect(result.cleaned).toContain("phase-tags");
-    expect(result.cleaned).toContain("artifacts");
-    expect(result.cleaned).toContain("github-issue");
-    expect(result.cleaned).toContain("manifest");
-    expect(result.warned).toHaveLength(0);
-    expect(result.cleaned).toHaveLength(6);
-
-    // Verify gh() was called correctly
-    expect(mockGh).toHaveBeenCalledWith(
-      ["issue", "close", "42", "--reason", "not planned"],
-      expect.objectContaining({ cwd: TEST_ROOT }),
-    );
-  });
-
-  // -----------------------------------------------------------------------
-  // 2. Idempotent behavior
-  // -----------------------------------------------------------------------
-  test("idempotent — second cancel succeeds when manifest already gone", async () => {
-    seedManifest("my-epic");
-
-    // First cancel
     const first = await cancelEpic(baseConfig());
-    expect(first.cleaned).toContain("manifest");
+    expect(first.cleaned).toContain("store-entity");
 
-    // Manifest should be gone
-    expect(store.load(TEST_ROOT, "my-epic")).toBeUndefined();
+    const store = new JsonFileStore(storePath());
+    store.load();
+    expect(store.find("my-epic")).toBeUndefined();
 
-    // Second cancel — manifest not found, artifacts already gone
     const second = await cancelEpic(baseConfig());
-
-    // Should still complete without errors — manifest step succeeds
-    // (store.remove returns false, but no throw)
-    expect(second.cleaned).toContain("manifest");
+    expect(second.cleaned).toContain("store-entity");
     expect(second.warned).toHaveLength(0);
   });
 
-  // -----------------------------------------------------------------------
-  // 3. Force flag
-  // -----------------------------------------------------------------------
   test("force=true skips confirmation prompt", async () => {
-    seedManifest("my-epic");
+    seedEntity("my-epic");
 
-    // force=true is the default in baseConfig — should not hang on stdin
     const result = await cancelEpic(baseConfig({ force: true }));
 
     expect(result.cleaned.length).toBeGreaterThan(0);
     expect(result.warned).toHaveLength(0);
   });
 
-  // -----------------------------------------------------------------------
-  // 4. Design-abandon calling shared cancel (force=true, most steps no-op)
-  // -----------------------------------------------------------------------
-  test("design-abandon scenario — no manifest, identifier used as fallback", async () => {
-    // No manifest created — simulates abandon where design was never completed
+  test("design-abandon scenario — no entity, identifier used as fallback", async () => {
     const result = await cancelEpic(
       baseConfig({ identifier: "abandoned-slug", force: true }),
     );
 
-    // All steps should still complete (just with nothing to clean)
     expect(result.cleaned).toContain("worktree");
     expect(result.cleaned).toContain("archive-tag");
     expect(result.cleaned).toContain("phase-tags");
     expect(result.cleaned).toContain("artifacts");
-    expect(result.cleaned).toContain("manifest");
+    expect(result.cleaned).toContain("store-entity");
     expect(result.warned).toHaveLength(0);
   });
 
-  // -----------------------------------------------------------------------
-  // 5. Manifest-not-found graceful handling
-  // -----------------------------------------------------------------------
-  test("no manifest — falls back to identifier for slug and epic", async () => {
-    // No manifest seeded — cancel-logic should use identifier directly
+  test("no entity — falls back to identifier for slug", async () => {
     const result = await cancelEpic(
       baseConfig({ identifier: "raw-ident" }),
     );
 
-    // worktree.remove should be called with the identifier as slug
     expect(mockRemoveWorktree).toHaveBeenCalledWith(
       "raw-ident",
       expect.objectContaining({ cwd: TEST_ROOT, deleteBranch: true }),
     );
 
-    // git tag -d should reference archive/<identifier>
     expect(mockGit).toHaveBeenCalledWith(
       ["tag", "-d", "archive/raw-ident"],
       expect.objectContaining({ cwd: TEST_ROOT }),
     );
 
-    // deleteAllTags should reference the identifier
     expect(mockDeleteAllTags).toHaveBeenCalledWith(
       "raw-ident",
       expect.objectContaining({ cwd: TEST_ROOT }),
@@ -245,11 +193,8 @@ describe("cancelEpic", () => {
     expect(result.warned).toHaveLength(0);
   });
 
-  // -----------------------------------------------------------------------
-  // 6. Individual step failure — warn and continue
-  // -----------------------------------------------------------------------
   test("worktree removal fails — rest continues, warned[] gets failure", async () => {
-    seedManifest("my-epic");
+    seedEntity("my-epic");
     mockRemoveWorktree.mockImplementation(async () => {
       throw new Error("worktree not found");
     });
@@ -257,16 +202,15 @@ describe("cancelEpic", () => {
     const result = await cancelEpic(baseConfig());
 
     expect(result.warned).toContain("worktree");
-    // All other steps should still succeed
     expect(result.cleaned).toContain("archive-tag");
     expect(result.cleaned).toContain("phase-tags");
     expect(result.cleaned).toContain("artifacts");
-    expect(result.cleaned).toContain("manifest");
+    expect(result.cleaned).toContain("store-entity");
     expect(result.cleaned).not.toContain("worktree");
   });
 
   test("archive tag deletion fails — rest continues", async () => {
-    seedManifest("my-epic");
+    seedEntity("my-epic");
     mockGit.mockImplementation(async () => {
       throw new Error("tag not found");
     });
@@ -277,11 +221,11 @@ describe("cancelEpic", () => {
     expect(result.cleaned).toContain("worktree");
     expect(result.cleaned).toContain("phase-tags");
     expect(result.cleaned).toContain("artifacts");
-    expect(result.cleaned).toContain("manifest");
+    expect(result.cleaned).toContain("store-entity");
   });
 
   test("phase tag deletion fails — rest continues", async () => {
-    seedManifest("my-epic");
+    seedEntity("my-epic");
     mockDeleteAllTags.mockImplementation(async () => {
       throw new Error("no tags found");
     });
@@ -292,35 +236,11 @@ describe("cancelEpic", () => {
     expect(result.cleaned).toContain("worktree");
     expect(result.cleaned).toContain("archive-tag");
     expect(result.cleaned).toContain("artifacts");
-    expect(result.cleaned).toContain("manifest");
+    expect(result.cleaned).toContain("store-entity");
   });
 
-  test("manifest deletion fails — added to warned", async () => {
-    // Seed manifest, then make the store.remove throw by corrupting the state dir
-    seedManifest("my-epic");
-
-    // Remove the state directory so store.remove can't read it
-    // Actually, store.remove returns false if not found, so we need to
-    // cause an actual exception. Let's seed and then make the dir unreadable.
-    // Simplest: spyOn store.remove to throw
-    const removeSpy = vi.spyOn(store, "remove").mockImplementation(() => {
-      throw new Error("permission denied");
-    });
-
-    const result = await cancelEpic(baseConfig());
-
-    expect(result.warned).toContain("manifest");
-    expect(result.cleaned).not.toContain("manifest");
-    expect(result.cleaned).toContain("worktree");
-
-    removeSpy.mockRestore();
-  });
-
-  // -----------------------------------------------------------------------
-  // 7. GitHub close skipped when disabled
-  // -----------------------------------------------------------------------
-  test("githubEnabled=false skips GitHub close even with epic number", async () => {
-    seedManifest("my-epic", { github: { epic: 99, repo: "org/repo" } });
+  test("githubEnabled=false skips GitHub close", async () => {
+    seedEntity("my-epic");
 
     const result = await cancelEpic(
       baseConfig({ githubEnabled: false }),
@@ -330,23 +250,8 @@ describe("cancelEpic", () => {
     expect(result.warned).not.toContain("github-issue");
   });
 
-  test("githubEnabled=true but no epic number — skips GitHub close", async () => {
-    // Manifest without github.epic
-    seedManifest("my-epic");
-
-    const result = await cancelEpic(
-      baseConfig({ githubEnabled: true }),
-    );
-
-    expect(result.cleaned).not.toContain("github-issue");
-    expect(result.warned).not.toContain("github-issue");
-  });
-
-  // -----------------------------------------------------------------------
-  // 8. Artifact matching patterns
-  // -----------------------------------------------------------------------
   test("artifacts with -epic- and -epic. patterns are matched and deleted", async () => {
-    seedManifest("my-epic", { epic: "my-epic" });
+    seedEntity("my-epic");
     seedArtifacts("my-epic", ["design", "plan"]);
     seedUnrelatedArtifacts();
 
@@ -354,23 +259,18 @@ describe("cancelEpic", () => {
 
     expect(result.cleaned).toContain("artifacts");
 
-    // my-epic artifacts should be gone
     const designDir = artifactsDir("design");
     const planDir = artifactsDir("plan");
     const designFiles = readdirSync(designDir);
     const planFiles = readdirSync(planDir);
 
-    // Only unrelated artifacts should remain in design
-    expect(designFiles).toHaveLength(2); // other-epic-research.md + other-epic.output.json
+    expect(designFiles).toHaveLength(2);
     expect(designFiles.every((f) => f.includes("other-epic"))).toBe(true);
-
-    // Plan dir should be empty (only had my-epic files)
     expect(planFiles).toHaveLength(0);
   });
 
   test("artifact dirs that do not exist are silently skipped", async () => {
-    seedManifest("my-epic");
-    // No artifact directories created at all
+    seedEntity("my-epic");
 
     const result = await cancelEpic(baseConfig());
 
@@ -379,37 +279,13 @@ describe("cancelEpic", () => {
   });
 
   test("artifacts with different epic name are not deleted", async () => {
-    seedManifest("my-epic", { epic: "my-epic" });
-    seedUnrelatedArtifacts(); // only other-epic files
+    seedEntity("my-epic");
+    seedUnrelatedArtifacts();
 
     const result = await cancelEpic(baseConfig());
 
-    // Should succeed but not delete anything
     expect(result.cleaned).toContain("artifacts");
     const designFiles = readdirSync(artifactsDir("design"));
-    expect(designFiles).toHaveLength(2); // both other-epic files intact
-  });
-
-  // -----------------------------------------------------------------------
-  // Manifest resolution — epic field used for artifact matching
-  // -----------------------------------------------------------------------
-  test("uses manifest.epic for artifact matching when different from slug", async () => {
-    seedManifest("hex-abc123", { epic: "real-name" });
-    seedArtifacts("real-name", ["design"]);
-
-    // Also seed artifacts matching the slug — should NOT be deleted
-    const dir = artifactsDir("design");
-    writeFileSync(resolve(dir, "2026-01-01-hex-abc123-notes.md"), "content");
-
-    const result = await cancelEpic(
-      baseConfig({ identifier: "hex-abc123" }),
-    );
-
-    expect(result.cleaned).toContain("artifacts");
-
-    const remaining = readdirSync(dir);
-    // real-name artifacts deleted, hex-abc123 artifact still there
-    expect(remaining).toContain("2026-01-01-hex-abc123-notes.md");
-    expect(remaining.some((f) => f.includes("real-name"))).toBe(false);
+    expect(designFiles).toHaveLength(2);
   });
 });

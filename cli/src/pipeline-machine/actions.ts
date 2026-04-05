@@ -1,5 +1,5 @@
 import type { EpicContext, EpicEvent } from "./types";
-import { regress, regressFeatures } from "../manifest/pure";
+import type { EpicStatus } from "../store/types";
 
 /**
  * Action logic implementations for the epic machine.
@@ -7,7 +7,13 @@ import { regress, regressFeatures } from "../manifest/pure";
  * These are plain functions that compute the new context values.
  * The actual assign() calls happen inside setup() in epic.ts,
  * which ensures proper type inference with XState v5.
+ *
+ * regress() and regressFeatures() are inlined here — no dependency
+ * on manifest/pure.ts.
  */
+
+// Phase ordering for regression logic
+const PHASE_ORDER: readonly EpicStatus[] = ["design", "plan", "implement", "validate", "release"];
 
 export function computeEnrichFeatures(context: EpicContext, event: EpicEvent): EpicContext["features"] {
   if (event.type === "PLAN_COMPLETED") {
@@ -72,48 +78,61 @@ export function computeMarkFeatureCompleted(context: EpicContext, event: EpicEve
 }
 
 /**
- * Compute the regressed context using the manifest regress() pure function.
- * Returns a partial EpicContext with all fields that need updating.
+ * Compute the regressed context.
+ * Resets features to "pending" if regressing to or past "implement".
+ * Clears downstream artifact entries.
  */
 export function computeRegress(context: EpicContext, event: EpicEvent): Partial<EpicContext> {
   if (event.type !== "REGRESS") return {};
 
-  const manifest = {
-    slug: context.slug,
-    phase: context.phase,
-    features: context.features,
-    artifacts: context.artifacts,
-    lastUpdated: context.lastUpdated,
-  };
-  const result = regress(manifest as any, event.targetPhase);
-  return {
-    phase: result.phase,
-    features: result.features,
-    artifacts: result.artifacts,
-  };
+  const targetPhase = event.targetPhase;
+  const targetIdx = PHASE_ORDER.indexOf(targetPhase);
+  const implementIdx = PHASE_ORDER.indexOf("implement");
+
+  // Reset features if regressing to or past implement
+  const features = targetIdx <= implementIdx
+    ? context.features.map((f) => ({ ...f, status: "pending" as const }))
+    : context.features;
+
+  // Clear artifacts for phases after targetPhase
+  const artifacts: Record<string, string[]> = {};
+  for (const [phase, files] of Object.entries(context.artifacts)) {
+    const phaseIdx = PHASE_ORDER.indexOf(phase as EpicStatus);
+    if (phaseIdx !== -1 && phaseIdx > targetIdx) continue; // downstream — drop
+    artifacts[phase] = files;
+  }
+
+  return { features, artifacts };
 }
 
 /**
- * Compute the regressed context using the manifest regressFeatures() pure function.
+ * Compute the regressed context for specific failing features.
  * Targets only failing features, incrementing their reDispatchCount.
- * Returns a partial EpicContext with all fields that need updating.
  */
 export function computeRegressFeatures(context: EpicContext, event: EpicEvent): Partial<EpicContext> {
   if (event.type !== "REGRESS_FEATURES") return {};
 
-  const manifest = {
-    slug: context.slug,
-    phase: context.phase,
-    features: context.features,
-    artifacts: context.artifacts,
-    lastUpdated: context.lastUpdated,
-  };
-  const result = regressFeatures(manifest as any, event.failingFeatures);
-  return {
-    phase: result.phase,
-    features: result.features,
-    artifacts: result.artifacts,
-  };
+  const failingSet = new Set(event.failingFeatures);
+  const MAX_REDISPATCH = 2;
+
+  // Update only the failing features
+  const features = context.features.map((f) => {
+    if (!failingSet.has(f.slug)) return f;
+    const newCount = (f.reDispatchCount ?? 0) + 1;
+    const newStatus = newCount > MAX_REDISPATCH ? ("blocked" as const) : ("pending" as const);
+    return { ...f, status: newStatus, reDispatchCount: newCount };
+  });
+
+  // Clear artifacts for phases after "implement"
+  const implementIdx = PHASE_ORDER.indexOf("implement");
+  const artifacts: Record<string, string[]> = {};
+  for (const [phase, files] of Object.entries(context.artifacts)) {
+    const phaseIdx = PHASE_ORDER.indexOf(phase as EpicStatus);
+    if (phaseIdx !== -1 && phaseIdx > implementIdx) continue;
+    artifacts[phase] = files;
+  }
+
+  return { features, artifacts };
 }
 
 export function computeAccumulateArtifacts(context: EpicContext, event: EpicEvent): EpicContext["artifacts"] {

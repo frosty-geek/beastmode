@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { WatchLoop } from "../commands/watch-loop.js";
 import type { WatchDeps } from "../commands/watch-loop.js";
-import type { EnrichedManifest } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/types.js";
 
 const TEST_ROOT = resolve(import.meta.dirname, "../../.test-wave-dispatch-tmp");
 
@@ -43,24 +43,26 @@ describe("wave-aware dispatch", () => {
     const dispatched: string[] = [];
     let scanCount = 0;
 
-    const epic: EnrichedManifest = {
+    const epic: EnrichedEpic = {
+      id: "bm-wave",
+      type: "epic",
       slug: "my-epic",
-      manifestPath: "pipeline/my-epic.manifest.json",
-      phase: "implement",
+      name: "My Epic",
+      status: "implement",
+      depends_on: [],
+      created_at: "2026-03-31T00:00:00Z",
+      updated_at: "2026-03-31T00:00:00Z",
       nextAction: {
         phase: "implement",
         args: ["my-epic"],
         type: "fan-out",
-        features: ["feat-a", "feat-b"], // Only wave 1 features
+        features: ["feat-a", "feat-b"],
       },
       features: [
-        { slug: "feat-a", plan: "feat-a.md", wave: 1, status: "pending" },
-        { slug: "feat-b", plan: "feat-b.md", wave: 1, status: "pending" },
-        { slug: "feat-c", plan: "feat-c.md", wave: 2, status: "pending" },
+        { id: "f1", type: "feature", parent: "bm-wave", slug: "feat-a", name: "Feature A", status: "pending" as const, plan: "feat-a.md", depends_on: [], created_at: "2026-03-31T00:00:00Z", updated_at: "2026-03-31T00:00:00Z" },
+        { id: "f2", type: "feature", parent: "bm-wave", slug: "feat-b", name: "Feature B", status: "pending" as const, plan: "feat-b.md", depends_on: [], created_at: "2026-03-31T00:00:00Z", updated_at: "2026-03-31T00:00:00Z" },
+        { id: "f3", type: "feature", parent: "bm-wave", slug: "feat-c", name: "Feature C", status: "pending" as const, plan: "feat-c.md", depends_on: [], created_at: "2026-03-31T00:00:00Z", updated_at: "2026-03-31T00:00:00Z" },
       ],
-      artifacts: {},
-      lastUpdated: "2026-03-31T00:00:00Z",
-      blocked: null,
     };
 
     const deps = mockDeps({
@@ -107,25 +109,26 @@ describe("wave-aware dispatch", () => {
     const dispatched: string[] = [];
     let scanCount = 0;
 
-    const epic: EnrichedManifest = {
+    const epic: EnrichedEpic = {
+      id: "bm-wave2",
+      type: "epic",
       slug: "my-epic",
-      manifestPath: "pipeline/my-epic.manifest.json",
-      phase: "implement",
+      name: "My Epic",
+      status: "implement",
+      depends_on: [],
+      created_at: "2026-03-31T00:00:00Z",
+      updated_at: "2026-03-31T00:00:00Z",
       nextAction: {
         phase: "implement",
         args: ["my-epic"],
         type: "fan-out",
-        // deriveNextAction would include all of these since they all default to wave 1
         features: ["feat-a", "feat-b", "feat-c"],
       },
       features: [
-        { slug: "feat-a", plan: "feat-a.md", status: "pending" },
-        { slug: "feat-b", plan: "feat-b.md", status: "pending" },
-        { slug: "feat-c", plan: "feat-c.md", status: "pending" },
+        { id: "f1", type: "feature", parent: "bm-wave2", slug: "feat-a", name: "Feature A", status: "pending" as const, plan: "feat-a.md", depends_on: [], created_at: "2026-03-31T00:00:00Z", updated_at: "2026-03-31T00:00:00Z" },
+        { id: "f2", type: "feature", parent: "bm-wave2", slug: "feat-b", name: "Feature B", status: "pending" as const, plan: "feat-b.md", depends_on: [], created_at: "2026-03-31T00:00:00Z", updated_at: "2026-03-31T00:00:00Z" },
+        { id: "f3", type: "feature", parent: "bm-wave2", slug: "feat-c", name: "Feature C", status: "pending" as const, plan: "feat-c.md", depends_on: [], created_at: "2026-03-31T00:00:00Z", updated_at: "2026-03-31T00:00:00Z" },
       ],
-      artifacts: {},
-      lastUpdated: "2026-03-31T00:00:00Z",
-      blocked: null,
     };
 
     const deps = mockDeps({

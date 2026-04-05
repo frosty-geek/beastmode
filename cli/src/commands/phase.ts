@@ -22,7 +22,6 @@ import {
   resolveMainCheckoutRoot,
 } from "../git/worktree";
 import { run as runPipeline } from "../pipeline/runner.js";
-import * as store from "../manifest/store";
 import { JsonFileStore, resolveIdentifier } from "../store/index.js";
 import { createLogger, createStdioSink } from "../logger";
 import { loadWorktreePhaseOutput } from "../artifacts/reader";
@@ -54,7 +53,7 @@ export async function phaseCommand(
   let worktreeSlug = deriveWorktreeSlug(phase, args);
 
   // Fail-fast: non-design phases require the epic to exist.
-  // Resolution priority: store ID → store slug → manifest fallback
+  // Resolution priority: store ID → store slug
   if (phase !== "design") {
     const storePath = join(projectRoot, ".beastmode", "state", "store.json");
     const taskStore = new JsonFileStore(storePath);
@@ -69,12 +68,8 @@ export async function phaseCommand(
     }
 
     if (resolution.kind === "not-found") {
-      // Fallback to manifest lookup (coexistence period)
-      const existing = store.find(projectRoot, worktreeSlug);
-      if (!existing) {
-        logger.error("epic not found", { slug: worktreeSlug });
-        process.exit(1);
-      }
+      logger.error("epic not found", { slug: worktreeSlug });
+      process.exit(1);
     }
 
     if (resolution.kind === "found" && resolution.entity.type === "epic") {
@@ -115,12 +110,9 @@ export async function phaseCommand(
   // Full pipeline via runner: worktree + rebase + HITL + dispatch +
   // reconcile + GitHub sync + cleanup.
 
-  // Seed manifest for design phase so the runner can enrich it
-  if (phase === "design" && !store.manifestExists(projectRoot, epicSlug)) {
-    const predictedPath = enterWorktree(epicSlug, { cwd: projectRoot });
-    store.create(projectRoot, epicSlug, {
-      worktree: { branch: `feature/${worktreeSlug}`, path: predictedPath },
-    });
+  // Seed worktree for design phase so the pipeline runner can create the epic during reconciliation
+  if (phase === "design") {
+    enterWorktree(epicSlug, { cwd: projectRoot });
   }
 
   // Interactive dispatch wrapper matching the runner's dispatch signature

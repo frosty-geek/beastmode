@@ -16,14 +16,14 @@
  * Feature body: description, epic back-reference.
  */
 
-import type { PipelineManifest, ManifestFeature } from "../manifest/pure.js";
 import type { BeastmodeConfig } from "../config.js";
 import type { ResolvedGitHub } from "./discovery.js";
 import { discoverGitHub } from "./discovery.js";
 import type { Logger } from "../logger.js";
 import type { Phase } from "../types.js";
 import { loadConfig } from "../config.js";
-import * as store from "../manifest/store.js";
+import type { SyncRefs } from "./sync-refs.js";
+import { loadSyncRefs, saveSyncRefs, getSyncRef, setSyncRef } from "./sync-refs.js";
 import { extractSection, extractSections } from "../artifacts/reader.js";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
@@ -46,7 +46,7 @@ import {
 // Body formatting — pure functions (formerly body-format.ts)
 // ---------------------------------------------------------------------------
 
-/** Minimal epic input — decoupled from full PipelineManifest to stay pure. */
+/** Minimal epic input — decoupled from store types to stay pure. */
 export interface EpicBodyInput {
   slug: string;
   /** Human-readable epic name for title construction. */
@@ -73,7 +73,7 @@ export interface EpicBodyInput {
   repo?: string;
 }
 
-/** Minimal feature input — decoupled from full ManifestFeature. */
+/** Minimal feature input — decoupled from store types. */
 export interface FeatureBodyInput {
   slug: string;
   description?: string;
@@ -83,6 +83,26 @@ export interface FeatureBodyInput {
   whatToBuild?: string;
   /** Acceptance Criteria section from the feature plan. */
   acceptanceCriteria?: string;
+}
+
+/** Store-derived epic input for sync. */
+export interface EpicSyncInput {
+  id: string;
+  slug: string;
+  name?: string;
+  phase: Phase;
+  summary?: { problem: string; solution: string };
+  features: FeatureSyncInput[];
+  artifacts?: Record<string, string[]>;
+}
+
+/** Store-derived feature input for sync. */
+export interface FeatureSyncInput {
+  id: string;
+  slug: string;
+  status: "pending" | "in-progress" | "completed" | "blocked" | "cancelled";
+  description?: string;
+  plan?: string;
 }
 
 /**
@@ -267,12 +287,12 @@ function hashBody(body: string): string {
   return hasher.digest("hex");
 }
 
-/** A mutation to apply to the manifest after sync. */
+/** A mutation to apply to the sync refs after sync. */
 export type SyncMutation =
-  | { type: "setEpic"; epicNumber: number; repo: string }
-  | { type: "setFeatureIssue"; featureSlug: string; issueNumber: number }
-  | { type: "setEpicBodyHash"; bodyHash: string }
-  | { type: "setFeatureBodyHash"; featureSlug: string; bodyHash: string };
+  | { type: "setEpic"; entityId: string; issue: number; repo: string }
+  | { type: "setFeatureIssue"; entityId: string; issue: number }
+  | { type: "setEpicBodyHash"; entityId: string; bodyHash: string }
+  | { type: "setFeatureBodyHash"; entityId: string; bodyHash: string };
 
 /** Result of a sync operation — informational, never throws. */
 export interface SyncResult {
@@ -330,10 +350,10 @@ const ALL_PHASE_LABELS = [
  * Returns prdSections object for EpicBodyInput, or undefined if unavailable.
  */
 function readPrdSections(
-  manifest: PipelineManifest,
+  epic: EpicSyncInput,
   projectRoot: string,
 ): EpicBodyInput["prdSections"] | undefined {
-  const designPaths = manifest.artifacts?.["design"];
+  const designPaths = epic.artifacts?.["design"];
   if (!designPaths || designPaths.length === 0) return undefined;
 
   const designPath = resolve(projectRoot, designPaths[0]);
@@ -365,23 +385,23 @@ function readPrdSections(
 }
 
 /**
- * Resolve artifact links from the manifest — repo-relative paths + optional permalinks.
+ * Resolve artifact links from the epic — repo-relative paths + optional permalinks.
  * Permalink uses phase tag SHA as commit anchor.
  */
 function resolveArtifactLinks(
-  manifest: PipelineManifest,
+  epic: EpicSyncInput,
   repo: string,
 ): EpicBodyInput["artifactLinks"] | undefined {
-  if (!manifest.artifacts || Object.keys(manifest.artifacts).length === 0) return undefined;
+  if (!epic.artifacts || Object.keys(epic.artifacts).length === 0) return undefined;
 
   const links: Record<string, { repoPath: string; permalink?: string }> = {};
 
-  for (const [phase, paths] of Object.entries(manifest.artifacts)) {
+  for (const [phase, paths] of Object.entries(epic.artifacts)) {
     if (!paths || paths.length === 0) continue;
     const repoPath = paths[0];
 
     let permalink: string | undefined;
-    const tagName = `beastmode/${manifest.slug}/${phase}`;
+    const tagName = `beastmode/${epic.slug}/${phase}`;
     try {
       const tagResult = Bun.spawnSync(["git", "rev-parse", "--verify", `refs/tags/${tagName}`]);
       if (tagResult.exitCode === 0) {
@@ -435,13 +455,14 @@ function readMergeCommit(): string | undefined {
 }
 
 /**
- * Sync GitHub state to match the manifest. Stateless — reads manifest,
+ * Sync GitHub state to match the epic. Stateless — reads epic and sync refs,
  * makes GitHub match. Returns SyncResult with mutations for the caller to apply.
  *
  * `resolved` provides the runtime-discovered repo and project metadata.
  */
 export async function syncGitHub(
-  manifest: PipelineManifest,
+  epic: EpicSyncInput,
+  syncRefs: SyncRefs,
   config: BeastmodeConfig,
   resolved: ResolvedGitHub,
   opts: { logger?: Logger; projectRoot?: string } = {},
@@ -472,37 +493,38 @@ export async function syncGitHub(
 
   // Compute enrichment data if projectRoot available
   const prdSections = opts.projectRoot
-    ? readPrdSections(manifest, opts.projectRoot)
+    ? readPrdSections(epic, opts.projectRoot)
     : undefined;
-  const artifactLinks = resolveArtifactLinks(manifest, repo);
+  const artifactLinks = resolveArtifactLinks(epic, repo);
 
   // --- Epic Sync ---
 
-  // Resolve or create the epic number — track locally, never mutate manifest
-  let epicNumber = manifest.github?.epic;
+  // Resolve or create the epic number — track locally, never mutate
+  let epicNumber = getSyncRef(syncRefs, epic.id)?.issue;
   let epicJustCreated = false;
 
   if (!epicNumber) {
     const initialEpicBody = formatEpicBody({
-      slug: manifest.slug,
-      phase: manifest.phase,
-      summary: manifest.summary,
-      features: manifest.features,
+      slug: epic.slug,
+      epic: epic.name,
+      phase: epic.phase,
+      summary: epic.summary,
+      features: epic.features,
       prdSections,
       artifactLinks,
       repo,
     });
     epicNumber = await ghIssueCreate(
       repo,
-      epicTitle(manifest.slug, manifest.epic),
+      epicTitle(epic.slug, epic.name),
       initialEpicBody,
-      ["type/epic", `phase/${manifest.phase}`],
+      ["type/epic", `phase/${epic.phase}`],
       { logger: opts.logger },
     );
     if (epicNumber) {
-      result.mutations.push({ type: "setEpic", epicNumber, repo });
+      result.mutations.push({ type: "setEpic", entityId: epic.id, issue: epicNumber, repo });
       const createHash = hashBody(initialEpicBody);
-      result.mutations.push({ type: "setEpicBodyHash", bodyHash: createHash });
+      result.mutations.push({ type: "setEpicBodyHash", entityId: epic.id, bodyHash: createHash });
       result.epicCreated = true;
       result.epicNumber = epicNumber;
       result.bodiesUpdated++;
@@ -518,25 +540,26 @@ export async function syncGitHub(
   // --- Epic Body Update ---
   if (!epicJustCreated) {
     // Update epic title to use human-readable name
-    const expectedEpicTitle = epicTitle(manifest.slug, manifest.epic);
+    const expectedEpicTitle = epicTitle(epic.slug, epic.name);
     await ghIssueEdit(repo, epicNumber, { title: expectedEpicTitle }, { logger: opts.logger });
 
     const epicBody = formatEpicBody({
-      slug: manifest.slug,
-      phase: manifest.phase,
-      summary: manifest.summary,
-      features: manifest.features,
+      slug: epic.slug,
+      epic: epic.name,
+      phase: epic.phase,
+      summary: epic.summary,
+      features: epic.features,
       prdSections,
       artifactLinks,
       repo,
     });
     const epicBodyHash = hashBody(epicBody);
-    const storedEpicHash = manifest.github?.bodyHash;
+    const storedEpicHash = getSyncRef(syncRefs, epic.id)?.bodyHash;
 
     if (epicBodyHash !== storedEpicHash) {
       const bodyUpdated = await ghIssueEdit(repo, epicNumber, { body: epicBody }, { logger: opts.logger });
       if (bodyUpdated) {
-        result.mutations.push({ type: "setEpicBodyHash", bodyHash: epicBodyHash });
+        result.mutations.push({ type: "setEpicBodyHash", entityId: epic.id, bodyHash: epicBodyHash });
         result.bodiesUpdated++;
       } else {
         result.warnings.push("Failed to update epic body");
@@ -546,7 +569,7 @@ export async function syncGitHub(
 
   // Blast-replace phase label on epic (skip if just created — labels already set)
   if (!epicJustCreated) {
-    const targetPhaseLabel = `phase/${manifest.phase}`;
+    const targetPhaseLabel = `phase/${epic.phase}`;
     const currentLabels = await ghIssueLabels(repo, epicNumber, { logger: opts.logger });
     if (currentLabels) {
       const currentPhaseLabels = currentLabels.filter((l) =>
@@ -571,23 +594,23 @@ export async function syncGitHub(
     owner,
     repo,
     epicNumber,
-    PHASE_TO_BOARD_STATUS[manifest.phase] ?? "Backlog",
+    PHASE_TO_BOARD_STATUS[epic.phase] ?? "Backlog",
     result,
     opts,
   );
 
   // --- Feature Sync ---
 
-  for (const feature of manifest.features) {
-    await syncFeature(repo, owner, epicNumber, manifest.epic, feature, resolved, result, opts);
+  for (const feature of epic.features) {
+    await syncFeature(repo, owner, epicNumber, epic.name, feature, syncRefs, resolved, result, opts);
   }
 
   // --- Epic Close (if done or cancelled) ---
-  if (manifest.phase === "done" || manifest.phase === "cancelled") {
+  if (epic.phase === "done" || epic.phase === "cancelled") {
     // Post release closing comment on done epics (not cancelled)
-    if (manifest.phase === "done") {
+    if (epic.phase === "done") {
       const version = readVersionFromPlugin(opts.projectRoot);
-      const releaseTag = readReleaseTag(manifest.slug);
+      const releaseTag = readReleaseTag(epic.slug);
       const mergeCommitSha = readMergeCommit();
 
       if (releaseTag && mergeCommitSha) {
@@ -638,7 +661,8 @@ async function syncFeature(
   owner: string,
   epicNumber: number,
   epicName: string | undefined,
-  feature: ManifestFeature,
+  feature: FeatureSyncInput,
+  syncRefs: SyncRefs,
   resolved: ResolvedGitHub,
   result: SyncResult,
   opts: { logger?: Logger; projectRoot?: string } = {},
@@ -665,7 +689,7 @@ async function syncFeature(
   }
 
   // Resolve or create the feature issue number — track locally, never mutate feature
-  let featureNumber = feature.github?.issue;
+  let featureNumber = getSyncRef(syncRefs, feature.id)?.issue;
   let featureJustCreated = false;
 
   if (!featureNumber) {
@@ -683,13 +707,13 @@ async function syncFeature(
     if (featureNumber) {
       result.mutations.push({
         type: "setFeatureIssue",
-        featureSlug: feature.slug,
-        issueNumber: featureNumber,
+        entityId: feature.id,
+        issue: featureNumber,
       });
       const createHash = hashBody(featureBody);
       result.mutations.push({
         type: "setFeatureBodyHash",
-        featureSlug: feature.slug,
+        entityId: feature.id,
         bodyHash: createHash,
       });
       result.featuresCreated++;
@@ -737,14 +761,14 @@ async function syncFeature(
       epicNumber,
     );
     const featureBodyHash = hashBody(featureBody);
-    const storedFeatureHash = feature.github?.bodyHash;
+    const storedFeatureHash = getSyncRef(syncRefs, feature.id)?.bodyHash;
 
     if (featureBodyHash !== storedFeatureHash) {
       const bodyUpdated = await ghIssueEdit(repo, featureNumber, { body: featureBody }, { logger: opts.logger });
       if (bodyUpdated) {
         result.mutations.push({
           type: "setFeatureBodyHash",
-          featureSlug: feature.slug,
+          entityId: feature.id,
           bodyHash: featureBodyHash,
         });
         result.bodiesUpdated++;
@@ -854,12 +878,14 @@ async function syncProjectStatus(
 }
 
 /**
- * Convenience wrapper: load manifest + config, run syncGitHub, apply mutations.
+ * Convenience wrapper: load epic + features from store, run syncGitHub, apply mutations to sync refs.
  * Used by watch-command for post-reconciliation sync. Warn-and-continue.
  */
 export async function syncGitHubForEpic(opts: {
   projectRoot: string;
+  epicId: string;
   epicSlug: string;
+  store: any; // TaskStore
   resolved?: ResolvedGitHub;
   logger?: Logger;
 }): Promise<void> {
@@ -870,13 +896,35 @@ export async function syncGitHubForEpic(opts: {
     const resolved = opts.resolved ?? await discoverGitHub(opts.projectRoot);
     if (!resolved) return;
 
-    const manifest = store.load(opts.projectRoot, opts.epicSlug);
-    if (!manifest) {
-      opts.logger?.debug(`No manifest for ${opts.epicSlug} — skipping GitHub sync`);
+    const epicEntity = opts.store.getEpic(opts.epicId);
+    if (!epicEntity) {
+      opts.logger?.debug(`No epic for ${opts.epicId} — skipping GitHub sync`);
       return;
     }
 
-    const result = await syncGitHub(manifest, config, resolved, {
+    const features = opts.store.listFeatures(opts.epicId);
+
+    // Load sync refs
+    let syncRefs = loadSyncRefs(opts.projectRoot);
+
+    // Build EpicSyncInput from store entities
+    const epicInput: EpicSyncInput = {
+      id: epicEntity.id,
+      slug: opts.epicSlug,
+      name: epicEntity.name,
+      phase: epicEntity.phase,
+      summary: epicEntity.summary,
+      features: features.map((f: { id: string; slug: string; status: string; description?: string; plan?: string }) => ({
+        id: f.id,
+        slug: f.slug,
+        status: f.status,
+        description: f.description,
+        plan: f.plan,
+      })),
+      artifacts: epicEntity.artifacts,
+    };
+
+    const result = await syncGitHub(epicInput, syncRefs, config, resolved, {
       logger: opts.logger,
       projectRoot: opts.projectRoot,
     });
@@ -884,25 +932,22 @@ export async function syncGitHubForEpic(opts: {
       opts.logger?.warn(`GitHub sync: ${w}`);
     }
 
+    // Apply mutations to sync refs and save
     if (result.mutations.length > 0) {
-      await store.transact(opts.projectRoot, opts.epicSlug, (m) => {
-        const updated = { ...m };
-        for (const mut of result.mutations) {
-          if (mut.type === "setEpic") {
-            updated.github = { ...updated.github, epic: mut.epicNumber, repo: mut.repo };
-          } else if (mut.type === "setFeatureIssue") {
-            const feat = updated.features.find((f) => f.slug === mut.featureSlug);
-            if (feat) feat.github = { ...feat.github, issue: mut.issueNumber };
-          } else if (mut.type === "setEpicBodyHash" && updated.github) {
-            updated.github.bodyHash = mut.bodyHash;
-          } else if (mut.type === "setFeatureBodyHash") {
-            const feat = updated.features.find((f) => f.slug === mut.featureSlug);
-            if (feat?.github) feat.github.bodyHash = mut.bodyHash;
-          }
+      for (const mut of result.mutations) {
+        if (mut.type === "setEpic") {
+          syncRefs = setSyncRef(syncRefs, mut.entityId, { ...getSyncRef(syncRefs, mut.entityId), issue: mut.issue });
+        } else if (mut.type === "setFeatureIssue") {
+          syncRefs = setSyncRef(syncRefs, mut.entityId, { ...getSyncRef(syncRefs, mut.entityId), issue: mut.issue });
+        } else if (mut.type === "setEpicBodyHash") {
+          const existing = getSyncRef(syncRefs, mut.entityId);
+          if (existing) syncRefs = setSyncRef(syncRefs, mut.entityId, { ...existing, bodyHash: mut.bodyHash });
+        } else if (mut.type === "setFeatureBodyHash") {
+          const existing = getSyncRef(syncRefs, mut.entityId);
+          if (existing) syncRefs = setSyncRef(syncRefs, mut.entityId, { ...existing, bodyHash: mut.bodyHash });
         }
-        updated.lastUpdated = new Date().toISOString();
-        return updated;
-      });
+      }
+      saveSyncRefs(opts.projectRoot, syncRefs);
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

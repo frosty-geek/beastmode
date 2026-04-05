@@ -4,6 +4,18 @@ All notable changes to beastmode.
 
 ---
 
+### v0.93.0 — Manifest Absorption (Apr 2026)
+
+- **Store schema extension** — Feature.slug, EnrichedEpic, NextAction, summary object shape, slug utilities (slugify, isValidSlug, deduplicateSlug)
+- **Store import** — `beastmode store import` command with manifest-to-store migration path
+- **GitHub sync separation** — Sync-refs I/O module separating issue/project references from store; rewrite runner, early-issues, and syncGitHub to use store entities
+- **XState-store bridge** — Rewrite pipeline machine types, guards, actions, and reconciler for store entity types; inline regress into actions.ts
+- **Consumer migration** — Dashboard, watch loop, phase command, cancel, and backfill migrated to store-only; listEnrichedFromStore scan
+- **Manifest deletion** — Manifest module (pure.ts, store.ts, reconcile.ts) deleted; all remaining references cleaned up
+- **Validation fixup** — Reconciler slug rename via delete+recreate, feature status sync, reDispatchCount persistence, worktree rename after slug change
+
+---
+
 ### v0.92.0 — GitHub Sync Polish (Apr 2026)
 
 - **Body enrichment** — Epic issues get full PRD (6 sections), feature issues get full plan (4 sections), human-readable titles

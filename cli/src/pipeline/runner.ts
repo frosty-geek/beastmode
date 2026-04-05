@@ -19,21 +19,21 @@
  */
 
 import { resolve } from "node:path";
+import { renameSync, existsSync, writeFileSync as fsWriteFileSync } from "node:fs";
 import type { Phase, PhaseResult } from "../types.js";
 import type { Logger } from "../logger.js";
 import { createLogger, createStdioSink } from "../logger.js";
 import * as worktree from "../git/worktree.js";
 import { rebase, createImplBranch } from "../git/worktree.js";
 import { loadWorktreePhaseOutput } from "../artifacts/reader.js";
-import * as store from "../manifest/store.js";
-import { syncGitHub } from "../github/sync.js";
 import { syncGitHubForEpic } from "../github/sync.js";
 import { discoverGitHub } from "../github/discovery.js";
 import type { ResolvedGitHub } from "../github/discovery.js";
 import { ensureEarlyIssues } from "../github/early-issues.js";
-import { setGitHubEpic, setFeatureGitHubIssue, setEpicBodyHash, setFeatureBodyHash } from "../manifest/pure.js";
 import { createTag } from "../git/tags.js";
 import { amendCommitsInRange } from "../git/commit-issue-ref.js";
+import { loadSyncRefs, getSyncRef } from "../github/sync-refs.js";
+import { JsonFileStore } from "../store/json-file-store.js";
 import { linkBranches } from "../github/branch-link.js";
 import { hasRemote, pushBranches, pushTags } from "../git/push.js";
 import {
@@ -43,8 +43,8 @@ import {
   reconcileImplement,
   reconcileValidate,
   reconcileRelease,
-} from "../manifest/reconcile.js";
-import type { ReconcileResult } from "../manifest/reconcile.js";
+} from "./reconcile.js";
+import type { ReconcileResult } from "./reconcile.js";
 import {
   writeHitlSettings,
   cleanHitlSettings,
@@ -69,6 +69,8 @@ export interface PipelineConfig {
   phase: Phase;
   /** Epic slug */
   epicSlug: string;
+  /** Epic entity ID (for store lookups) */
+  epicId?: string;
   /** CLI arguments for the phase */
   args: string[];
   /** Project root (where .beastmode/ lives) */
@@ -180,14 +182,21 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   // for commit references from the first commit.
   if (!config.skipPreDispatch) {
     try {
-      await ensureEarlyIssues({
-        phase: config.phase,
-        epicSlug,
-        projectRoot: config.projectRoot,
-        config: config.config,
-        resolved: config.resolved,
-        logger,
-      });
+      const taskStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
+      taskStore.load();
+      // Find epic by slug
+      const epicEntity = taskStore.find(epicSlug);
+      if (epicEntity && epicEntity.type === "epic") {
+        await ensureEarlyIssues({
+          phase: config.phase,
+          epicId: epicEntity.id,
+          projectRoot: config.projectRoot,
+          config: config.config,
+          store: taskStore,
+          resolved: config.resolved,
+          logger,
+        });
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.warn(`early issue creation failed (non-blocking): ${message}`);
@@ -255,78 +264,81 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     logger.warn(`tag creation failed: ${message}`);
   }
 
-  // Design phase: rename hex slug to real slug
+  // Design phase: update slug to real slug and rename worktree directory
   if (config.phase === "design" && reconcileResult) {
-    const finalManifest = reconcileResult.manifest;
-    const epicName = finalManifest.epic ?? finalManifest.slug;
-    if (epicName && epicName !== epicSlug) {
-      const renameResult = await store.rename(
-        config.projectRoot,
-        epicSlug,
-        epicName,
-        worktreePath,
-      );
-      if (renameResult.renamed) {
-        epicSlug = renameResult.finalSlug;
-        logger.info(`renamed -> ${renameResult.finalSlug}`);
-      } else if (renameResult.error) {
-        logger.warn(`Slug rename failed: ${renameResult.error}`);
+    const finalEpic = reconcileResult.epic;
+    if (finalEpic.slug && finalEpic.slug !== epicSlug) {
+      // Rename the worktree directory, git branch, and git metadata
+      const oldWtPath = resolve(config.projectRoot, ".claude", "worktrees", epicSlug);
+      const newWtPath = resolve(config.projectRoot, ".claude", "worktrees", finalEpic.slug);
+      const oldBranch = `feature/${epicSlug}`;
+      const newBranch = `feature/${finalEpic.slug}`;
+      if (existsSync(oldWtPath)) {
+        try {
+          // Rename git branch
+          await worktree.git(["branch", "-m", oldBranch, newBranch], { cwd: config.projectRoot });
+
+          // Move worktree directory
+          renameSync(oldWtPath, newWtPath);
+
+          // Repair git worktree metadata
+          const gitDir = resolve(config.projectRoot, ".git", "worktrees", epicSlug);
+          const newGitDir = resolve(config.projectRoot, ".git", "worktrees", finalEpic.slug);
+          if (existsSync(gitDir)) {
+            renameSync(gitDir, newGitDir);
+            fsWriteFileSync(resolve(newWtPath, ".git"), `gitdir: ${newGitDir}\n`);
+            const gitdirPath = resolve(newGitDir, "gitdir");
+            if (existsSync(gitdirPath)) {
+              fsWriteFileSync(gitdirPath, `${newWtPath}/.git\n`);
+            }
+          }
+          await worktree.git(["worktree", "repair"], { cwd: config.projectRoot, allowFailure: true });
+
+          worktreePath = newWtPath;
+          logger.info(`worktree renamed -> ${finalEpic.slug}`);
+
+          // Update the store's worktree path
+          const renameStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
+          renameStore.load();
+          const renamedEntity = renameStore.find(finalEpic.slug);
+          if (renamedEntity && renamedEntity.type === "epic") {
+            renameStore.updateEpic(renamedEntity.id, {
+              worktree: { branch: newBranch, path: newWtPath },
+            });
+            renameStore.save();
+          }
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          logger.warn(`worktree rename failed: ${message}`);
+        }
       }
+
+      epicSlug = finalEpic.slug;
+      logger.info(`slug updated -> ${finalEpic.slug}`);
     }
   }
 
   // -- Step 8: github.mirror --------------------------------------------------
   try {
-    if (config.resolved) {
-      // Watch loop path -- uses pre-resolved GitHub data
-      await syncGitHubForEpic({
-        projectRoot: config.projectRoot,
-        epicSlug,
-        resolved: config.resolved,
-        logger,
-      });
-      logger.info("GitHub sync complete");
-    } else {
-      // Manual CLI path -- discover and sync
-      const beastConfig = config.config;
-      if (beastConfig.github.enabled) {
-        const resolved = await discoverGitHub(config.projectRoot, beastConfig.github["project-name"]);
-        if (resolved) {
-          const manifest = store.load(config.projectRoot, epicSlug);
-          if (manifest) {
-            const syncResult = await syncGitHub(manifest, beastConfig, resolved, {
-              logger,
-              projectRoot: config.projectRoot,
-            });
-
-            if (syncResult.mutations.length > 0) {
-              await store.transact(config.projectRoot, epicSlug, (m) => {
-                let updated = m;
-                for (const mutation of syncResult.mutations) {
-                  switch (mutation.type) {
-                    case "setEpic":
-                      updated = setGitHubEpic(updated, mutation.epicNumber, mutation.repo);
-                      break;
-                    case "setFeatureIssue":
-                      updated = setFeatureGitHubIssue(updated, mutation.featureSlug, mutation.issueNumber);
-                      break;
-                    case "setEpicBodyHash":
-                      updated = setEpicBodyHash(updated, mutation.bodyHash);
-                      break;
-                    case "setFeatureBodyHash":
-                      updated = setFeatureBodyHash(updated, mutation.featureSlug, mutation.bodyHash);
-                      break;
-                  }
-                }
-                return updated;
-              });
-            }
-
-            logger.info("GitHub sync complete");
-          }
-        } else {
-          logger.debug?.("GitHub discovery failed -- skipping sync");
-        }
+    const taskStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
+    taskStore.load();
+    const epicEntity = taskStore.find(epicSlug);
+    if (epicEntity && epicEntity.type === "epic") {
+      const resolved = config.resolved ?? (config.config.github.enabled
+        ? await discoverGitHub(config.projectRoot, config.config.github["project-name"])
+        : undefined);
+      if (resolved) {
+        await syncGitHubForEpic({
+          projectRoot: config.projectRoot,
+          epicId: epicEntity.id,
+          epicSlug,
+          store: taskStore,
+          resolved,
+          logger,
+        });
+        logger.info("GitHub sync complete");
+      } else {
+        logger.debug?.("GitHub discovery failed -- skipping sync");
       }
     }
   } catch (err: unknown) {
@@ -339,9 +351,13 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   // Runs post-sync so issue numbers from early-issues or sync are available.
   // Runs pre-push so no force-push is needed.
   try {
-    const manifest = store.load(config.projectRoot, epicSlug);
-    if (manifest) {
-      const rangeResult = await amendCommitsInRange(manifest, epicSlug, config.phase, { cwd: worktreePath });
+    const syncRefs = loadSyncRefs(config.projectRoot);
+    const taskStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
+    taskStore.load();
+    const epicEntity = taskStore.find(epicSlug);
+    if (epicEntity && epicEntity.type === "epic") {
+      const features = taskStore.listFeatures(epicEntity.id).map((f) => ({ id: f.id, slug: f.slug }));
+      const rangeResult = await amendCommitsInRange(syncRefs, epicEntity.id, features, epicSlug, config.phase, { cwd: worktreePath });
       if (rangeResult.amended > 0) {
         logger.debug?.(`commit refs: ${rangeResult.amended} amended, ${rangeResult.skipped} skipped`);
       }
@@ -378,22 +394,35 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   try {
     const beastConfig = config.config;
     if (beastConfig.github.enabled) {
-      const manifest = store.load(config.projectRoot, epicSlug);
-      if (manifest?.github) {
-        const featureIssueNumber = config.featureSlug
-          ? manifest.features.find((f) => f.slug === config.featureSlug)?.github?.issue
-          : undefined;
-        await linkBranches({
-          repo: manifest.github.repo,
-          epicSlug,
-          epicIssueNumber: manifest.github.epic,
-          featureSlug: config.featureSlug,
-          featureIssueNumber,
-          phase: config.phase,
-          cwd: worktreePath,
-          logger,
-        });
-        logger.debug?.("branch linking complete");
+      const syncRefs = loadSyncRefs(config.projectRoot);
+      const taskStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
+      taskStore.load();
+      const epicEntity = taskStore.find(epicSlug);
+      if (epicEntity && epicEntity.type === "epic") {
+        const epicRef = getSyncRef(syncRefs, epicEntity.id);
+        if (epicRef) {
+          let featureIssueNumber: number | undefined;
+          if (config.featureSlug) {
+            const features = taskStore.listFeatures(epicEntity.id);
+            const feat = features.find((f) => f.slug === config.featureSlug);
+            if (feat) featureIssueNumber = getSyncRef(syncRefs, feat.id)?.issue;
+          }
+          // Discover repo from sync ref or discovery
+          const resolved = config.resolved ?? await discoverGitHub(config.projectRoot, beastConfig.github["project-name"]);
+          if (resolved) {
+            await linkBranches({
+              repo: resolved.repo,
+              epicSlug,
+              epicIssueNumber: epicRef.issue,
+              featureSlug: config.featureSlug,
+              featureIssueNumber,
+              phase: config.phase,
+              cwd: worktreePath,
+              logger,
+            });
+            logger.debug?.("branch linking complete");
+          }
+        }
       }
     }
   } catch (err: unknown) {
@@ -411,12 +440,15 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       await worktree.remove(epicSlug, { cwd: config.projectRoot });
       logger.info("worktree removed");
 
-      // Mark manifest as done so scanner skips it
-      const doneManifest = store.load(config.projectRoot, epicSlug);
-      if (doneManifest) {
-        store.save(config.projectRoot, epicSlug, { ...doneManifest, phase: "done", lastUpdated: new Date().toISOString() });
+      // Mark store entity as done so scanner skips it
+      const doneStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
+      doneStore.load();
+      const doneEntity = doneStore.find(epicSlug);
+      if (doneEntity && doneEntity.type === "epic") {
+        doneStore.updateEpic(doneEntity.id, { status: "done", updated_at: new Date().toISOString() });
+        doneStore.save();
       }
-      logger.info("manifest marked done");
+      logger.info("store entity marked done");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`release teardown failed: ${message}`);

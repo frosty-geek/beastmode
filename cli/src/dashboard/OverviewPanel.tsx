@@ -1,5 +1,5 @@
 import { Box, Text } from "ink";
-import type { EnrichedManifest } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/index.js";
 import {
   computePhaseDistribution,
   formatGitStatus,
@@ -9,7 +9,7 @@ import {
 import { PHASE_COLOR } from "./monokai-palette.js";
 
 export interface OverviewPanelProps {
-  epics: EnrichedManifest[];
+  epics: EnrichedEpic[];
   activeSessions: Set<string>;
   gitStatus: GitStatus | null;
 }

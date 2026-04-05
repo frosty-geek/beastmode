@@ -5,7 +5,7 @@
  * handles implement fan-out and graceful shutdown.
  */
 
-import type { EnrichedManifest, ScanResult } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/types.js";
 import type {
   DispatchedSession,
   WatchConfig,
@@ -39,7 +39,7 @@ function resolveVersion(projectRoot: string): string {
 /** Injected dependencies — allows testing without real SDK/scanner. */
 export interface WatchDeps {
   /** Scan state to determine epic states. */
-  scanEpics: (projectRoot: string) => Promise<ScanResult | EnrichedManifest[]>;
+  scanEpics: (projectRoot: string) => Promise<EnrichedEpic[]>;
   /** Factory for creating phase sessions. */
   sessionFactory: SessionFactory;
   /** Scoped logger. Falls back to createLogger(0, {}) if omitted. */
@@ -151,12 +151,11 @@ export class WatchLoop extends EventEmitter {
       this.livenessCheckIds.clear();
     }
 
-    let epics: EnrichedManifest[];
+    let epics: EnrichedEpic[];
     try {
-      const result = await this.deps.scanEpics(this.config.projectRoot);
-      epics = Array.isArray(result) ? result : result.epics;
+      epics = await this.deps.scanEpics(this.config.projectRoot);
     } catch (err) {
-        this.logger.warn("state scan failed", { error: String(err) });
+      this.logger.warn("state scan failed", { error: String(err) });
       return;
     }
 
@@ -167,13 +166,7 @@ export class WatchLoop extends EventEmitter {
     this.emitTyped('scan-complete', { epicsScanned: epics.length, dispatched });
   }
 
-  private async processEpic(epic: EnrichedManifest): Promise<number> {
-    // Skip epics blocked on human gates or manual pause
-    if (epic.blocked) {
-      this.emitTyped('epic-blocked', { epicSlug: epic.slug, gate: epic.blocked.gate, reason: epic.blocked.reason });
-      return 0;
-    }
-
+  private async processEpic(epic: EnrichedEpic): Promise<number> {
     // Skip epics with no actionable next step
     if (!epic.nextAction) return 0;
 
@@ -188,7 +181,7 @@ export class WatchLoop extends EventEmitter {
     }
   }
 
-  private async dispatchSingle(epic: EnrichedManifest): Promise<number> {
+  private async dispatchSingle(epic: EnrichedEpic): Promise<number> {
     const action = epic.nextAction!;
 
     // Don't dispatch if the epic worktree is already in use by another phase
@@ -243,7 +236,7 @@ export class WatchLoop extends EventEmitter {
   }
 
   private async dispatchFanOut(
-    epic: EnrichedManifest,
+    epic: EnrichedEpic,
     features: string[],
   ): Promise<number> {
     // Validate feature provenance when worktree exists: each feature must
@@ -408,8 +401,7 @@ export class WatchLoop extends EventEmitter {
   /** Re-scan a single epic and dispatch if it has a new actionable step. */
   private async rescanEpic(epicSlug: string): Promise<void> {
     try {
-      const result = await this.deps.scanEpics(this.config.projectRoot);
-      const epics = Array.isArray(result) ? result : result.epics;
+      const epics = await this.deps.scanEpics(this.config.projectRoot);
       const epic = epics.find((e) => e.slug === epicSlug);
       if (epic) {
         await this.processEpic(epic);

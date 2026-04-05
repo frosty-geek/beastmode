@@ -19,7 +19,7 @@ export interface Epic {
   name: string;
   slug: string;
   status: EpicStatus;
-  summary?: string;
+  summary?: string | { problem: string; solution: string };
   design?: string;
   plan?: string;
   implement?: string;
@@ -36,8 +36,10 @@ export interface Feature {
   type: "feature";
   parent: string;
   name: string;
+  slug: string;
   description?: string;
   status: FeatureStatus;
+  reDispatchCount?: number;
   plan?: string;
   implement?: string;
   depends_on: string[];
@@ -50,13 +52,27 @@ export type Entity = Epic | Feature;
 // --- Patch Types ---
 
 export type EpicPatch = Partial<Omit<Epic, "id" | "type" | "created_at">>;
-export type FeaturePatch = Partial<Omit<Feature, "id" | "type" | "parent" | "created_at">>;
+export type FeaturePatch = Partial<Omit<Feature, "id" | "type" | "parent" | "slug" | "created_at">>;
 
 // --- Tree Node ---
 
 export interface TreeNode {
   entity: Entity;
   children: TreeNode[];
+}
+
+// --- Enrichment Types ---
+
+export interface NextAction {
+  phase: string;
+  args: string[];
+  type: "single" | "fan-out";
+  features?: string[];
+}
+
+export interface EnrichedEpic extends Epic {
+  nextAction: NextAction | null;
+  features: Feature[];
 }
 
 // --- TaskStore Interface ---
@@ -72,7 +88,7 @@ export interface TaskStore {
   // Feature CRUD
   getFeature(id: string): Feature | undefined;
   listFeatures(epicId: string): Feature[];
-  addFeature(opts: { parent: string; name: string; description?: string }): Feature;
+  addFeature(opts: { parent: string; name: string; slug?: string; description?: string }): Feature;
   updateFeature(id: string, patch: FeaturePatch): Feature;
   deleteFeature(id: string): void;
 

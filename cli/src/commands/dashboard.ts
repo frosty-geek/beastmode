@@ -3,7 +3,8 @@ import { existsSync } from "node:fs";
 import type { BeastmodeConfig } from "../config.js";
 import { WatchLoop } from "./watch-loop.js";
 import type { WatchDeps } from "./watch-loop.js";
-import { listEnriched } from "../manifest/store.js";
+import { listEnrichedFromStore } from "../store/scan.js";
+import { JsonFileStore } from "../store/json-file-store.js";
 import { ReconcilingFactory } from "../dispatch/reconciling.js";
 import type { SessionFactory } from "../dispatch/factory.js";
 import { ITermSessionFactory } from "../dispatch/it2.js";
@@ -65,7 +66,12 @@ export async function dashboardCommand(
 
   // --- Create WatchLoop with signal handlers disabled (Ink handles signals) ---
   const deps: WatchDeps = {
-    scanEpics: async (root: string) => listEnriched(root),
+    scanEpics: async (root: string) => {
+      const storePath = resolve(root, ".beastmode", "state", "store.json");
+      const taskStore = new JsonFileStore(storePath);
+      taskStore.load();
+      return listEnrichedFromStore(taskStore);
+    },
     sessionFactory,
     logger,
   };

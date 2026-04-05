@@ -1,27 +1,37 @@
 import { describe, test, expect } from "vitest";
-import type { PipelineManifest, ManifestFeature } from "../manifest/store";
+import type { EpicBodyInput, FeatureBodyInput } from "../github/sync";
 import { formatEpicBody, formatFeatureBody, formatClosingComment, buildCompareUrl, epicTitle, featureTitle } from "../github/sync";
 
+type EpicFeature = EpicBodyInput["features"][0];
+
 function makeManifest(
-  overrides: Partial<PipelineManifest> = {},
-): PipelineManifest {
+  overrides: Partial<EpicBodyInput> = {},
+): EpicBodyInput {
   return {
     slug: "test-epic",
     phase: "design",
     features: [],
-    artifacts: {},
-    lastUpdated: "2026-03-29T00:00:00Z",
     ...overrides,
   };
 }
 
+/** Factory for epic feature list entries (used in EpicBodyInput.features). */
 function makeFeature(
-  overrides: Partial<ManifestFeature> = {},
-): ManifestFeature {
+  overrides: Partial<EpicFeature> = {},
+): EpicFeature {
   return {
     slug: "feat-a",
-    plan: "plan-a.md",
     status: "pending",
+    ...overrides,
+  };
+}
+
+/** Factory for FeatureBodyInput (used with formatFeatureBody). */
+function makeFeatureBody(
+  overrides: Partial<FeatureBodyInput> = {},
+): FeatureBodyInput {
+  return {
+    slug: "feat-a",
     ...overrides,
   };
 }
@@ -329,7 +339,7 @@ describe("formatEpicBody", () => {
 
 describe("formatFeatureBody", () => {
   test("includes description when present", () => {
-    const feature = makeFeature({ slug: "feat-a" });
+    const feature = makeFeatureBody({ slug: "feat-a" });
     const body = formatFeatureBody(
       { ...feature, description: "Feature details" },
       42,
@@ -339,14 +349,14 @@ describe("formatFeatureBody", () => {
   });
 
   test("includes epic back-reference", () => {
-    const feature = makeFeature({ slug: "feat-a" });
+    const feature = makeFeatureBody({ slug: "feat-a" });
     const body = formatFeatureBody(feature, 42);
 
     expect(body).toContain("**Epic:** #42");
   });
 
   test("falls back to stub format when description missing", () => {
-    const feature = makeFeature({ slug: "feat-a" });
+    const feature = makeFeatureBody({ slug: "feat-a" });
     const body = formatFeatureBody(feature, 42);
 
     expect(body).toContain("feat-a");
@@ -354,7 +364,7 @@ describe("formatFeatureBody", () => {
   });
 
   test("falls back to stub format when description is empty string", () => {
-    const feature = makeFeature({ slug: "feat-a" });
+    const feature = makeFeatureBody({ slug: "feat-a" });
     const body = formatFeatureBody({ ...feature, description: "" }, 42);
 
     expect(body).toContain("feat-a");

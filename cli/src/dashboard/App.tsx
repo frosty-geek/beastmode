@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Text, useApp } from "ink";
 import type { BeastmodeConfig } from "../config.js";
-import type { EnrichedManifest } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/index.js";
 import type { WatchLoopEventMap, DispatchedSession } from "../dispatch/types.js";
 import type { WatchLoop } from "../commands/watch-loop.js";
 import type { LogLevel } from "../logger.js";
@@ -41,7 +41,7 @@ function formatClock(): string {
 export default function App({ config, verbosity, loop, projectRoot, fallbackStore, systemRef }: AppProps) {
   const { exit } = useApp();
   const [clock, setClock] = useState(formatClock());
-  const [epics, setEpics] = useState<EnrichedManifest[]>([]);
+  const [epics, setEpics] = useState<EnrichedEpic[]>([]);
   const [watchRunning, setWatchRunning] = useState(false);
   const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set());
   const [trackerSessions, setTrackerSessions] = useState<DispatchedSession[]>([]);
@@ -70,7 +70,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
 
   // slugAtIndex reads from a ref so it always sees the latest filteredEpics
   // (computed below the keyboard hook, updated every render).
-  const filteredEpicsRef = useRef<EnrichedManifest[]>([]);
+  const filteredEpicsRef = useRef<EnrichedEpic[]>([]);
   const slugAtIndex = useCallback(
     (index: number): string | undefined => {
       if (index === 0) return undefined;
@@ -123,7 +123,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
 
   // --- Filter + toggle-all ---
   const filteredEpics = epics.filter((e) => {
-    if (!keyboard.toggleAll.showAll && (e.phase === "done" || e.phase === "cancelled")) {
+    if (!keyboard.toggleAll.showAll && (e.status === "done" || e.status === "cancelled")) {
       return false;
     }
     if (activeFilter && !e.slug.includes(activeFilter)) {
@@ -329,15 +329,19 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     };
   }, [loop]);
 
-  // --- Refresh epics from manifest store ---
+  // --- Refresh epics from store ---
   useEffect(() => {
     if (!loop || !projectRoot) return;
 
     const refreshEpics = async () => {
       try {
-        const { listEnriched } = await import("../manifest/store.js");
-        const result = listEnriched(projectRoot);
-        const epicList = Array.isArray(result) ? result : result.epics;
+        const { listEnrichedFromStore } = await import("../store/scan.js");
+        const { JsonFileStore } = await import("../store/json-file-store.js");
+        const { join } = await import("node:path");
+        const storePath = join(projectRoot!, ".beastmode", "state", "store.json");
+        const taskStore = new JsonFileStore(storePath);
+        taskStore.load();
+        const epicList = listEnrichedFromStore(taskStore);
         setEpics(epicList);
       } catch {
         // Non-fatal — will retry on next scan

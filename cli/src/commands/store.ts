@@ -1,6 +1,7 @@
 import { findProjectRoot } from "../config.js";
 import { JsonFileStore } from "../store/json-file-store.js";
 import { join } from "path";
+import { importCommand } from "./store-import.js";
 
 function jsonOut(data: unknown): void {
   process.stdout.write(JSON.stringify(data, null, 2) + "\n");
@@ -60,6 +61,9 @@ export async function storeCommand(args: string[]): Promise<void> {
       break;
     case "search":
       await searchCommand(store, subArgs);
+      break;
+    case "import":
+      await importCommand(store, subArgs, projectRoot);
       break;
     default:
       jsonError(`Unknown store subcommand: ${subcommand}`);
