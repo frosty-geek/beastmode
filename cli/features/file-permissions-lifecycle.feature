@@ -22,7 +22,7 @@ Feature: File permission hook lifecycle across pipeline phases
     And the pipeline runs the "design" phase
     Then the pipeline result should be successful
     And the file-permission hook prompt should contain "auto-allow plugin config writes"
-    And the worktree settings should contain a PreToolUse hook for "design"
+    And the worktree settings should contain a command-type PreToolUse hook for "design"
 
     When the dispatch will write plan artifacts:
       | feature | wave | description |
@@ -30,7 +30,7 @@ Feature: File permission hook lifecycle across pipeline phases
     And the pipeline runs the "plan" phase
     Then the pipeline result should be successful
     And the file-permission hook prompt should contain "auto-allow plugin config writes"
-    And the worktree settings should contain a PreToolUse hook for "plan"
+    And the worktree settings should contain a command-type PreToolUse hook for "plan"
 
   Scenario: Dispatch failure does not leave stale file-permission hooks
 

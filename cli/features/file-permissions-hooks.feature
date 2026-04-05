@@ -38,7 +38,7 @@ Feature: File permission hooks written to settings.local.json with path filterin
       | solution | Test solution |
     And the pipeline runs the "design" phase
     Then the pipeline result should be successful
-    And the worktree settings should contain a PreToolUse hook for "design"
+    And the worktree settings should contain a command-type PreToolUse hook for "design"
     And the worktree settings should contain a file-permission PreToolUse hook for "Write"
     And the worktree settings should contain a file-permission PreToolUse hook for "Edit"
 
