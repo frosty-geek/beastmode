@@ -16,6 +16,8 @@ import { git } from "../git/worktree.js";
 import { gh } from "../github/cli.js";
 import { deleteAllTags } from "../git/tags.js";
 import { JsonFileStore, resolveIdentifier } from "../store/index.js";
+import type { TaskStore } from "../store/types.js";
+import { loadSyncRefs, saveSyncRefs } from "../github/sync-refs.js";
 import type { Logger } from "../logger.js";
 
 // ---------------------------------------------------------------------------
@@ -33,6 +35,8 @@ export interface CancelConfig {
   force: boolean;
   /** Logger instance for output */
   logger: Logger;
+  /** Optional injected store for testing */
+  taskStore?: TaskStore;
 }
 
 export interface CancelResult {
@@ -80,13 +84,19 @@ export async function cancelEpic(config: CancelConfig): Promise<CancelResult> {
 
   // --- Self-resolution ---
   const storePath = resolve(projectRoot, ".beastmode", "state", "store.json");
-  const taskStore = new JsonFileStore(storePath);
-  taskStore.load();
+  const taskStore = config.taskStore ?? new JsonFileStore(storePath);
+  if (!config.taskStore && taskStore instanceof JsonFileStore) {
+    taskStore.load();
+  }
   const resolution = resolveIdentifier(taskStore, identifier, { resolveToEpic: true });
   const entity = resolution.kind === "found" ? resolution.entity : undefined;
   const slug = entity?.slug ?? identifier;
   const epic = entity?.name ?? entity?.slug ?? identifier;
-  const githubEpicNumber = undefined; // GitHub refs now in sync-refs.json
+
+  // Get GitHub issue number from sync refs
+  const syncRefs = loadSyncRefs(projectRoot);
+  const githubRef = entity ? syncRefs[entity.id] : undefined;
+  const githubEpicNumber = githubRef?.issue;
 
   // --- Confirmation ---
   if (!force) {
@@ -188,7 +198,17 @@ export async function cancelEpic(config: CancelConfig): Promise<CancelResult> {
       }
       taskStore.deleteEpic(entity.id);
       taskStore.save();
-      logger.debug("deleted store entity", { slug });
+
+      // Clean up sync refs
+      const currentRefs = loadSyncRefs(projectRoot);
+      const updatedRefs = { ...currentRefs };
+      delete updatedRefs[entity.id];
+      for (const f of features) {
+        delete updatedRefs[f.id];
+      }
+      saveSyncRefs(projectRoot, updatedRefs);
+
+      logger.debug("deleted store entity and sync refs", { slug });
     } else {
       logger.debug("no store entity found", { slug });
     }
