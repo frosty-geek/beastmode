@@ -148,8 +148,7 @@ On agent success, read the integration artifact and distribute scenarios inline:
 2. **Parse per-feature sections** — match `### Feature: <feature-name>` headings in the "New Scenarios" section to the decomposed features
 3. **For each feature:**
    - If matching scenarios exist: inject the Gherkin block into a `## Integration Test Scenarios` section in the feature's internal record
-   - If no matching scenarios: inject an empty `## Integration Test Scenarios` section with a comment: `<!-- No behavioral scenarios produced for this feature -->`
-   - If no matching scenarios: record a warning for the missing coverage
+   - If no matching scenarios: inject an empty `## Integration Test Scenarios` section with a comment: `<!-- No behavioral scenarios produced for this feature -->` and record a warning for the missing coverage
 4. **Preserve the integration artifact** as an audit trail (do not delete it)
 
 The plan skill does not contain BDD domain knowledge — it delegates entirely to the agent and mechanically distributes the artifact's per-feature sections into feature plans.
