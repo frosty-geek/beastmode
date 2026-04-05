@@ -71,6 +71,7 @@ export interface NextAction {
 
 export interface EnrichedEpic extends Epic {
   nextAction: NextAction | null;
+  features: Feature[];
 }
 
 // --- TaskStore Interface ---

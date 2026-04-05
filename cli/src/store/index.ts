@@ -23,3 +23,4 @@ export { InMemoryTaskStore } from "./in-memory.js";
 export { JsonFileStore } from "./json-file-store.js";
 export { resolveIdentifier, type ResolveResult, type ResolveOptions } from "./resolve.js";
 export { slugify, isValidSlug, deduplicateSlug } from "./slug.js";
+export { listEnrichedFromStore } from "./scan.js";
