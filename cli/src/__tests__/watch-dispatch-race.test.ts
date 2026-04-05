@@ -13,22 +13,32 @@
 import { describe, test, expect } from "vitest";
 import { WatchLoop } from "../commands/watch-loop";
 import type { WatchDeps } from "../commands/watch-loop";
-import type { EnrichedManifest } from "../manifest/store";
+import type { EnrichedEpic } from "../store/types";
 import type { SessionHandle, SessionCreateOpts } from "../dispatch/factory";
 import type { SessionResult } from "../dispatch/types";
 
-function makeEpic(features: Array<{ slug: string; status: string }>): EnrichedManifest {
+function makeEpic(features: Array<{ slug: string; status: string }>): EnrichedEpic {
   return {
+    id: "bm-test",
+    type: "epic",
     slug: "test-epic",
-    phase: "implement",
-    manifestPath: "/tmp/test-epic/manifest.json",
+    name: "Test Epic",
+    status: "implement",
+    depends_on: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     features: features.map((f) => ({
+      id: `f-${f.slug}`,
+      type: "feature" as const,
+      parent: "bm-test",
       slug: f.slug,
-      plan: `${f.slug}.md`,
+      name: f.slug,
       status: f.status as "pending" | "completed",
+      plan: `${f.slug}.md`,
+      depends_on: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })),
-    artifacts: {},
-    lastUpdated: new Date().toISOString(),
     nextAction: {
       phase: "implement",
       args: ["test-epic"],

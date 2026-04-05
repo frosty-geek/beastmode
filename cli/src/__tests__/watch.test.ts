@@ -3,7 +3,7 @@ import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node
 import { resolve } from "node:path";
 import { WatchLoop } from "../commands/watch-loop.js";
 import type { WatchDeps } from "../commands/watch-loop.js";
-import type { EnrichedManifest } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/types.js";
 import type { SessionResult } from "../dispatch/types.js";
 import type { SessionFactory } from "../dispatch/factory.js";
 import { DispatchTracker } from "../dispatch/tracker.js";
@@ -226,15 +226,17 @@ describe("WatchLoop", () => {
     const dispatched: string[] = [];
     let scanCount = 0;
 
-    const readyEpic: EnrichedManifest = {
+    const readyEpic: EnrichedEpic = {
+      id: "bm-test-1",
+      type: "epic",
       slug: "my-epic",
-      manifestPath: "pipeline/my-epic.manifest.json",
-      phase: "design",
+      name: "My Epic",
+      status: "design",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: { phase: "plan", args: ["my-epic"], type: "single" },
       features: [],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
     };
 
     const deps = mockDeps({
@@ -276,10 +278,15 @@ describe("WatchLoop", () => {
     const dispatched: string[] = [];
     let scanCount = 0;
 
-    const implementEpic: EnrichedManifest = {
+    const implementEpic: EnrichedEpic = {
+      id: "bm-test-2",
+      type: "epic",
       slug: "my-epic",
-      manifestPath: "pipeline/my-epic.manifest.json",
-      phase: "implement",
+      name: "My Epic",
+      status: "implement",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: {
         phase: "implement",
         args: ["my-epic"],
@@ -287,13 +294,10 @@ describe("WatchLoop", () => {
         features: ["feat-a", "feat-b", "feat-c"],
       },
       features: [
-        { slug: "feat-a", plan: "feat-a.md", status: "pending" },
-        { slug: "feat-b", plan: "feat-b.md", status: "pending" },
-        { slug: "feat-c", plan: "feat-c.md", status: "pending" },
+        { id: "f1", type: "feature", parent: "bm-test-2", slug: "feat-a", name: "Feature A", status: "pending", plan: "feat-a.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" },
+        { id: "f2", type: "feature", parent: "bm-test-2", slug: "feat-b", name: "Feature B", status: "pending", plan: "feat-b.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" },
+        { id: "f3", type: "feature", parent: "bm-test-2", slug: "feat-c", name: "Feature C", status: "pending", plan: "feat-c.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" },
       ],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
     };
 
     const deps = mockDeps({
@@ -339,10 +343,15 @@ describe("WatchLoop", () => {
     const worktreeSlugs: string[] = [];
     let scanCount = 0;
 
-    const implementEpic: EnrichedManifest = {
+    const implementEpic: EnrichedEpic = {
+      id: "bm-test-3",
+      type: "epic",
       slug: "my-epic",
-      manifestPath: "pipeline/my-epic.manifest.json",
-      phase: "implement",
+      name: "My Epic",
+      status: "implement",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: {
         phase: "implement",
         args: ["my-epic"],
@@ -350,12 +359,9 @@ describe("WatchLoop", () => {
         features: ["feat-a", "feat-b"],
       },
       features: [
-        { slug: "feat-a", plan: "feat-a.md", status: "pending" },
-        { slug: "feat-b", plan: "feat-b.md", status: "pending" },
+        { id: "f1", type: "feature", parent: "bm-test-3", slug: "feat-a", name: "Feature A", status: "pending", plan: "feat-a.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" },
+        { id: "f2", type: "feature", parent: "bm-test-3", slug: "feat-b", name: "Feature B", status: "pending", plan: "feat-b.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" },
       ],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
     };
 
     const deps = mockDeps({
@@ -397,10 +403,15 @@ describe("WatchLoop", () => {
     let scanCount = 0;
     const completed: Array<{ phase: string }> = [];
 
-    const implementEpic: EnrichedManifest = {
+    const implementEpic: EnrichedEpic = {
+      id: "bm-test-4",
+      type: "epic",
       slug: "my-epic",
-      manifestPath: "pipeline/my-epic.manifest.json",
-      phase: "implement",
+      name: "My Epic",
+      status: "implement",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: {
         phase: "implement",
         args: ["my-epic"],
@@ -408,12 +419,9 @@ describe("WatchLoop", () => {
         features: ["feat-a", "feat-b"],
       },
       features: [
-        { slug: "feat-a", plan: "feat-a.md", status: "pending" },
-        { slug: "feat-b", plan: "feat-b.md", status: "pending" },
+        { id: "f1", type: "feature", parent: "bm-test-4", slug: "feat-a", name: "Feature A", status: "pending", plan: "feat-a.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" },
+        { id: "f2", type: "feature", parent: "bm-test-4", slug: "feat-b", name: "Feature B", status: "pending", plan: "feat-b.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" },
       ],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
     };
 
     const deps = mockDeps({
@@ -458,15 +466,17 @@ describe("WatchLoop", () => {
   it("does not double-dispatch the same phase", async () => {
     let dispatchCount = 0;
 
-    const readyEpic: EnrichedManifest = {
+    const readyEpic: EnrichedEpic = {
+      id: "bm-test-5",
+      type: "epic",
       slug: "my-epic",
-      manifestPath: "pipeline/my-epic.manifest.json",
-      phase: "design",
+      name: "My Epic",
+      status: "design",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: { phase: "plan", args: ["my-epic"], type: "single" },
       features: [],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
     };
 
     const deps = mockDeps({
@@ -501,26 +511,30 @@ describe("WatchLoop", () => {
     const dispatched: string[] = [];
     let scanCount = 0;
 
-    const epics: EnrichedManifest[] = [
+    const epics: EnrichedEpic[] = [
       {
+        id: "bm-test-6a",
+        type: "epic",
         slug: "epic-a",
-        manifestPath: "pipeline/epic-a.manifest.json",
-        phase: "design",
+        name: "Epic A",
+        status: "design",
+        depends_on: [],
+        created_at: "2026-03-29T00:00:00Z",
+        updated_at: "2026-03-29T00:00:00Z",
         nextAction: { phase: "plan", args: ["epic-a"], type: "single" },
         features: [],
-        artifacts: {},
-        lastUpdated: "2026-03-29T00:00:00Z",
-  
       },
       {
+        id: "bm-test-6b",
+        type: "epic",
         slug: "epic-b",
-        manifestPath: "pipeline/epic-b.manifest.json",
-        phase: "design",
+        name: "Epic B",
+        status: "design",
+        depends_on: [],
+        created_at: "2026-03-29T00:00:00Z",
+        updated_at: "2026-03-29T00:00:00Z",
         nextAction: { phase: "plan", args: ["epic-b"], type: "single" },
         features: [],
-        artifacts: {},
-        lastUpdated: "2026-03-29T00:00:00Z",
-  
       },
     ];
 
@@ -562,15 +576,17 @@ describe("WatchLoop", () => {
   it("skips epics with no next action", async () => {
     const dispatched: string[] = [];
 
-    const completedEpic: EnrichedManifest = {
+    const completedEpic: EnrichedEpic = {
+      id: "bm-test-7",
+      type: "epic",
       slug: "done-epic",
-      manifestPath: "pipeline/done-epic.manifest.json",
-      phase: "release",
+      name: "Done Epic",
+      status: "release",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: null,
-      features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
+      features: [{ id: "f1", type: "feature", parent: "bm-test-7", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
     };
 
     const deps = mockDeps({
@@ -604,15 +620,17 @@ describe("WatchLoop", () => {
     const completed: Array<{ phase: string; epicSlug: string }> = [];
     let scanCount = 0;
 
-    const releaseEpic: EnrichedManifest = {
+    const releaseEpic: EnrichedEpic = {
+      id: "bm-test-8",
+      type: "epic",
       slug: "release-epic",
-      manifestPath: "pipeline/release-epic.manifest.json",
-      phase: "validate",
+      name: "Release Epic",
+      status: "validate",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: { phase: "release", args: ["release-epic"], type: "single" },
-      features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
+      features: [{ id: "f1", type: "feature", parent: "bm-test-8", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
     };
 
     const deps = mockDeps({
@@ -662,15 +680,17 @@ describe("WatchLoop", () => {
     const cleanedUpEpics: string[] = [];
     let scanCount = 0;
 
-    const releaseEpic: EnrichedManifest = {
+    const releaseEpic: EnrichedEpic = {
+      id: "bm-test-9",
+      type: "epic",
       slug: "cleanup-epic",
-      manifestPath: "pipeline/cleanup-epic.manifest.json",
-      phase: "validate",
+      name: "Cleanup Epic",
+      status: "validate",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: { phase: "release", args: ["cleanup-epic"], type: "single" },
-      features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
+      features: [{ id: "f1", type: "feature", parent: "bm-test-9", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
     };
 
     const deps = mockDeps({
@@ -719,15 +739,17 @@ describe("WatchLoop", () => {
       throw new Error("cmux is down");
     };
 
-    const releaseEpic: EnrichedManifest = {
+    const releaseEpic: EnrichedEpic = {
+      id: "bm-test-10",
+      type: "epic",
       slug: "fragile-epic",
-      manifestPath: "pipeline/fragile-epic.manifest.json",
-      phase: "validate",
+      name: "Fragile Epic",
+      status: "validate",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: { phase: "release", args: ["fragile-epic"], type: "single" },
-      features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
+      features: [{ id: "f1", type: "feature", parent: "bm-test-10", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
     };
 
     const deps = mockDeps({
@@ -779,15 +801,17 @@ describe("WatchLoop", () => {
     const completed: Array<{ phase: string; success: boolean }> = [];
     let scanCount = 0;
 
-    const releaseEpic: EnrichedManifest = {
+    const releaseEpic: EnrichedEpic = {
+      id: "bm-test-11",
+      type: "epic",
       slug: "fail-epic",
-      manifestPath: "pipeline/fail-epic.manifest.json",
-      phase: "validate",
+      name: "Fail Epic",
+      status: "validate",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: { phase: "release", args: ["fail-epic"], type: "single" },
-      features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
+      features: [{ id: "f1", type: "feature", parent: "bm-test-11", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
     };
 
     const deps = mockDeps({
@@ -832,15 +856,17 @@ describe("WatchLoop", () => {
     let dispatchCount = 0;
     let scanCount = 0;
 
-    const releaseEpic: EnrichedManifest = {
+    const releaseEpic: EnrichedEpic = {
+      id: "bm-test-12",
+      type: "epic",
       slug: "done-epic",
-      manifestPath: "pipeline/done-epic.manifest.json",
-      phase: "validate",
+      name: "Done Epic",
+      status: "validate",
+      depends_on: [],
+      created_at: "2026-03-29T00:00:00Z",
+      updated_at: "2026-03-29T00:00:00Z",
       nextAction: { phase: "release", args: ["done-epic"], type: "single" },
-      features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-      artifacts: {},
-      lastUpdated: "2026-03-29T00:00:00Z",
-
+      features: [{ id: "f1", type: "feature", parent: "bm-test-12", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
     };
 
     const deps = mockDeps({
@@ -885,24 +911,30 @@ describe("WatchLoop", () => {
     const held: Array<{ waitingSlug: string; blockingSlug: string }> = [];
     let scanCount = 0;
 
-    const epics: EnrichedManifest[] = [
+    const epics: EnrichedEpic[] = [
       {
+        id: "bm-test-13a",
+        type: "epic",
         slug: "epic-a",
-        manifestPath: "pipeline/epic-a.manifest.json",
-        phase: "validate",
+        name: "Epic A",
+        status: "validate",
+        depends_on: [],
+        created_at: "2026-03-29T00:00:00Z",
+        updated_at: "2026-03-29T00:00:00Z",
         nextAction: { phase: "release", args: ["epic-a"], type: "single" },
-        features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-        artifacts: {},
-        lastUpdated: "2026-03-29T00:00:00Z",
+        features: [{ id: "f1", type: "feature", parent: "bm-test-13a", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
       },
       {
+        id: "bm-test-13b",
+        type: "epic",
         slug: "epic-b",
-        manifestPath: "pipeline/epic-b.manifest.json",
-        phase: "validate",
+        name: "Epic B",
+        status: "validate",
+        depends_on: [],
+        created_at: "2026-03-29T00:00:00Z",
+        updated_at: "2026-03-29T00:00:00Z",
         nextAction: { phase: "release", args: ["epic-b"], type: "single" },
-        features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-        artifacts: {},
-        lastUpdated: "2026-03-29T00:00:00Z",
+        features: [{ id: "f1", type: "feature", parent: "bm-test-13b", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
       },
     ];
 
@@ -947,24 +979,30 @@ describe("WatchLoop", () => {
     let scanCount = 0;
     let resolveFirst: ((value: any) => void) | null = null;
 
-    const epics: EnrichedManifest[] = [
+    const epics: EnrichedEpic[] = [
       {
+        id: "bm-test-14a",
+        type: "epic",
         slug: "epic-a",
-        manifestPath: "pipeline/epic-a.manifest.json",
-        phase: "validate",
+        name: "Epic A",
+        status: "validate",
+        depends_on: [],
+        created_at: "2026-03-29T00:00:00Z",
+        updated_at: "2026-03-29T00:00:00Z",
         nextAction: { phase: "release", args: ["epic-a"], type: "single" },
-        features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-        artifacts: {},
-        lastUpdated: "2026-03-29T00:00:00Z",
+        features: [{ id: "f1", type: "feature", parent: "bm-test-14a", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
       },
       {
+        id: "bm-test-14b",
+        type: "epic",
         slug: "epic-b",
-        manifestPath: "pipeline/epic-b.manifest.json",
-        phase: "validate",
+        name: "Epic B",
+        status: "validate",
+        depends_on: [],
+        created_at: "2026-03-29T00:00:00Z",
+        updated_at: "2026-03-29T00:00:00Z",
         nextAction: { phase: "release", args: ["epic-b"], type: "single" },
-        features: [{ slug: "f1", plan: "f1.md", status: "completed" }],
-        artifacts: {},
-        lastUpdated: "2026-03-29T00:00:00Z",
+        features: [{ id: "f1", type: "feature", parent: "bm-test-14b", slug: "f1", name: "Feature 1", status: "completed" as const, plan: "f1.md", depends_on: [], created_at: "2026-03-29T00:00:00Z", updated_at: "2026-03-29T00:00:00Z" }],
       },
     ];
 
@@ -1028,24 +1066,30 @@ describe("WatchLoop", () => {
     const dispatched: string[] = [];
     let scanCount = 0;
 
-    const epics: EnrichedManifest[] = [
+    const epics: EnrichedEpic[] = [
       {
+        id: "bm-test-15a",
+        type: "epic",
         slug: "epic-a",
-        manifestPath: "pipeline/epic-a.manifest.json",
-        phase: "design",
+        name: "Epic A",
+        status: "design",
+        depends_on: [],
+        created_at: "2026-03-29T00:00:00Z",
+        updated_at: "2026-03-29T00:00:00Z",
         nextAction: { phase: "plan", args: ["epic-a"], type: "single" },
         features: [],
-        artifacts: {},
-        lastUpdated: "2026-03-29T00:00:00Z",
       },
       {
+        id: "bm-test-15b",
+        type: "epic",
         slug: "epic-b",
-        manifestPath: "pipeline/epic-b.manifest.json",
-        phase: "design",
+        name: "Epic B",
+        status: "design",
+        depends_on: [],
+        created_at: "2026-03-29T00:00:00Z",
+        updated_at: "2026-03-29T00:00:00Z",
         nextAction: { phase: "plan", args: ["epic-b"], type: "single" },
         features: [],
-        artifacts: {},
-        lastUpdated: "2026-03-29T00:00:00Z",
       },
     ];
 

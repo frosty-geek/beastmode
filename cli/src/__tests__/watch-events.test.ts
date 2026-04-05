@@ -10,7 +10,7 @@
 import { describe, test, expect } from "vitest";
 import { WatchLoop, attachLoggerSubscriber } from "../commands/watch-loop";
 import type { WatchDeps } from "../commands/watch-loop";
-import type { EnrichedManifest } from "../manifest/store";
+import type { EnrichedEpic } from "../store/types";
 import type { SessionHandle, SessionCreateOpts } from "../dispatch/factory";
 import type { WatchConfig } from "../dispatch/types";
 import { createNullLogger } from "../logger";
@@ -18,14 +18,17 @@ import type { Logger } from "../logger";
 
 // --- Helpers ---
 
-function makeEpic(overrides?: Partial<EnrichedManifest>): EnrichedManifest {
+function makeEpic(overrides?: Partial<EnrichedEpic>): EnrichedEpic {
   return {
+    id: "bm-test",
+    type: "epic",
     slug: "test-epic",
-    phase: "design",
-    manifestPath: "/tmp/test-epic/manifest.json",
+    name: "Test Epic",
+    status: "design",
+    depends_on: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
     features: [],
-    artifacts: {},
-    lastUpdated: new Date().toISOString(),
     nextAction: { phase: "design", args: ["test-epic"], type: "single" as const },
     ...overrides,
   };
@@ -206,12 +209,13 @@ describe("WatchLoop event emission", () => {
 
   test("fan-out dispatch emits session-started per feature", async () => {
     const epic = makeEpic({
+      id: "bm-fanout",
       slug: "fanout-epic",
-      phase: "implement",
+      status: "implement",
       features: [
-        { slug: "feat-a", plan: "feat-a.md", status: "pending" },
-        { slug: "feat-b", plan: "feat-b.md", status: "pending" },
-        { slug: "feat-c", plan: "feat-c.md", status: "pending" },
+        { id: "f1", type: "feature", parent: "bm-fanout", slug: "feat-a", name: "Feature A", status: "pending" as const, plan: "feat-a.md", depends_on: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        { id: "f2", type: "feature", parent: "bm-fanout", slug: "feat-b", name: "Feature B", status: "pending" as const, plan: "feat-b.md", depends_on: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        { id: "f3", type: "feature", parent: "bm-fanout", slug: "feat-c", name: "Feature C", status: "pending" as const, plan: "feat-c.md", depends_on: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
       ],
       nextAction: {
         phase: "implement",
@@ -324,13 +328,15 @@ describe("WatchLoop event emission", () => {
 
   test("emits release:held when release serialization blocks dispatch", async () => {
     const epicA = makeEpic({
+      id: "bm-a",
       slug: "epic-a",
-      phase: "release",
+      status: "release",
       nextAction: { phase: "release", args: ["epic-a"], type: "single" as const },
     });
     const epicB = makeEpic({
+      id: "bm-b",
       slug: "epic-b",
-      phase: "release",
+      status: "release",
       nextAction: { phase: "release", args: ["epic-b"], type: "single" as const },
     });
 
