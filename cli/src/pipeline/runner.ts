@@ -49,7 +49,6 @@ import {
   writeHitlSettings,
   cleanHitlSettings,
   buildPreToolUseHook,
-  getPhaseHitlProse,
 } from "../hooks/hitl-settings.js";
 import {
   writeFilePermissionSettings,
@@ -154,8 +153,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     // -- Step 3: settings.create ----------------------------------------------
     const claudeDir = resolve(worktreePath, ".claude");
     cleanHitlSettings(claudeDir);
-    const hitlProse = getPhaseHitlProse(config.config.hitl, config.phase);
-    const preToolUseHook = buildPreToolUseHook(hitlProse, config.config.hitl.timeout);
+    const preToolUseHook = buildPreToolUseHook(config.phase);
     writeHitlSettings({ claudeDir, preToolUseHook, phase: config.phase });
 
     // File-permission hooks

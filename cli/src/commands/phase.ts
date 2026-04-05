@@ -27,7 +27,7 @@ import { createLogger, createStdioSink } from "../logger";
 import { loadWorktreePhaseOutput } from "../artifacts/reader";
 import { loadConfig, getCategoryProse } from "../config";
 import { cancelEpic } from "./cancel-logic.js";
-import { writeHitlSettings, cleanHitlSettings, buildPreToolUseHook, getPhaseHitlProse } from "../hooks/hitl-settings";
+import { writeHitlSettings, cleanHitlSettings, buildPreToolUseHook } from "../hooks/hitl-settings";
 import {
   writeFilePermissionSettings,
   cleanFilePermissionSettings,
@@ -88,8 +88,7 @@ export async function phaseCommand(
     // Write HITL settings
     const claudeDir = resolve(cwd, ".claude");
     cleanHitlSettings(claudeDir);
-    const hitlProse = getPhaseHitlProse(_config.hitl, phase);
-    const preToolUseHook = buildPreToolUseHook(hitlProse, _config.hitl.timeout);
+    const preToolUseHook = buildPreToolUseHook(phase);
     writeHitlSettings({ claudeDir, preToolUseHook, phase });
 
     // File-permission hooks
