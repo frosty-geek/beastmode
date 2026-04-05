@@ -15,7 +15,7 @@ export async function compactCommand(): Promise<void> {
   const beastmodeDir = resolve(projectRoot, ".beastmode");
 
   if (!existsSync(beastmodeDir)) {
-    console.error("Not a beastmode project (missing .beastmode/ directory)");
+    process.stderr.write("Not a beastmode project (missing .beastmode/ directory)\n");
     process.exit(1);
   }
 

@@ -156,7 +156,7 @@ export class WatchLoop extends EventEmitter {
       const result = await this.deps.scanEpics(this.config.projectRoot);
       epics = Array.isArray(result) ? result : result.epics;
     } catch (err) {
-      this.logger.error(`State scan failed: ${err}`);
+      this.logger.warn(`State scan failed: ${err}`);
       return;
     }
 
