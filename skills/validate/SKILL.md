@@ -115,6 +115,16 @@ Check each gate:
 - All required gates pass → PASS
 - Any required gate fails → FAIL
 
+### 2b. Identify Failing Features
+
+If any test gate fails, identify which features are responsible:
+
+1. Parse test output for feature-scoped test names (e.g., `*.integration.test.ts`, tagged with `@<feature-name>`)
+2. Map failures to feature slugs using naming conventions
+3. Record per-feature pass/fail results
+
+If feature-level identification is not possible (tests are not feature-scoped), fall back to blanket failure.
+
 ### 3. Generate Report
 
 ```markdown
@@ -149,17 +159,24 @@ phase: validate
 slug: <epic-id>
 epic: <epic-name>
 status: passed
+failedFeatures: feat-a,feat-b
 ---
 ```
 
 Set `status` to `passed` or `failed` matching the validation result.
 
+- `failedFeatures` is a comma-separated list of feature slugs that failed validation
+- Only present when `status: failed` and specific features can be identified
+- When absent on failure, the pipeline falls back to blanket regression (all features reset)
+
 ### 2. Commit and Handoff
 
 If FAIL:
 ```
-Validation failed. Fix issues and re-run:
-beastmode validate <epic-name>
+Validation failed.
+Failing features: <comma-separated list>
+Re-dispatch count will increment for each failing feature (max 2 per feature).
+The pipeline will automatically re-implement failing features.
 ```
 STOP — do not proceed to commit.
 
