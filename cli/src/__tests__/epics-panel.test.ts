@@ -364,7 +364,7 @@ describe("key hints", () => {
 // ---------------------------------------------------------------------------
 
 describe("epic filtering and sorting", () => {
-  const PHASE_ORDER: Record<string, number> = {
+  const STATUS_ORDER: Record<string, number> = {
     cancelled: -1,
     design: 0,
     plan: 1,
@@ -376,23 +376,23 @@ describe("epic filtering and sorting", () => {
 
   interface FakeEpic {
     slug: string;
-    phase: string;
+    status: string;
   }
 
   function sortEpics(epics: FakeEpic[]): FakeEpic[] {
     return [...epics].sort((a, b) => {
-      const aP = PHASE_ORDER[a.phase] ?? 99;
-      const bP = PHASE_ORDER[b.phase] ?? 99;
+      const aP = STATUS_ORDER[a.status] ?? 99;
+      const bP = STATUS_ORDER[b.status] ?? 99;
       if (aP !== bP) return bP - aP;
       return a.slug.localeCompare(b.slug);
     });
   }
 
-  test("sort puts furthest phase first", () => {
+  test("sort puts furthest status first", () => {
     const epics: FakeEpic[] = [
-      { slug: "a", phase: "design" },
-      { slug: "b", phase: "validate" },
-      { slug: "c", phase: "implement" },
+      { slug: "a", status: "design" },
+      { slug: "b", status: "validate" },
+      { slug: "c", status: "implement" },
     ];
     const sorted = sortEpics(epics);
     expect(sorted.map((e) => e.slug)).toEqual(["b", "c", "a"]);
@@ -400,8 +400,8 @@ describe("epic filtering and sorting", () => {
 
   test("sort breaks ties alphabetically", () => {
     const epics: FakeEpic[] = [
-      { slug: "c-epic", phase: "implement" },
-      { slug: "a-epic", phase: "implement" },
+      { slug: "c-epic", status: "implement" },
+      { slug: "a-epic", status: "implement" },
     ];
     const sorted = sortEpics(epics);
     expect(sorted.map((e) => e.slug)).toEqual(["a-epic", "c-epic"]);
@@ -409,34 +409,34 @@ describe("epic filtering and sorting", () => {
 
   test("toggle filters out done and cancelled", () => {
     const epics: FakeEpic[] = [
-      { slug: "a", phase: "implement" },
-      { slug: "b", phase: "done" },
-      { slug: "c", phase: "cancelled" },
+      { slug: "a", status: "implement" },
+      { slug: "b", status: "done" },
+      { slug: "c", status: "cancelled" },
     ];
     const showAll = false;
     const visible = showAll
       ? epics
-      : epics.filter((e) => e.phase !== "done" && e.phase !== "cancelled");
+      : epics.filter((e) => e.status !== "done" && e.status !== "cancelled");
     expect(visible.map((e) => e.slug)).toEqual(["a"]);
   });
 
   test("toggle showAll includes done and cancelled", () => {
     const epics: FakeEpic[] = [
-      { slug: "a", phase: "implement" },
-      { slug: "b", phase: "done" },
+      { slug: "a", status: "implement" },
+      { slug: "b", status: "done" },
     ];
     const showAll = true;
     const visible = showAll
       ? epics
-      : epics.filter((e) => e.phase !== "done" && e.phase !== "cancelled");
+      : epics.filter((e) => e.status !== "done" && e.status !== "cancelled");
     expect(visible.length).toBe(2);
   });
 
   test("name filter matches substring", () => {
     const epics: FakeEpic[] = [
-      { slug: "dashboard-rework", phase: "implement" },
-      { slug: "auth-flow", phase: "design" },
-      { slug: "dashboard-v2", phase: "plan" },
+      { slug: "dashboard-rework", status: "implement" },
+      { slug: "auth-flow", status: "design" },
+      { slug: "dashboard-v2", status: "plan" },
     ];
     const filterString = "dashboard";
     const filtered = epics.filter((e) => e.slug.includes(filterString));
@@ -447,7 +447,7 @@ describe("epic filtering and sorting", () => {
   });
 
   test("empty filter returns all", () => {
-    const epics: FakeEpic[] = [{ slug: "a", phase: "implement" }];
+    const epics: FakeEpic[] = [{ slug: "a", status: "implement" }];
     const filterString = "";
     const filtered = filterString
       ? epics.filter((e) => e.slug.includes(filterString))

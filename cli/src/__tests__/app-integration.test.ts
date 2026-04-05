@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import type { EnrichedManifest, ManifestFeature } from "../manifest/store.js";
+import type { EnrichedEpic, Feature } from "../store/types.js";
 
 import { buildTreeState } from "../dashboard/hooks/use-dashboard-tree-state.js";
 import { getKeyHints } from "../dashboard/key-hints.js";
@@ -9,26 +9,35 @@ import type { DashboardMode } from "../dashboard/hooks/use-dashboard-keyboard.js
 // Mock factories (same pattern as details-panel.test.ts)
 // ---------------------------------------------------------------------------
 
-function mockFeature(overrides: Partial<ManifestFeature> = {}): ManifestFeature {
+function mockFeature(overrides: Partial<Feature> = {}): Feature {
   return {
+    id: "feat-id",
+    type: "feature",
+    parent: "epic-id",
     slug: "feat-one",
-    plan: "plan-one",
+    name: "Feature One",
     status: "pending",
+    depends_on: [],
+    created_at: "2026-04-04T00:00:00Z",
+    updated_at: "2026-04-04T00:00:00Z",
     ...overrides,
   };
 }
 
-function mockEpic(overrides: Partial<EnrichedManifest> = {}): EnrichedManifest {
+function mockEpic(overrides: Partial<EnrichedEpic> = {}): EnrichedEpic {
   return {
+    id: "epic-id",
+    type: "epic",
     slug: "test-epic",
-    phase: "implement",
+    name: "Test Epic",
+    status: "implement",
     features: [mockFeature()],
-    artifacts: {},
-    lastUpdated: "2026-04-04",
-    manifestPath: "/tmp/test.manifest.json",
     nextAction: null,
+    depends_on: [],
+    created_at: "2026-04-04T00:00:00Z",
+    updated_at: "2026-04-04T00:00:00Z",
     ...overrides,
-  } as EnrichedManifest;
+  } as EnrichedEpic;
 }
 
 // ---------------------------------------------------------------------------
@@ -36,19 +45,19 @@ function mockEpic(overrides: Partial<EnrichedManifest> = {}): EnrichedManifest {
 // ---------------------------------------------------------------------------
 
 /** Mirrors App.tsx: slugAtIndex — index 0 is "(all)", returns undefined */
-function slugAtIndex(epics: EnrichedManifest[], index: number): string | undefined {
+function slugAtIndex(epics: EnrichedEpic[], index: number): string | undefined {
   if (index === 0) return undefined;
   return epics[index - 1]?.slug;
 }
 
 /** Mirrors App.tsx: filteredEpics — filters by showAll toggle and active filter */
 function filterEpics(
-  epics: EnrichedManifest[],
+  epics: EnrichedEpic[],
   showAll: boolean,
   activeFilter: string,
-): EnrichedManifest[] {
+): EnrichedEpic[] {
   return epics.filter((e) => {
-    if (!showAll && (e.phase === "done" || e.phase === "cancelled")) {
+    if (!showAll && (e.status === "done" || e.status === "cancelled")) {
       return false;
     }
     if (activeFilter && !e.slug.includes(activeFilter)) {
@@ -60,7 +69,7 @@ function filterEpics(
 
 /** Mirrors App.tsx: selectedEpicSlug derivation */
 function deriveSelectedEpicSlug(
-  filteredEpics: EnrichedManifest[],
+  filteredEpics: EnrichedEpic[],
   selectedIndex: number,
 ): string | undefined {
   if (selectedIndex === 0) return undefined;
@@ -70,13 +79,13 @@ function deriveSelectedEpicSlug(
 /** Mirrors DetailsPanel: view resolution */
 type ViewKind = "overview" | "single-session" | "implement" | "empty";
 function resolveDetailsView(
-  epics: EnrichedManifest[],
+  epics: EnrichedEpic[],
   selectedIndex: number,
-): { kind: ViewKind; epic?: EnrichedManifest } {
+): { kind: ViewKind; epic?: EnrichedEpic } {
   if (selectedIndex === 0) return { kind: "overview" };
   const epic = epics[selectedIndex - 1];
   if (!epic) return { kind: "empty" };
-  if (epic.phase === "implement") return { kind: "implement", epic };
+  if (epic.status === "implement") return { kind: "implement", epic };
   return { kind: "single-session", epic };
 }
 
@@ -87,9 +96,9 @@ function resolveDetailsView(
 describe("App integration — ThreePanelLayout wiring", () => {
   test("App passes filteredEpics to EpicsPanel and DetailsPanel", () => {
     const epics = [
-      mockEpic({ slug: "alpha", phase: "implement" }),
-      mockEpic({ slug: "beta", phase: "done" }),
-      mockEpic({ slug: "gamma", phase: "design" }),
+      mockEpic({ slug: "alpha", status: "implement" }),
+      mockEpic({ slug: "beta", status: "done" }),
+      mockEpic({ slug: "gamma", status: "design" }),
     ];
 
     // showAll = false filters out "done"
@@ -106,8 +115,8 @@ describe("App integration — ThreePanelLayout wiring", () => {
     const selectedIndex = 2;
 
     const epics = [
-      mockEpic({ slug: "alpha", phase: "implement" }),
-      mockEpic({ slug: "beta", phase: "design" }),
+      mockEpic({ slug: "alpha", status: "implement" }),
+      mockEpic({ slug: "beta", status: "design" }),
     ];
 
     const detailsView = resolveDetailsView(epics, selectedIndex);
@@ -142,9 +151,9 @@ describe("App integration — ThreePanelLayout wiring", () => {
 
 describe("App integration — selection propagates to DetailsPanel", () => {
   const epics = [
-    mockEpic({ slug: "alpha", phase: "implement", features: [mockFeature({ slug: "f1", status: "completed" })] }),
-    mockEpic({ slug: "beta", phase: "design" }),
-    mockEpic({ slug: "gamma", phase: "plan" }),
+    mockEpic({ slug: "alpha", status: "implement", features: [mockFeature({ slug: "f1", status: "completed" })] }),
+    mockEpic({ slug: "beta", status: "design" }),
+    mockEpic({ slug: "gamma", status: "plan" }),
   ];
 
   test("index 0 → DetailsPanel shows pipeline overview", () => {
@@ -164,7 +173,7 @@ describe("App integration — selection propagates to DetailsPanel", () => {
     const view = resolveDetailsView(epics, 2);
     expect(view.kind).toBe("single-session");
     expect(view.epic?.slug).toBe("beta");
-    expect(view.epic?.phase).toBe("design");
+    expect(view.epic?.status).toBe("design");
   });
 
   test("index beyond epics → DetailsPanel shows empty", () => {
@@ -248,10 +257,10 @@ describe("App integration — selection propagates to LogPanel", () => {
 
 describe("App integration — end-to-end data flow", () => {
   const allEpics = [
-    mockEpic({ slug: "dashboard-rework", phase: "implement" }),
-    mockEpic({ slug: "auth-flow", phase: "design" }),
-    mockEpic({ slug: "dashboard-v2", phase: "done" }),
-    mockEpic({ slug: "api-cleanup", phase: "cancelled" }),
+    mockEpic({ slug: "dashboard-rework", status: "implement" }),
+    mockEpic({ slug: "auth-flow", status: "design" }),
+    mockEpic({ slug: "dashboard-v2", status: "done" }),
+    mockEpic({ slug: "api-cleanup", status: "cancelled" }),
   ];
 
   test("filter + toggle produces correct visible list", () => {
