@@ -1,6 +1,6 @@
 ---
 phase: design
-slug: 5abf84
+slug: spring-cleaning
 epic: spring-cleaning
 ---
 
