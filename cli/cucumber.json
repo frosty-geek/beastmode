@@ -201,6 +201,25 @@
     "format": ["progress-bar"],
     "publishQuiet": true
   },
+  "spring-cleaning": {
+    "paths": [
+      "features/spring-cleaning-cmux-removal.feature",
+      "features/spring-cleaning-sdk-removal.feature",
+      "features/spring-cleaning-cli-removal.feature",
+      "features/spring-cleaning-config-removal.feature",
+      "features/spring-cleaning-type-exports.feature",
+      "features/spring-cleaning-session-types.feature",
+      "features/spring-cleaning-docs.feature",
+      "features/spring-cleaning-dead-tests.feature"
+    ],
+    "import": [
+      "features/step_definitions/spring-cleaning.steps.ts",
+      "features/support/spring-cleaning-world.ts",
+      "features/support/spring-cleaning-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
   "github-enrichment": {
     "paths": [
       "features/github-enrichment/epic-body-content.feature",
