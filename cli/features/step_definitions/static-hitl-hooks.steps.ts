@@ -20,7 +20,7 @@ function getWorktreeSettingsPath(world: PipelineWorld): string {
 
 /** Resolve path to hitl-auto.ts from actual source tree (not temp repo). */
 function getHitlAutoScriptPath(): string {
-  return resolve(__dirname, "../../../src/hooks/hitl-auto.ts");
+  return resolve(__dirname, "../../src/hooks/hitl-auto.ts");
 }
 
 // -- Given: HITL config prose setup --
@@ -66,45 +66,6 @@ Given("the HITL config prose for {string} is {string}", function (
 
   (this as any)._hitlAutoPhase = phase;
   (this as any)._hitlAutoProse = prose;
-});
-
-Given("the config has file-permissions claude-settings set to {string}", function (
-  this: PipelineWorld,
-  value: string,
-) {
-  const configPath = join(this.projectRoot, ".beastmode", "config.yaml");
-  const configContent = readFileSync(configPath, "utf-8");
-
-  const lines = configContent.split("\n");
-  const newLines: string[] = [];
-  let inFp = false;
-  let updated = false;
-
-  for (const line of lines) {
-    if (line.match(/^file-permissions:/)) {
-      inFp = true;
-      newLines.push(line);
-      continue;
-    }
-    if (inFp && line.match(/^\s+claude-settings:/)) {
-      newLines.push(`  claude-settings: "${value}"`);
-      updated = true;
-      continue;
-    }
-    if (inFp && !line.startsWith(" ") && line.length > 0) {
-      inFp = false;
-    }
-    newLines.push(line);
-  }
-
-  if (!updated) {
-    const fpIdx = newLines.findIndex((l) => l.match(/^file-permissions:/));
-    if (fpIdx >= 0) {
-      newLines.splice(fpIdx + 1, 0, `  claude-settings: "${value}"`);
-    }
-  }
-
-  writeFileSync(configPath, newLines.join("\n"));
 });
 
 // -- When: run the hook script directly --

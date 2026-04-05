@@ -95,6 +95,19 @@
     "format": ["progress-bar"],
     "publishQuiet": true
   },
+  "static-hitl": {
+    "paths": ["features/static-hitl-hooks.feature"],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/hitl.steps.ts",
+      "features/step_definitions/static-hitl-hooks.steps.ts",
+      "features/step_definitions/file-permissions.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
   "file-permissions": {
     "paths": [
       "features/file-permissions-config.feature",
@@ -121,6 +134,7 @@
       "features/design-slug-rename.feature",
       "features/pipeline-error-resilience.feature",
       "features/hitl-hook-lifecycle.feature",
+      "features/static-hitl-hooks.feature",
       "features/file-permissions-config.feature",
       "features/file-permissions-hooks.feature",
       "features/file-permissions-logging.feature",
@@ -133,6 +147,7 @@
       "features/step_definitions/slug-rename.steps.ts",
       "features/step_definitions/error-resilience.steps.ts",
       "features/step_definitions/hitl.steps.ts",
+      "features/step_definitions/static-hitl-hooks.steps.ts",
       "features/step_definitions/file-permissions.steps.ts",
       "features/support/world.ts",
       "features/support/hooks.ts"
