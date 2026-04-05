@@ -75,7 +75,19 @@ export class CancelWorld extends World {
     // Load config
     this.config = {
       github: { enabled: false },
-      cli: { interval: 60, "dispatch-strategy": "sdk" },
+      cli: { interval: 60 },
+      hitl: {
+        timeout: 30,
+        design: "always defer to human",
+        plan: "always defer to human",
+        implement: "always defer to human",
+        validate: "always defer to human",
+        release: "always defer to human",
+      },
+      "file-permissions": {
+        timeout: 30,
+        "claude-settings": "always defer to human",
+      },
     };
   }
 

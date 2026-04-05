@@ -43,7 +43,7 @@
 - github-sync.ts returns mutation objects -- caller applies via manifest.ts functions and saves through manifest-store.ts
 - GitHub is a synced mirror updated post-dispatch -- provides the global view across designs
 - Artifact files (.beastmode/artifacts/) are the committed content store (PRDs, plans, validation reports)
-- `/beastmode status` bridges both: scans state directories for local manifest state, queries GitHub for the board view when enabled
+- Dashboard bridges both: scans state directories for local manifest state, queries GitHub for the board view when enabled
 - Manifest schema is pure pipeline state: slug (hex), epic? (human name), originId? (birth hex), phase, features array, artifacts, worktree info, optional github block -- no architectural decisions or content concerns
 - Four feature statuses: pending, in-progress, blocked, completed
 - GitHub API failures: warn and continue -- absence of `github` data is the signal

@@ -4,8 +4,6 @@ import { parseArgs } from "./args";
 import { loadConfig } from "./config";
 import { createLogger } from "./logger";
 import { phaseCommand } from "./commands/phase";
-import { watchCommand } from "./commands/watch";
-import { statusCommand } from "./commands/status";
 import { cancelCommand } from "./commands/cancel";
 import { compactCommand } from "./commands/compact";
 import { dashboardCommand } from "./commands/dashboard";
@@ -25,8 +23,6 @@ Usage:
   beastmode release <slug>             Create a release
   beastmode cancel <slug> [--force]   Cancel and clean up an epic
   beastmode compact                    Audit and compact the context tree
-  beastmode watch                      Autonomous pipeline orchestration
-  beastmode status [--all] [--watch|-w] Show pipeline status
   beastmode dashboard                  Fullscreen pipeline dashboard
   beastmode store <subcommand>         Structured task store operations
   beastmode help                       Show this help message
@@ -65,12 +61,6 @@ async function main(): Promise<void> {
   }
 
   switch (command) {
-    case "watch":
-      await watchCommand(args, verbosity);
-      break;
-    case "status":
-      await statusCommand(config, args, verbosity);
-      break;
     case "dashboard":
       await dashboardCommand(config, args, verbosity);
       break;

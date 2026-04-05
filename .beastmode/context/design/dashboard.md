@@ -45,16 +45,15 @@
 - Filter: k9s style — inline prompt replaces key hints, Enter applies, Escape clears
 - Cancel: inline confirmation in key hints bar — `y` executes, `n`/Escape dismisses, blocks all other input
 
-## Dispatch Strategy
-- ALWAYS wire `selectStrategy(config.cli["dispatch-strategy"])` into the dashboard command — same function the watch command uses, identical factory selection path
-- Dashboard honors the operator's configured dispatch strategy (sdk, cmux, iterm2, auto) — no forced SDK override
-- When SDK strategy is selected, live message streaming is available via `SessionHandle.events`; when non-SDK strategy is selected, the log panel falls back to lifecycle event entries
+## Dispatch
+- Dashboard uses ITermSessionFactory directly — the sole implementation of SessionFactory
+- Log panel renders lifecycle event entries (dispatching / completed / failed) via FallbackEntryStore
 
-## Event Log Fallback (Non-SDK Dispatch)
-- When `SessionHandle.events` is undefined (non-SDK strategies), the log panel renders lifecycle events from the WatchLoop EventEmitter instead of streaming output
+## Lifecycle Log Entries
+- WatchLoop lifecycle events are converted to `LogEntry` objects by `FallbackEntryStore`
 - `session-started` → "dispatching" status entry; `session-completed` success → "completed" entry; `session-completed` failure or `error` → "failed" entry
-- Fallback entries use the same tree structure as SDK streaming entries — same panel, same format, fewer entries
-- ALWAYS implement fallback via a `FallbackEntryStore` that converts WatchLoop lifecycle events to `LogEntry` objects — separates event conversion from rendering logic
+- Entries use the same tree structure as other log entries — same panel, same format
+- ALWAYS implement via `FallbackEntryStore` that converts WatchLoop lifecycle events to `LogEntry` objects — separates event conversion from rendering logic
 
 ## Verbosity Cycling
 - ALWAYS initialize verbosity state in the root App component from the CLI-provided verbosity arg — single source of truth, propagated down as props
@@ -63,19 +62,8 @@
 - Key hints bar shows current verbosity level: `v verb:info` / `v verb:detail` / `v verb:debug` / `v verb:trace` — updates reactively on keypress
 - Four verbosity levels map to numeric indices (0-3) — cycling uses modular increment
 
-## Message Mapper
-- Structured message mapper converts SDKMessage types into terminal-friendly log entries (~200 lines)
-- Text deltas stream inline; tool calls render as one-liners: `[Read] file.ts`, `[Edit] file.ts:45-60`, `[Bash] bun test`
-- Tool results show brief output (e.g., `> 3 tests passed`)
-
-## Ring Buffer
-- ALWAYS allocate a ring buffer per dispatched SDK session (~100 recent log entries)
-- Buffers collect continuously even when the user is viewing a different session — no subscribe-on-demand gaps
-- Merge on render for aggregate views — no pre-merged buffers
-- Ring buffer entries feed into the TreeView component via `useDashboardTreeState` adapter — adapter transforms flat entries + session events into tree state
-
 ## Log Panel Tree View
-- ALWAYS use shared `<TreeView />` component for log panel rendering — same component used by `beastmode watch`
+- ALWAYS use shared `<TreeView />` component for log panel rendering
 - Tree hierarchy: epic > phase > feature with vertical line connectors and phase-based coloring
 - `useDashboardTreeState` adapter hook bridges existing data sources (ring buffers + session events) to tree state — rendering layer swap, data flow unchanged
 - Tree trimming for auto-follow within alternate screen buffer — newest entries visible at bottom
@@ -83,17 +71,15 @@
 ## Watch Loop Integration
 - ALWAYS embed WatchLoop directly in the dashboard process — dashboard IS the orchestrator
 - ALWAYS subscribe to WatchLoop EventEmitter typed events for React state updates
-- ALWAYS use the same lockfile as `beastmode watch` — mutual exclusion prevents two orchestrators
+- ALWAYS use the dashboard lockfile — mutual exclusion prevents two orchestrators
 - ALWAYS externalize signal handling — Ink app's SIGINT handler calls `loop.stop()`
 
 ## Shared Data Module
-- ALWAYS use `status-data.ts` for sorting, filtering, snapshot building, and change detection — shared between `beastmode status` and `beastmode dashboard`
-- Data layer shared, presentation layer separate (ANSI strings for status, Ink components for dashboard)
+- ALWAYS use `status-data.ts` for sorting, filtering, snapshot building, and change detection — shared data module for the dashboard
 
-## Coexistence
-- NEVER replace `beastmode watch` — kept as headless fallback for CI/automation
-- NEVER replace `beastmode status` or `status --watch` — kept for quick passive viewing
-- Dashboard is an additive capability, not a replacement for existing commands
+## Sole Orchestrator
+- Dashboard is the sole orchestration entry point — embeds the WatchLoop directly
+- No separate headless watch command — dashboard IS the orchestrator
 
 ## Release Queue Indicator
 - Epics held for release serialization show a "Queued" badge with blocking epic context in the EpicsPanel

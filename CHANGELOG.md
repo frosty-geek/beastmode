@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.89.0 — Spring Cleaning (Apr 2026)
+
+- **Delete cmux/SDK dispatch** — Remove cmux multiplexer, SDK streaming, SdkSessionFactory, and all related types; hardcode iTerm2 as the sole dispatch backend
+- **Narrow DispatchStrategy** — Reduce to `interactive | iterm2` only; remove strategy from config and DispatchedSession events field
+- **Delete watch/status commands** — Remove `watch` and `status` from CLI router, delete WatchTreeApp, tree-subscriber, and strategy selection cucumber files
+- **Extract ReconcilingFactory** — Move to `dispatch/reconciling.ts`, rewire dashboard imports
+- **Integration tests** — 20 new Cucumber scenarios across 8 feature files covering the simplified dispatch pipeline
+- **Context tree cleanup** — Delete cmux context tree, update L2/L3 context files to remove all cmux/SDK/watch/status references
+
+---
+
 ### v0.88.0 — GitHub Issue Enrichment (Apr 2026)
 
 - **Commit issue refs** — Post-sync pipeline step amends commit messages with `(#N)` trailing format for epic/feature auto-linking in GitHub timeline

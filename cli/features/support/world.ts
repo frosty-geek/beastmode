@@ -85,15 +85,18 @@ export class PipelineWorld extends World {
     // Load config
     this.config = {
       github: { enabled: false },
-      cli: { interval: 60, "dispatch-strategy": "sdk" },
+      cli: { interval: 60 },
       hitl: {
-        model: "haiku",
         timeout: 30,
         design: "always defer to human",
         plan: "auto-answer all questions",
         implement: "auto-answer all questions",
         validate: "auto-answer all questions",
         release: "auto-answer all questions",
+      },
+      "file-permissions": {
+        timeout: 30,
+        "claude-settings": "always defer to human",
       },
     };
   }
