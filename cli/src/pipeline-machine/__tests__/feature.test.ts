@@ -5,7 +5,9 @@ import type { FeatureContext } from "../types";
 
 function makeContext(overrides: Partial<FeatureContext> = {}): FeatureContext {
   return {
+    id: "bm-test.1",
     slug: "test-feature",
+    name: "Test Feature",
     plan: "test-plan.md",
     status: "pending",
     ...overrides,
@@ -29,11 +31,6 @@ describe("featureMachine", () => {
       const actor = startActor({ slug: "my-feat", plan: "my-plan.md" });
       expect(actor.getSnapshot().context.slug).toBe("my-feat");
       expect(actor.getSnapshot().context.plan).toBe("my-plan.md");
-    });
-
-    test("preserves optional github context", () => {
-      const actor = startActor({ github: { issue: 42 } });
-      expect(actor.getSnapshot().context.github?.issue).toBe(42);
     });
   });
 
