@@ -47,6 +47,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   const [clock, setClock] = useState(formatClock());
   const [epics, setEpics] = useState<EnrichedEpic[]>([]);
   const [watchRunning, setWatchRunning] = useState(false);
+  const [version, setVersion] = useState<string | null>(null);
   const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set());
   const [trackerSessions, setTrackerSessions] = useState<DispatchedSession[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>("");
@@ -261,7 +262,8 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
       });
     };
 
-    const onStarted = () => {
+    const onStarted = (ev: WatchLoopEventMap["started"][0]) => {
+      setVersion(ev.version);
       setWatchRunning(true);
       pushSystemEntry("watch loop started");
     };
@@ -440,6 +442,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     <ThreePanelLayout
       watchRunning={watchRunning}
       clock={clock}
+      version={version ?? undefined}
       rows={rows}
       focusedPanel={keyboard.focusedPanel}
       nyanTick={tick}
