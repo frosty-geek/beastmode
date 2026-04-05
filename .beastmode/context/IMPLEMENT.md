@@ -57,6 +57,16 @@
 - ALWAYS use an explicit bridging Map when external APIs (iTerm2 pane IDs) and internal APIs (dispatch session IDs) use different ID namespaces -- ambiguous keying causes silent lookup failures
 - ALWAYS use snapshot-diff pattern (capture IDs before, compare after) when detecting side effects of a black-box call on a mutable collection
 
+## BDD Loop
+- Write Plan generates Task 0 (integration test from Gherkin) as first task — RED state before implementation
+- After all tasks complete, integration test is re-run — expects GREEN
+- On failure: analyze output, identify responsible task, re-dispatch with failure context
+- BDD verification escalation: independent from per-task escalation, same model ladder (haiku→sonnet→opus), 6 total retries
+- Convention-based test discovery: file naming (`<feature>.integration.test.ts`), tags (`@<epic>`), describe blocks — no config file
+- ALWAYS skip BDD verification if no Integration Test Scenarios section in feature plan
+
+context/implement/write-plan.md
+
 ## Write Plan
 - Write Plan replaces the implicit Decompose step — produces `.tasks.md` with header, file structure, and TDD task definitions before dispatch begins
 - `.tasks.md` uses checkbox tracking (`- [ ]`/`- [x]`) for cross-session resume — no separate .tasks.json

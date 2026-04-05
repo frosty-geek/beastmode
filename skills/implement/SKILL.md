@@ -371,7 +371,11 @@ Print the accumulated status log from the execute phase:
 
     Escalations: N tasks escalated (X to sonnet, Y to opus)
 
+    BDD verification: [passed | passed after K retries | failed after K retries | skipped]
+    BDD retries: K total (X× haiku, Y× sonnet, Z× opus)
+
 Omit the Escalations line if no tasks escalated.
+Omit the BDD retries line if BDD verification passed on first run or was skipped.
 
 If all tasks completed with no concerns: "All tasks completed cleanly — no concerns or blockers."
 
@@ -401,6 +405,7 @@ suffix breaks the match and the watch loop never sees completion.
     **Tasks completed:** N/M
     **Review cycles:** N (spec: X, quality: Y)
     **Concerns:** N
+    **BDD verification:** [passed | passed after K retries | failed after K retries | skipped]
 
     ## Completed Tasks
     - Task N: <description> (<model tier>) — [clean | with concerns | escalated from <prior tier>: <reason>]
@@ -410,6 +415,15 @@ suffix breaks the match and the watch loop never sees completion.
 
     ## Blocked Tasks
     - Task N: <blocker description>
+
+    ## BDD Verification
+    - Result: [passed | passed after K retries | failed after K retries | skipped]
+    - Retries: N (haiku: X, sonnet: Y, opus: Z)
+    - Last failure: [test name — assertion message] (if applicable)
+    - Responsible task: Task N (if retries occurred)
+
+If BDD verification passed on first run: "BDD verification passed — integration test GREEN after all tasks completed."
+If skipped: "BDD verification skipped — no Integration Test Scenarios in feature plan."
 
 If all tasks completed with no concerns, still write this file with "Concerns: 0" and empty sections.
 This file MUST always be written — the stop hook reads its frontmatter to generate
@@ -594,6 +608,12 @@ Accumulated during execution, saved at checkpoint:
     None
 
     **Summary:** 4 tasks completed (1 with concerns), 0 blocked, 6 review cycles, 2 escalations
+
+    ## BDD Verification
+    - Result: passed after 3 retries
+    - Retries: 3 (haiku: 2, sonnet: 1, opus: 0)
+    - Last failure: auth-flow.integration.test.ts — "Expected token to be valid"
+    - Responsible task: Task 3
 
 If no concerns or blocks: "All tasks completed cleanly — no concerns or blockers."
 
