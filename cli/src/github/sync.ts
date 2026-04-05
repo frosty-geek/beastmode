@@ -151,9 +151,6 @@ export function formatEpicBody(input: EpicBodyInput): string {
     if (meta.mergeCommit) {
       lines.push(`**Merge Commit:** [${meta.mergeCommit.sha.slice(0, 7)}](${meta.mergeCommit.url})`);
     }
-    if (meta.compareUrl) {
-      lines.push(`**Compare:** [View Changes](${meta.compareUrl})`);
-    }
     if (lines.length > 0) {
       sections.push(`## Git\n\n${lines.join("\n")}`);
     }
@@ -394,36 +391,6 @@ function resolveArtifactLinks(
 }
 
 /**
- * Build a compare URL for the epic body.
- * Active epics: main...{branch}
- * Released epics: {versionTag}...archive/{slug} (fallback to branch-based if no archive tag)
- */
-export function buildCompareUrl(opts: {
-  repo: string;
-  branch: string;
-  slug: string;
-  phase: Phase;
-  archiveTag?: string;
-  versionTag?: string;
-}): string {
-  const base = `https://github.com/${opts.repo}/compare`;
-  if (opts.phase === "done" && opts.archiveTag && opts.versionTag) {
-    return `${base}/${opts.versionTag}...${opts.archiveTag}`;
-  }
-  return `${base}/main...${opts.branch}`;
-}
-
-/** Read the most recent version tag — returns tag name or undefined. */
-function readVersionTag(slug: string): string | undefined {
-  try {
-    const result = Bun.spawnSync(["git", "describe", "--tags", "--match", "v*", "--abbrev=0"]);
-    return result.exitCode === 0 ? result.stdout.toString().trim() || undefined : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
  * Resolve git metadata for traceability.
  * Branch from manifest, phase tags from git, version from manifest/plugin.
  * Only resolves tags when a worktree branch is present — tags without branch
@@ -460,29 +427,6 @@ function resolveGitMetadata(
       // Git not available — skip tags
     }
 
-    // Compare URL — requires repo to build full GitHub URL
-    if (repo) {
-      const archiveTagName = `archive/${manifest.slug}`;
-      let archiveTag: string | undefined;
-      try {
-        const archiveResult = Bun.spawnSync(["git", "rev-parse", "--verify", `refs/tags/${archiveTagName}`]);
-        if (archiveResult.exitCode === 0) {
-          archiveTag = archiveTagName;
-        }
-      } catch {
-        // No archive tag
-      }
-
-      const versionTag = readVersionTag(manifest.slug);
-      meta.compareUrl = buildCompareUrl({
-        repo,
-        branch: manifest.worktree.branch,
-        slug: manifest.slug,
-        phase: manifest.phase,
-        archiveTag,
-        versionTag,
-      });
-    }
   }
 
   // Compare URL — pure computation from available metadata
