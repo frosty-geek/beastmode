@@ -168,8 +168,8 @@ describe("@manifest-absorption: Store import migrates manifests into the store",
   });
 
   it("handles multiple manifests", async () => {
-    writeManifest(projectRoot, "auth-system", makeManifest());
-    writeManifest(projectRoot, "data-pipeline", makeManifest({
+    const path1 = writeManifest(projectRoot, "auth-system", makeManifest());
+    const path2 = writeManifest(projectRoot, "data-pipeline", makeManifest({
       slug: "data-pipeline",
       epic: "Data Pipeline",
       phase: "design",
@@ -182,6 +182,8 @@ describe("@manifest-absorption: Store import migrates manifests into the store",
     const names = result.epics.map((e: any) => e.name);
     expect(names).toContain("Auth System");
     expect(names).toContain("Data Pipeline");
+    expect(existsSync(path1)).toBe(false);
+    expect(existsSync(path2)).toBe(false);
   });
 
   it("grandfathers active epic git artifacts", async () => {
@@ -194,5 +196,8 @@ describe("@manifest-absorption: Store import migrates manifests into the store",
 
     expect(result.epics[0].worktree.branch).toBe("feature/auth-system");
     expect(result.epics[0].worktree.path).toBe(".claude/worktrees/auth-system");
+    // Verify NOT renamed to ID-based naming
+    expect(result.epics[0].worktree.branch).not.toMatch(/^feature\/bm-/);
+    expect(result.epics[0].worktree.path).not.toMatch(/bm-[0-9a-f]{4}/);
   });
 });
