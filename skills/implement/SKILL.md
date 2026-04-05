@@ -95,13 +95,23 @@ Before dispatching, produce a detailed `.tasks.md` document from the feature pla
 1. **Read feature plan** — user stories, what to build, acceptance criteria
 2. **Read architectural decisions** from the design doc — these are constraints
 3. **Explore codebase** — identify exact files, patterns, test structure, dependencies
-4. **Create tasks** using the Task Format (see Reference section):
+4. **Generate Task 0** — the integration test:
+   - Read the feature plan's `## Integration Test Scenarios` section — extract the Gherkin scenarios
+   - If the section exists, create Task 0 as the first task:
+     - Task 0 creates a runnable integration test file from the Gherkin scenarios
+     - The test must be runnable in isolation (feature-scoped, no cross-feature dependencies)
+     - The test uses the project's existing test runner with naming convention for identification (e.g., `<feature-name>.integration.test.ts` or `<feature-name>.feature`)
+     - The test is expected to FAIL after Task 0 (RED state) — the feature isn't implemented yet
+     - Task 0 is always Wave 0 with no dependencies
+   - If the section does not exist, skip Task 0 — proceed with tasks starting at Task 1
+   - All implementation tasks start at Task 1 — Task 0 is reserved for the integration test
+5. **Create implementation tasks** using the Task Format (see Reference section):
    - Map each aspect of "What to Build" to one or more tasks
    - Include exact file paths discovered from codebase exploration
    - Include complete code in steps — no placeholders
-   - Assign wave numbers based on dependencies
+   - Assign wave numbers based on dependencies (minimum Wave 1 — Wave 0 is reserved for Task 0)
    - Include verification steps with expected output
-5. **Write `.tasks.md`** to `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.md`:
+6. **Write `.tasks.md`** to `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.md`:
 
    The document has three sections and NO YAML frontmatter (the stop hook scans `artifacts/<phase>/` for `.md` files with frontmatter and generates `.output.json` — the `.tasks.md` must not trigger this):
 
@@ -122,10 +132,11 @@ Before dispatching, produce a detailed `.tasks.md` document from the feature pla
 
    The controller resumes from the first unchecked step (`- [ ]`).
 
-6. **Self-review pass** — before proceeding to dispatch, verify the `.tasks.md`:
+7. **Self-review pass** — before proceeding to dispatch, verify the `.tasks.md`:
    - **Spec coverage**: every acceptance criterion from the feature plan maps to at least one task
    - **Placeholder scan**: grep for TBD, TODO, "add appropriate", "similar to Task N", ellipsis (`...`) in code blocks — these are plan failures
    - **Type/name consistency**: identifiers used across tasks are consistent (no typos, no renamed-but-not-updated references)
+   - **Task 0 presence**: if the feature plan has `## Integration Test Scenarios`, verify Task 0 exists and produces a runnable test
    - Fix violations inline — no approval gate
 
 ### 1. Parse Waves
