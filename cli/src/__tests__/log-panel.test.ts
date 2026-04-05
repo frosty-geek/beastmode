@@ -8,75 +8,71 @@ import type { TreeState, TreeEntry } from "../dashboard/tree-types.js";
 
 describe("LogPanel with TreeState", () => {
   function makeEntry(msg: string, seq: number, level: "info" | "warn" | "error" = "info"): TreeEntry {
-    return { timestamp: 1000, level, message: msg, seq };
+    return { timestamp: 1000, level, message: msg, seq, phase: "implement" };
   }
 
   test("empty state is detected as no content", () => {
-    const state: TreeState = { epics: [], system: [] };
-    const hasContent = state.epics.length > 0 || state.system.length > 0;
+    const state: TreeState = { cli: { entries: [] }, epics: [] };
+    const hasContent = state.epics.length > 0 || state.cli.entries.length > 0;
     expect(hasContent).toBe(false);
   });
 
   test("state with epics is detected as has content", () => {
     const state: TreeState = {
-      epics: [{ slug: "my-epic", phases: [] }],
-      system: [],
+      cli: { entries: [] },
+      epics: [{ slug: "my-epic", status: "in-progress", features: [], entries: [] }],
     };
-    const hasContent = state.epics.length > 0 || state.system.length > 0;
+    const hasContent = state.epics.length > 0 || state.cli.entries.length > 0;
     expect(hasContent).toBe(true);
   });
 
-  test("state with system entries is detected as has content", () => {
+  test("state with CLI entries is detected as has content", () => {
     const state: TreeState = {
+      cli: { entries: [{ timestamp: 1000, level: "info", message: "started", seq: 0 }] },
       epics: [],
-      system: [{ timestamp: 1000, level: "info", message: "started", seq: 0 }],
     };
-    const hasContent = state.epics.length > 0 || state.system.length > 0;
+    const hasContent = state.epics.length > 0 || state.cli.entries.length > 0;
     expect(hasContent).toBe(true);
   });
 
-  test("tree state preserves entry ordering within phase", () => {
+  test("tree state preserves entry ordering within epic", () => {
     const entries: TreeEntry[] = [
       makeEntry("first", 0),
       makeEntry("second", 1),
       makeEntry("third", 2),
     ];
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries,
-        }],
+        status: "in-progress",
+        features: [],
+        entries,
       }],
-      system: [],
     };
 
-    expect(state.epics[0].phases[0].entries.map(e => e.message)).toEqual([
+    expect(state.epics[0].entries.map(e => e.message)).toEqual([
       "first", "second", "third",
     ]);
   });
 
-  test("tree state preserves feature nesting under phase", () => {
+  test("tree state preserves feature nesting under epic", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e",
-        phases: [{
-          phase: "implement",
-          features: [
-            { slug: "feat-a", entries: [makeEntry("a-msg", 0)] },
-            { slug: "feat-b", entries: [makeEntry("b-msg", 1)] },
-          ],
-          entries: [],
-        }],
+        status: "in-progress",
+        features: [
+          { slug: "feat-a", status: "in-progress", entries: [makeEntry("a-msg", 0)] },
+          { slug: "feat-b", status: "pending", entries: [makeEntry("b-msg", 1)] },
+        ],
+        entries: [],
       }],
-      system: [],
     };
 
-    expect(state.epics[0].phases[0].features).toHaveLength(2);
-    expect(state.epics[0].phases[0].features[0].slug).toBe("feat-a");
-    expect(state.epics[0].phases[0].features[1].slug).toBe("feat-b");
+    expect(state.epics[0].features).toHaveLength(2);
+    expect(state.epics[0].features[0].slug).toBe("feat-a");
+    expect(state.epics[0].features[1].slug).toBe("feat-b");
   });
 });
 
@@ -86,130 +82,126 @@ describe("LogPanel with TreeState", () => {
 
 describe("countTreeLines", () => {
   function makeEntry(msg: string, seq: number): TreeEntry {
-    return { timestamp: 1000, level: "info", message: msg, seq };
+    return { timestamp: 1000, level: "info", message: msg, seq, phase: "plan" };
   }
 
-  test("empty state has 0 lines", () => {
-    expect(countTreeLines({ epics: [], system: [] })).toBe(0);
+  test("empty state has 1 line (CLI root label)", () => {
+    expect(countTreeLines({ cli: { entries: [] }, epics: [] })).toBe(1);
   });
 
-  test("counts system entries", () => {
+  test("counts CLI entries", () => {
     const state: TreeState = {
+      cli: {
+        entries: [
+          { timestamp: 1000, level: "info", message: "a", seq: 0 },
+          { timestamp: 2000, level: "info", message: "b", seq: 1 },
+        ],
+      },
       epics: [],
-      system: [
-        { timestamp: 1000, level: "info", message: "a", seq: 0 },
-        { timestamp: 2000, level: "info", message: "b", seq: 1 },
-      ],
     };
-    expect(countTreeLines(state)).toBe(2);
+    // 1 CLI label + 2 entries = 3
+    expect(countTreeLines(state)).toBe(3);
   });
 
-  test("counts epic + phase + entries", () => {
+  test("counts epic + direct entries", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [makeEntry("msg", 0)],
-        }],
+        status: "in-progress",
+        features: [],
+        entries: [makeEntry("msg", 0)],
       }],
-      system: [],
     };
-    // 1 epic + 1 phase + 1 entry = 3
+    // 1 CLI label + 1 epic + 1 entry = 3
     expect(countTreeLines(state)).toBe(3);
   });
 
   test("counts features and their entries", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e",
-        phases: [{
-          phase: "implement",
-          features: [
-            { slug: "f1", entries: [makeEntry("a", 0), makeEntry("b", 1)] },
-            { slug: "f2", entries: [makeEntry("c", 2)] },
-          ],
-          entries: [],
-        }],
+        status: "in-progress",
+        features: [
+          { slug: "f1", status: "in-progress", entries: [makeEntry("a", 0), makeEntry("b", 1)] },
+          { slug: "f2", status: "pending", entries: [makeEntry("c", 2)] },
+        ],
+        entries: [],
       }],
-      system: [],
     };
-    // 1 epic + 1 phase + 2 features + 3 entries = 7
+    // 1 CLI label + 1 epic + 2 features + 3 entries = 7
     expect(countTreeLines(state)).toBe(7);
   });
 });
 
 describe("trimTreeToTail", () => {
   function makeEntry(msg: string, seq: number): TreeEntry {
-    return { timestamp: 1000, level: "info", message: msg, seq };
+    return { timestamp: 1000, level: "info", message: msg, seq, phase: "plan" };
   }
 
   test("returns same state when within limit", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [makeEntry("msg", 0)],
-        }],
+        status: "in-progress",
+        features: [],
+        entries: [makeEntry("msg", 0)],
       }],
-      system: [],
     };
     const result = trimTreeToTail(state, 100);
     expect(result).toBe(state); // same reference
   });
 
-  test("drops system entries first", () => {
+  test("drops CLI entries first", () => {
     const state: TreeState = {
+      cli: {
+        entries: [
+          { timestamp: 1000, level: "info", message: "old", seq: 0 },
+          { timestamp: 2000, level: "info", message: "new", seq: 1 },
+        ],
+      },
       epics: [],
-      system: [
-        { timestamp: 1000, level: "info", message: "old", seq: 0 },
-        { timestamp: 2000, level: "info", message: "new", seq: 1 },
-      ],
     };
-    const result = trimTreeToTail(state, 1);
-    expect(result.system).toHaveLength(1);
-    expect(result.system[0].message).toBe("new");
+    // Total: 1 CLI label + 2 entries = 3. Trim to 2 drops 1 entry.
+    const result = trimTreeToTail(state, 2);
+    expect(result.cli.entries).toHaveLength(1);
+    expect(result.cli.entries[0].message).toBe("new");
   });
 
-  test("drops phase entries from earliest epic first", () => {
+  test("drops epic entries from earliest epic first", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [makeEntry("old", 0), makeEntry("mid", 1), makeEntry("new", 2)],
-        }],
+        status: "in-progress",
+        features: [],
+        entries: [makeEntry("old", 0), makeEntry("mid", 1), makeEntry("new", 2)],
       }],
-      system: [],
     };
-    // Total: 1 epic + 1 phase + 3 entries = 5. Trim to 4 drops 1 entry.
+    // Total: 1 CLI label + 1 epic + 3 entries = 5. Trim to 4 drops 1 entry.
     const result = trimTreeToTail(state, 4);
-    expect(result.epics[0].phases[0].entries).toHaveLength(2);
-    expect(result.epics[0].phases[0].entries[0].message).toBe("mid");
+    expect(result.epics[0].entries).toHaveLength(2);
+    expect(result.epics[0].entries[0].message).toBe("mid");
   });
 
   test("drops feature entries", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e",
-        phases: [{
-          phase: "implement",
-          features: [
-            { slug: "f", entries: [makeEntry("old", 0), makeEntry("new", 1)] },
-          ],
-          entries: [],
-        }],
+        status: "in-progress",
+        features: [
+          { slug: "f", status: "in-progress", entries: [makeEntry("old", 0), makeEntry("new", 1)] },
+        ],
+        entries: [],
       }],
-      system: [],
     };
-    // Total: 1 epic + 1 phase + 1 feature + 2 entries = 5. Trim to 4.
+    // Total: 1 CLI label + 1 epic + 1 feature + 2 entries = 5. Trim to 4.
     const result = trimTreeToTail(state, 4);
-    expect(result.epics[0].phases[0].features[0].entries).toHaveLength(1);
-    expect(result.epics[0].phases[0].features[0].entries[0].message).toBe("new");
+    expect(result.epics[0].features[0].entries).toHaveLength(1);
+    expect(result.epics[0].features[0].entries[0].message).toBe("new");
   });
 });
 

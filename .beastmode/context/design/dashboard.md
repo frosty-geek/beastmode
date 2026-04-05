@@ -7,7 +7,7 @@
 - Color scheme follows Monokai Pro palette: purple #AB9DF2 (design), cyan #78DCE8 (plan), yellow #FFD866 (implement), green #A9DC76 (validate), orange #FC9867 (release), dim green (done), red #FF6188 (blocked/cancelled) — all values exported from a single shared monokai-palette module
 
 ## Layout
-- Three-panel vertical split via ThreePanelLayout: left column (35% width) contains EpicsPanel (60% height) stacked above OverviewPanel (40% height); right column (65% width) contains LogPanel at full height
+- Three-panel vertical split via ThreePanelLayout: left column (35% width) contains EpicsPanel (60% height) stacked above DetailsPanel (40% height); right column (65% width) contains LogPanel at full height
 - No outer chrome border — each panel renders its own PanelBox border with title inset (custom top line: `┌─ TITLE ─...─┐` via `"─".repeat(200)` + terminal clipping — no third-party library)
 - Panel borders: Monokai gray #727072; panel titles: Monokai cyan #78DCE8
 - Outer Box receives explicit `height={rows}` from `useTerminalSize()` hook passed through App.tsx for fullscreen auto-expansion — does not rely on `height="100%"` alone
@@ -19,6 +19,7 @@
 - Dashboard header is a NyanBanner component — 2-line ASCII block art rendered with continuously cycling nyan cat rainbow colors
 - Color cycling: 256-step interpolated palette via linear RGB interpolation between 6 nyan cat anchor colors (~43 steps per transition); each non-space character gets color `palette[(charIndex + tickOffset) % 256]`, spaces pass through uncolored
 - Animation tick: 80ms interval via `useEffect` — 256-step width produces ~20-second full rotation (slow, buttery color wash); both banner lines share same offset for vertical stripe coherence
+- Tick state lifted to App.tsx — NyanBanner accepts optional `tick` prop; shared with ThreePanelLayout for focus border animation
 - Color engine is a pure function in `nyan-colors.ts` — stateless, independently testable
 - Trailing animated dots: 15 `▄` characters appended to banner line 2, colored by the same gradient engine
 - Watch status and clock remain right-aligned on banner row 1
@@ -34,14 +35,19 @@
 - ALWAYS use DEPTH constants from monokai-palette — never inline the hex values in layout or panel components
 
 ## Interaction Model
-- Epics panel is the sole interactive panel — details and log are passive displays reacting to epic selection
+- Two interactive panels: EpicsPanel and LogPanel — Tab key toggles focus between them
+- Arrow keys route to the currently focused panel (`focusedPanel` state)
+- DetailsPanel is a passive display reacting to epic/feature selection
 - Flat navigation model — no drill-down, no view stack, no breadcrumbs
 - "(all)" entry at top of epic list shows aggregate pipeline overview and interleaved log stream
 - Selecting a specific epic filters details and log in place
 
 ## Keyboard
-- All keyboard input handled by use-dashboard-keyboard hook — single hook for flat navigation, filter mode, cancel confirmation, and toggle
-- `q`/`Ctrl+C` (graceful quit), `Up`/`Down` (navigate epics), `a` (toggle done/cancelled), `x` (cancel with inline confirmation), `/` (filter mode)
+- All keyboard input handled by use-dashboard-keyboard hook — single hook for navigation, focus, filters, scroll, cancel confirmation, and toggle
+- `q`/`Ctrl+C` (graceful quit), `Up`/`Down` (navigate in focused panel), `a` (toggle done/cancelled), `x` (cancel with inline confirmation), `/` (filter mode)
+- `Tab` (toggle focus between Epics and Log panels), `p` (cycle phase filter), `b` (toggle blocked filter), `G`/`End` (resume auto-follow)
+- `PgUp`/`PgDn` (scroll details panel via `detailsScrollOffset`)
+- Arrow key routing: when `focusedPanel === 'epics'` arrows navigate epics; when `focusedPanel === 'log'` arrows scroll log
 - Filter: k9s style — inline prompt replaces key hints, Enter applies, Escape clears
 - Cancel: inline confirmation in key hints bar — `y` executes, `n`/Escape dismisses, blocks all other input
 
@@ -64,9 +70,37 @@
 
 ## Log Panel Tree View
 - ALWAYS use shared `<TreeView />` component for log panel rendering
-- Tree hierarchy: epic > phase > feature with vertical line connectors and phase-based coloring
+- Tree hierarchy: CLI > Epic > Feature — phase displayed as colored badge on each entry, not as a tree level
+- CliNode at root, EpicNode children, FeatureNode leaves — PhaseNode removed
 - `useDashboardTreeState` adapter hook bridges existing data sources (ring buffers + session events) to tree state — rendering layer swap, data flow unchanged
 - Tree trimming for auto-follow within alternate screen buffer — newest entries visible at bottom
+- `isDim` function covers blocked and pending statuses in addition to done/cancelled
+
+## Epics Tree Expansion
+- Flat row model (`buildFlatRows`, `rowSlugAtIndex`) — epics and their expanded features share a single flat selectable list
+- Single-expand: selecting a different epic collapses the previous one; selecting the same epic again toggles collapse
+- `expandedEpicSlug` state tracks the currently expanded epic
+- `itemCount` and `slugAtIndex` account for expanded feature rows
+- Selection state union: `{ type: 'all' } | { type: 'epic', epicSlug } | { type: 'feature', epicSlug, featureSlug }` — consumers (Details panel) differentiate by selection type
+- Feature status color map and dim function for visual distinction
+
+## Focus Border
+- Animated nyan border on focused panel using `NYAN_PALETTE[tick % 256]`
+- PanelBox accepts optional `borderColor` prop — focused panel receives animated color, unfocused panels use default `CHROME.border`
+- Tab key toggles `focusedPanel` state between 'epics' and 'log'
+
+## Details Panel
+- Renamed from OverviewPanel — context-sensitive content driven by selection type
+- Selection `{ type: 'all' }` → aggregate overview; `{ type: 'epic' }` → PRD artifact content; `{ type: 'feature' }` → plan artifact content
+- Artifact loading via `resolveArtifactPath()` utility
+- PgUp/PgDn scroll via `detailsScrollOffset` from keyboard hook
+- Scroll offset resets on selection change
+
+## Filters
+- Phase filter: `phaseFilter` state, 'p' key cycles through phases (design → plan → implement → validate → release → all)
+- Blocked filter: `showBlocked` boolean, 'b' key toggles visibility of blocked entries
+- Both filters applied to tree state before LogPanel rendering
+- Skeleton nodes remain visible when all entries filtered out
 
 ## Watch Loop Integration
 - ALWAYS embed WatchLoop directly in the dashboard process — dashboard IS the orchestrator

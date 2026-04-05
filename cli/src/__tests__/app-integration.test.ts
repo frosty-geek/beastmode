@@ -237,17 +237,15 @@ describe("App integration — selection propagates to LogPanel", () => {
 
     expect(tree.epics.length).toBe(1);
     expect(tree.epics[0].slug).toBe("alpha");
-    expect(tree.epics[0].phases.length).toBe(1);
-    expect(tree.epics[0].phases[0].phase).toBe("implement");
-    expect(tree.epics[0].phases[0].features.length).toBe(1);
-    expect(tree.epics[0].phases[0].features[0].slug).toBe("feat-1");
-    expect(tree.epics[0].phases[0].features[0].entries.length).toBe(1);
+    expect(tree.epics[0].features.length).toBe(1);
+    expect(tree.epics[0].features[0].slug).toBe("feat-1");
+    expect(tree.epics[0].features[0].entries.length).toBe(1);
   });
 
   test("buildTreeState with no sessions produces empty tree", () => {
     const tree = buildTreeState([], () => []);
     expect(tree.epics.length).toBe(0);
-    expect(tree.system.length).toBe(0);
+    expect(tree.cli.entries.length).toBe(0);
   });
 });
 

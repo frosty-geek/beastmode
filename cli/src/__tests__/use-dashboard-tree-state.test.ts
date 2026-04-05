@@ -8,7 +8,7 @@ describe("useDashboardTreeState — buildTreeState", () => {
     return { seq, timestamp, type, text };
   }
 
-  test("single session produces epic > phase with entries", () => {
+  test("single session produces epic with entries (no phase level)", () => {
     const sessions = [{ epicSlug: "my-epic", phase: "plan" }];
     const entries = [
       makeEntry(0, 1000, "planning started"),
@@ -19,21 +19,20 @@ describe("useDashboardTreeState — buildTreeState", () => {
 
     expect(state.epics).toHaveLength(1);
     expect(state.epics[0].slug).toBe("my-epic");
-    expect(state.epics[0].phases).toHaveLength(1);
-    expect(state.epics[0].phases[0].phase).toBe("plan");
-    expect(state.epics[0].phases[0].entries).toHaveLength(2);
-    expect(state.epics[0].phases[0].entries[0].message).toBe("planning started");
+    expect(state.epics[0].entries).toHaveLength(2);
+    expect(state.epics[0].entries[0].message).toBe("planning started");
+    expect(state.epics[0].entries[0].phase).toBe("plan");
   });
 
-  test("session with featureSlug creates feature node under phase", () => {
+  test("session with featureSlug creates feature node under epic", () => {
     const sessions = [{ epicSlug: "my-epic", phase: "implement", featureSlug: "auth-flow" }];
     const entries = [makeEntry(0, 1000, "writing tests")];
 
     const state = buildTreeState(sessions, () => entries);
 
-    expect(state.epics[0].phases[0].features).toHaveLength(1);
-    expect(state.epics[0].phases[0].features[0].slug).toBe("auth-flow");
-    expect(state.epics[0].phases[0].features[0].entries).toHaveLength(1);
+    expect(state.epics[0].features).toHaveLength(1);
+    expect(state.epics[0].features[0].slug).toBe("auth-flow");
+    expect(state.epics[0].features[0].entries).toHaveLength(1);
   });
 
   test("multiple sessions for same epic merge into one epic node", () => {
@@ -45,7 +44,7 @@ describe("useDashboardTreeState — buildTreeState", () => {
     const state = buildTreeState(sessions, () => [makeEntry(0, 1000, "msg")]);
 
     expect(state.epics).toHaveLength(1);
-    expect(state.epics[0].phases[0].features).toHaveLength(2);
+    expect(state.epics[0].features).toHaveLength(2);
   });
 
   test("sessions for different epics produce separate epic nodes", () => {
@@ -70,8 +69,8 @@ describe("useDashboardTreeState — buildTreeState", () => {
 
     const state = buildTreeState(sessions, () => entries);
 
-    expect(state.epics[0].phases[0].entries[0].message).toBe("first");
-    expect(state.epics[0].phases[0].entries[1].message).toBe("second");
+    expect(state.epics[0].entries[0].message).toBe("first");
+    expect(state.epics[0].entries[1].message).toBe("second");
   });
 
   test("error entries detected from result type with error text", () => {
@@ -80,7 +79,7 @@ describe("useDashboardTreeState — buildTreeState", () => {
 
     const state = buildTreeState(sessions, () => entries);
 
-    expect(state.epics[0].phases[0].entries[0].level).toBe("error");
+    expect(state.epics[0].entries[0].level).toBe("error");
   });
 
   test("non-error result entries are info level", () => {
@@ -89,16 +88,16 @@ describe("useDashboardTreeState — buildTreeState", () => {
 
     const state = buildTreeState(sessions, () => entries);
 
-    expect(state.epics[0].phases[0].entries[0].level).toBe("info");
+    expect(state.epics[0].entries[0].level).toBe("info");
   });
 
   test("empty sessions produce empty state", () => {
     const state = buildTreeState([], () => []);
     expect(state.epics).toHaveLength(0);
-    expect(state.system).toHaveLength(0);
+    expect(state.cli.entries).toHaveLength(0);
   });
 
-  test("multiple phases for same epic produce multiple phase nodes", () => {
+  test("multiple phases for same epic merge entries into one epic node", () => {
     const sessions = [
       { epicSlug: "e", phase: "plan" },
       { epicSlug: "e", phase: "implement" },
@@ -106,9 +105,11 @@ describe("useDashboardTreeState — buildTreeState", () => {
 
     const state = buildTreeState(sessions, () => [makeEntry(0, 1000, "msg")]);
 
-    expect(state.epics[0].phases).toHaveLength(2);
-    expect(state.epics[0].phases[0].phase).toBe("plan");
-    expect(state.epics[0].phases[1].phase).toBe("implement");
+    // Both sessions merge into one epic — phase is a label, not a tree level
+    expect(state.epics).toHaveLength(1);
+    expect(state.epics[0].entries).toHaveLength(2);
+    expect(state.epics[0].entries[0].phase).toBe("plan");
+    expect(state.epics[0].entries[1].phase).toBe("implement");
   });
 });
 
@@ -130,8 +131,8 @@ describe("buildTreeState with fallback entries", () => {
       store,
     );
 
-    expect(state.epics[0].phases[0].entries).toHaveLength(1);
-    expect(state.epics[0].phases[0].entries[0].message).toBe("dispatching");
+    expect(state.epics[0].entries).toHaveLength(1);
+    expect(state.epics[0].entries[0].message).toBe("dispatching");
   });
 
   test("session with SDK entries ignores fallbackEntries", () => {
@@ -148,8 +149,8 @@ describe("buildTreeState with fallback entries", () => {
       store,
     );
 
-    expect(state.epics[0].phases[0].entries).toHaveLength(1);
-    expect(state.epics[0].phases[0].entries[0].message).toBe("streaming message");
+    expect(state.epics[0].entries).toHaveLength(1);
+    expect(state.epics[0].entries[0].message).toBe("streaming message");
   });
 
   test("fallback entries for feature session appear under feature node", () => {
@@ -165,13 +166,13 @@ describe("buildTreeState with fallback entries", () => {
       store,
     );
 
-    expect(state.epics[0].phases[0].features[0].entries).toHaveLength(1);
-    expect(state.epics[0].phases[0].features[0].entries[0].message).toBe("dispatching");
+    expect(state.epics[0].features[0].entries).toHaveLength(1);
+    expect(state.epics[0].features[0].entries[0].message).toBe("dispatching");
   });
 
   test("no fallbackEntries param behaves same as before (backward compat)", () => {
     const sessions = [{ epicSlug: "e", phase: "plan" }];
     const state = buildTreeState(sessions, () => []);
-    expect(state.epics[0].phases[0].entries).toHaveLength(0);
+    expect(state.epics[0].entries).toHaveLength(0);
   });
 });

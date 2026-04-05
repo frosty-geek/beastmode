@@ -7,9 +7,10 @@ import type { WatchLoop } from "../commands/watch-loop.js";
 import type { LogLevel } from "../logger.js";
 import ThreePanelLayout from "./ThreePanelLayout.js";
 import EpicsPanel from "./EpicsPanel.js";
-import OverviewPanel from "./OverviewPanel.js";
+import DetailsPanel from "./DetailsPanel.js";
+import type { DetailsPanelSelection } from "./details-panel.js";
 import type { GitStatus } from "./overview-panel.js";
-import LogPanel from "./LogPanel.js";
+import LogPanel, { filterTreeByPhase, filterTreeByBlocked, countTreeLines } from "./LogPanel.js";
 import { useDashboardTreeState } from "./hooks/use-dashboard-tree-state.js";
 import { useDashboardKeyboard } from "./hooks/use-dashboard-keyboard.js";
 import { useTerminalSize } from "./hooks/use-terminal-size.js";
@@ -19,6 +20,9 @@ import { FallbackEntryStore, lifecycleToLogEntry } from "./lifecycle-entries.js"
 import { createLogger } from "../logger.js";
 import { DashboardSink } from "./dashboard-sink.js";
 import type { SystemEntryRef } from "./dashboard-logger.js";
+import { TICK_INTERVAL_MS } from "./NyanBanner.js";
+import { buildFlatRows, rowSlugAtIndex } from "./epics-tree-model.js";
+import type { SelectableRow } from "./epics-tree-model.js";
 
 export interface AppProps {
   config: BeastmodeConfig;
@@ -48,6 +52,8 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   const [activeFilter, setActiveFilter] = useState<string>("");
   const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
   const { rows } = useTerminalSize();
+  const [tick, setTick] = useState(0);
+  const logTotalLinesRef = useRef(0);
   const loopRef = useRef(loop);
   loopRef.current = loop;
   // Use shared stores from dashboard command if provided, otherwise create local ones
@@ -68,13 +74,17 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     ),
   );
 
-  // slugAtIndex reads from a ref so it always sees the latest filteredEpics
+  // slugAtIndex reads from a ref so it always sees the latest flatRows
   // (computed below the keyboard hook, updated every render).
   const filteredEpicsRef = useRef<EnrichedEpic[]>([]);
+  const flatRowsRef = useRef<SelectableRow[]>([]);
+  const [expandedEpicSlug, setExpandedEpicSlug] = useState<string | undefined>(undefined);
   const slugAtIndex = useCallback(
     (index: number): string | undefined => {
-      if (index === 0) return undefined;
-      return filteredEpicsRef.current[index - 1]?.slug;
+      const sel = rowSlugAtIndex(flatRowsRef.current, index);
+      if (!sel) return undefined;
+      if (typeof sel === "string") return sel;
+      return sel.epicSlug; // For cancel flow, use the parent epic slug
     },
     [],
   );
@@ -109,6 +119,11 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     setActiveFilter("");
   }, []);
 
+  const handleToggleExpand = useCallback((slug: string | undefined) => {
+    if (!slug) return; // (all) row — no expansion
+    setExpandedEpicSlug((prev) => (prev === slug ? undefined : slug));
+  }, []);
+
   // --- Keyboard hook (flat model — no view stack) ---
   // itemCount uses epics.length as upper bound; clamped below after filtering.
   const keyboard = useDashboardKeyboard({
@@ -119,6 +134,10 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     onFilterApply: handleFilterApply,
     onFilterClear: handleFilterClear,
     initialVerbosity: verbosity,
+    onToggleExpand: handleToggleExpand,
+    logTotalLines: logTotalLinesRef.current,
+    detailsContentHeight: 0,
+    detailsVisibleHeight: Math.max(1, Math.floor((rows ?? 24) * 0.4 * 0.6) - 2),
   });
 
   // --- Filter + toggle-all ---
@@ -133,15 +152,39 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   });
   filteredEpicsRef.current = filteredEpics;
 
+  // Build flat rows (includes expanded feature rows)
+  const flatRows = buildFlatRows(filteredEpics, expandedEpicSlug);
+  flatRowsRef.current = flatRows;
+
   // Clamp nav when list changes
   useEffect(() => {
-    keyboard.nav.clampToRange(filteredEpics.length + 1); // +1 for "(all)"
-  }, [filteredEpics.length]);
+    keyboard.nav.clampToRange(flatRows.length);
+  }, [flatRows.length]);
+
+  // Collapse when expanded epic is filtered out
+  useEffect(() => {
+    if (expandedEpicSlug && !filteredEpics.some((e) => e.slug === expandedEpicSlug)) {
+      setExpandedEpicSlug(undefined);
+    }
+  }, [filteredEpics, expandedEpicSlug]);
 
   // --- Tree state for log panel ---
-  const selectedEpicSlug = keyboard.nav.selectedIndex === 0
+  const selectedRowResult = rowSlugAtIndex(flatRows, keyboard.nav.selectedIndex);
+  const selectedEpicSlug = !selectedRowResult
     ? undefined
-    : filteredEpics[keyboard.nav.selectedIndex - 1]?.slug;
+    : typeof selectedRowResult === "string"
+      ? selectedRowResult
+      : selectedRowResult.epicSlug;
+
+  // --- Details panel selection ---
+  const detailsSelection: DetailsPanelSelection = selectedEpicSlug
+    ? { kind: "epic", slug: selectedEpicSlug }
+    : { kind: "all" };
+
+  // Reset details scroll on selection change
+  useEffect(() => {
+    keyboard.resetDetailsScroll();
+  }, [selectedEpicSlug]);
 
   const { state: treeState } = useDashboardTreeState({
     sessions: trackerSessions,
@@ -150,9 +193,21 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     systemEntries: systemEntriesRef.current,
   });
 
+  // --- Filter pipeline for log tree ---
+  const phaseFiltered = filterTreeByPhase(treeState, keyboard.phaseFilter);
+  const filteredTreeState = filterTreeByBlocked(phaseFiltered, keyboard.showBlocked);
+  const logTotalLines = countTreeLines(filteredTreeState);
+  logTotalLinesRef.current = logTotalLines;
+
   // --- Clock tick every 1s ---
   useEffect(() => {
     const timer = setInterval(() => setClock(formatClock()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // --- Nyan tick every 80ms — shared between banner and focus border ---
+  useEffect(() => {
+    const timer = setInterval(() => setTick((prev) => prev + 1), TICK_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
 
@@ -372,6 +427,8 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     slug: cancelConfirmingSlug,
     filterInput: keyboard.filterInput,
     verbosity: keyboard.verbosity,
+    phaseFilter: keyboard.phaseFilter,
+    showBlocked: keyboard.showBlocked,
   });
 
   // --- Cancel prompt ---
@@ -384,6 +441,8 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
       watchRunning={watchRunning}
       clock={clock}
       rows={rows}
+      focusedPanel={keyboard.focusedPanel}
+      nyanTick={tick}
       epicsSlot={
         <EpicsPanel
           epics={filteredEpics}
@@ -393,13 +452,24 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
         />
       }
       detailsSlot={
-        <OverviewPanel
+        <DetailsPanel
+          selection={detailsSelection}
+          projectRoot={projectRoot}
           epics={filteredEpics}
-          activeSessions={activeSessions}
+          activeSessions={activeSessions.size}
           gitStatus={gitStatus}
+          scrollOffset={keyboard.detailsScrollOffset}
+          visibleHeight={Math.max(1, Math.floor((rows ?? 24) * 0.4 * 0.6) - 2)}
         />
       }
-      logSlot={<LogPanel state={treeState} verbosity={keyboard.verbosity} />}
+      logSlot={
+        <LogPanel
+          state={filteredTreeState}
+          verbosity={keyboard.verbosity}
+          scrollOffset={keyboard.logScrollOffset}
+          autoFollow={keyboard.logAutoFollow}
+        />
+      }
       keyHints={keyHintText}
       isShuttingDown={keyboard.shutdown.isShuttingDown}
       cancelPrompt={cancelPrompt}

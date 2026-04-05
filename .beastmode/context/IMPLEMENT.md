@@ -73,6 +73,7 @@ context/implement/write-plan.md
 - Self-review pass after writing: spec coverage against feature plan, placeholder scan (TBD/TODO/ellipsis), type/name consistency check
 - ALWAYS produce complete code in every step — no placeholders, no "add appropriate handling", no "similar to Task N"
 - ALWAYS duplicate context from feature plan into .tasks.md header — makes the document self-contained for agents
+- ALWAYS author wiring task implementations from current source on the worktree branch — plan artifact descriptions become stale as parallel waves complete; source is the ground truth for type signatures, import paths, and component props
 
 context/implement/write-plan.md
 
@@ -98,9 +99,11 @@ context/implement/agent-review-pipeline.md
 ## Branch Isolation
 - CLI creates `impl/<slug>--<feature-name>` branch before dispatch; agents commit per task on the impl branch
 - ALWAYS verify the correct impl branch (`impl/<slug>--<feature-name>`) is checked out before writing the Write Plan — parallel wave execution leaves the prior feature's impl branch checked out; writing tasks on the wrong branch silently contaminates an adjacent feature's history
+- ALWAYS verify the correct impl branch is still checked out immediately before each agent task commit — linter hooks and parallel wave completions can silently switch branches between tasks
 - Checkpoint rebases impl branch onto worktree branch — fast-forward on success, conflict resolution agent on failure
 - Max 2 conflict resolution attempts before aborting and reporting to user
 - Resume model: first unchecked task in .tasks.md; prior tasks have commits on impl branch
 - Subagent Safety: agents commit on impl branch only, never on worktree branch
+- WHEN an impl branch is irrecoverable (contaminated commits, unresolvable rebases across multiple attempts), create a new impl branch with a retry suffix (`impl/<slug>--<feature>-fac2`, `-fac3`, etc.) and restart dispatch from the first unchecked task — preserve integration test file and Write Plan from the original attempt
 
 context/implement/branch-isolation.md

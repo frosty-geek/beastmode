@@ -8,7 +8,7 @@ import { filterTreeByVerbosity } from "../dashboard/LogPanel.js";
 const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
 
 function makeEntry(msg: string, seq: number, level: "info" | "debug" | "warn" | "error" = "info"): TreeEntry {
-  return { timestamp: 1000, level, message: msg, seq };
+  return { timestamp: 1000, level, message: msg, seq, phase: "implement" };
 }
 
 function makeSystemEntry(msg: string, seq: number): SystemEntry {
@@ -16,8 +16,8 @@ function makeSystemEntry(msg: string, seq: number): SystemEntry {
 }
 
 describe("TreeView", () => {
-  test("renders empty state when no epics or system entries", () => {
-    const state: TreeState = { epics: [], system: [] };
+  test("renders empty state when no epics or cli entries", () => {
+    const state: TreeState = { cli: { entries: [] }, epics: [] };
     const { lastFrame } = render(React.createElement(TreeView, { state }));
     const output = stripAnsi(lastFrame()!);
     expect(output).toContain("no activity");
@@ -25,112 +25,93 @@ describe("TreeView", () => {
 
   test("renders epic label at top level", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "my-epic",
-        phases: [],
+        status: "implement",
+        features: [],
+        entries: [],
       }],
-      system: [],
     };
     const { lastFrame } = render(React.createElement(TreeView, { state }));
     const output = stripAnsi(lastFrame()!);
     expect(output).toContain("my-epic");
   });
 
-  test("renders phase node indented under epic", () => {
+  test("renders epic entries with bar-dot prefix", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "my-epic",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [],
-        }],
+        status: "implement",
+        features: [],
+        entries: [makeEntry("thinking hard", 1)],
       }],
-      system: [],
     };
     const { lastFrame } = render(React.createElement(TreeView, { state }));
     const output = stripAnsi(lastFrame()!);
-    expect(output).toContain("│ plan");
-  });
-
-  test("renders leaf entries under phase with bar-dot prefix", () => {
-    const state: TreeState = {
-      epics: [{
-        slug: "my-epic",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [makeEntry("thinking hard", 1)],
-        }],
-      }],
-      system: [],
-    };
-    const { lastFrame } = render(React.createElement(TreeView, { state }));
-    const output = stripAnsi(lastFrame()!);
-    expect(output).toContain("│ ·");
+    expect(output).toContain("│");
     expect(output).toContain("thinking hard");
   });
 
-  test("renders feature node under phase with double prefix", () => {
+  test("renders feature node under epic", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "my-epic",
-        phases: [{
-          phase: "implement",
-          features: [{
-            slug: "write-plan",
-            entries: [],
-          }],
+        status: "implement",
+        features: [{
+          slug: "write-plan",
+          status: "in-progress",
           entries: [],
         }],
+        entries: [],
       }],
-      system: [],
     };
     const { lastFrame } = render(React.createElement(TreeView, { state }));
     const output = stripAnsi(lastFrame()!);
-    expect(output).toContain("│ │ write-plan");
+    expect(output).toContain("│ │");
+    expect(output).toContain("write-plan");
   });
 
-  test("renders leaf entries under feature with double-bar-dot prefix", () => {
+  test("renders leaf entries under feature", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "my-epic",
-        phases: [{
-          phase: "implement",
-          features: [{
-            slug: "write-plan",
-            entries: [makeEntry("compiling", 1)],
-          }],
-          entries: [],
+        status: "implement",
+        features: [{
+          slug: "write-plan",
+          status: "in-progress",
+          entries: [makeEntry("compiling", 1)],
         }],
+        entries: [],
       }],
-      system: [],
     };
     const { lastFrame } = render(React.createElement(TreeView, { state }));
     const output = stripAnsi(lastFrame()!);
-    expect(output).toContain("│ │ ·");
+    expect(output).toContain("│ │");
     expect(output).toContain("compiling");
   });
 
-  test("renders system entries flat (no tree prefix)", () => {
+  test("renders CLI entries when present", () => {
     const state: TreeState = {
+      cli: { entries: [makeSystemEntry("pipeline started", 1)] },
       epics: [],
-      system: [makeSystemEntry("pipeline started", 1)],
     };
     const { lastFrame } = render(React.createElement(TreeView, { state }));
     const output = stripAnsi(lastFrame()!);
     expect(output).toContain("pipeline started");
-    // Should not have tree connectors
-    expect(output).not.toContain("│");
+    expect(output).toContain("CLI");
   });
 
   test("renders multiple epics sequentially", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [
-        { slug: "epic-a", phases: [] },
-        { slug: "epic-b", phases: [] },
+        { slug: "epic-a", status: "implement", features: [], entries: [] },
+        { slug: "epic-b", status: "design", features: [], entries: [] },
       ],
-      system: [],
     };
     const { lastFrame } = render(React.createElement(TreeView, { state }));
     const output = stripAnsi(lastFrame()!);
@@ -139,152 +120,138 @@ describe("TreeView", () => {
     expect(aIdx).toBeLessThan(bIdx);
   });
 
-  test("leaf lines have timestamp and level — no scope or phase column", () => {
+  test("leaf lines have timestamp and level", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "my-epic",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [makeEntry("hello", 1)],
-        }],
+        status: "implement",
+        features: [],
+        entries: [makeEntry("hello", 1)],
       }],
-      system: [],
     };
     const { lastFrame } = render(React.createElement(TreeView, { state }));
     const output = stripAnsi(lastFrame()!);
     // Should have HH:MM:SS and INFO
     expect(output).toMatch(/\d{2}:\d{2}:\d{2}/);
     expect(output).toContain("INFO");
-    // Should NOT have scope parens or phase column
+    // Should NOT have scope parens
     expect(output).not.toContain("(my-epic):");
-    expect(output).not.toMatch(/plan\s{5}/); // 9-char padded phase
   });
 });
 
 describe("filterTreeByVerbosity", () => {
   test("hides debug entries at verbosity 0", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e1",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [
-            makeEntry("visible", 1, "info"),
-            makeEntry("hidden", 2, "debug"),
-          ],
-        }],
+        status: "implement",
+        features: [],
+        entries: [
+          makeEntry("visible", 1, "info"),
+          makeEntry("hidden", 2, "debug"),
+        ],
       }],
-      system: [],
     };
     const filtered = filterTreeByVerbosity(state, 0);
-    expect(filtered.epics[0].phases[0].entries).toHaveLength(1);
-    expect(filtered.epics[0].phases[0].entries[0].message).toBe("visible");
+    expect(filtered.epics[0].entries).toHaveLength(1);
+    expect(filtered.epics[0].entries[0].message).toBe("visible");
   });
 
   test("shows debug entries at verbosity 1", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e1",
-        phases: [{
-          phase: "plan",
-          features: [],
+        status: "implement",
+        features: [],
+        entries: [
+          makeEntry("visible", 1, "info"),
+          makeEntry("also visible", 2, "debug"),
+        ],
+      }],
+    };
+    const filtered = filterTreeByVerbosity(state, 1);
+    expect(filtered.epics[0].entries).toHaveLength(2);
+  });
+
+  test("always shows warn entries at verbosity 0", () => {
+    const state: TreeState = {
+      cli: { entries: [] },
+      epics: [{
+        slug: "e1",
+        status: "implement",
+        features: [],
+        entries: [makeEntry("warning", 1, "warn")],
+      }],
+    };
+    const filtered = filterTreeByVerbosity(state, 0);
+    expect(filtered.epics[0].entries).toHaveLength(1);
+  });
+
+  test("always shows error entries at verbosity 0", () => {
+    const state: TreeState = {
+      cli: { entries: [] },
+      epics: [{
+        slug: "e1",
+        status: "implement",
+        features: [],
+        entries: [makeEntry("error", 1, "error")],
+      }],
+    };
+    const filtered = filterTreeByVerbosity(state, 0);
+    expect(filtered.epics[0].entries).toHaveLength(1);
+  });
+
+  test("filters feature entries by verbosity", () => {
+    const state: TreeState = {
+      cli: { entries: [] },
+      epics: [{
+        slug: "e1",
+        status: "implement",
+        features: [{
+          slug: "feat-1",
+          status: "in-progress",
           entries: [
             makeEntry("visible", 1, "info"),
             makeEntry("also visible", 2, "debug"),
           ],
         }],
+        entries: [],
       }],
-      system: [],
     };
     const filtered = filterTreeByVerbosity(state, 1);
-    expect(filtered.epics[0].phases[0].entries).toHaveLength(2);
+    expect(filtered.epics[0].features[0].entries).toHaveLength(2);
   });
 
-  test("always shows warn entries at verbosity 0", () => {
+  test("CLI entries are not filtered", () => {
     const state: TreeState = {
-      epics: [{
-        slug: "e1",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [makeEntry("warning", 1, "warn")],
-        }],
-      }],
-      system: [],
-    };
-    const filtered = filterTreeByVerbosity(state, 0);
-    expect(filtered.epics[0].phases[0].entries).toHaveLength(1);
-  });
-
-  test("always shows error entries at verbosity 0", () => {
-    const state: TreeState = {
-      epics: [{
-        slug: "e1",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [makeEntry("error", 1, "error")],
-        }],
-      }],
-      system: [],
-    };
-    const filtered = filterTreeByVerbosity(state, 0);
-    expect(filtered.epics[0].phases[0].entries).toHaveLength(1);
-  });
-
-  test("filters feature entries by verbosity", () => {
-    const state: TreeState = {
-      epics: [{
-        slug: "e1",
-        phases: [{
-          phase: "implement",
-          features: [{
-            slug: "feat-1",
-            entries: [
-              makeEntry("visible", 1, "info"),
-              makeEntry("also visible", 2, "debug"),
-            ],
-          }],
-          entries: [],
-        }],
-      }],
-      system: [],
-    };
-    const filtered = filterTreeByVerbosity(state, 1);
-    expect(filtered.epics[0].phases[0].features[0].entries).toHaveLength(2);
-  });
-
-  test("system entries are not filtered", () => {
-    const state: TreeState = {
-      epics: [],
-      system: [
+      cli: { entries: [
         { timestamp: 1000, level: "debug", message: "sys debug", seq: 1 },
-      ],
+      ] },
+      epics: [],
     };
     const filtered = filterTreeByVerbosity(state, 0);
-    expect(filtered.system).toHaveLength(1);
+    expect(filtered.cli.entries).toHaveLength(1);
   });
 
   test("verbosity 3 shows all levels", () => {
     const state: TreeState = {
+      cli: { entries: [] },
       epics: [{
         slug: "e1",
-        phases: [{
-          phase: "plan",
-          features: [],
-          entries: [
-            makeEntry("a", 1, "info"),
-            makeEntry("b", 2, "debug"),
-            makeEntry("c", 3, "debug"),
-            makeEntry("d", 4, "debug"),
-          ],
-        }],
+        status: "implement",
+        features: [],
+        entries: [
+          makeEntry("a", 1, "info"),
+          makeEntry("b", 2, "debug"),
+          makeEntry("c", 3, "debug"),
+          makeEntry("d", 4, "debug"),
+        ],
       }],
-      system: [],
     };
     const filtered = filterTreeByVerbosity(state, 3);
-    expect(filtered.epics[0].phases[0].entries).toHaveLength(4);
+    expect(filtered.epics[0].entries).toHaveLength(4);
   });
 });

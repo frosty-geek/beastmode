@@ -22,3 +22,4 @@
 - Agents commit on the impl branch only — never on the worktree branch
 - Commit message format enforced: `feat(<feature>): <task description>`
 - Branch verification in Prime: check `impl/<slug>--<feature-name>` exists and is checked out before dispatch
+- ALWAYS verify the correct impl branch is still checked out immediately before each agent task commit — linter hooks and parallel wave completions can silently switch branches between tasks

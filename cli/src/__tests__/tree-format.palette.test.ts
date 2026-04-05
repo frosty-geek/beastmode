@@ -17,24 +17,12 @@ describe("tree-format with monokai-palette", () => {
   });
 
   test("buildTreePrefix returns correct connectors", () => {
-    expect(buildTreePrefix("epic")).toBe("");
-    expect(buildTreePrefix("phase")).toBe("│ ");
+    expect(buildTreePrefix("cli")).toBe("");
+    expect(buildTreePrefix("epic")).toBe("│ ");
     expect(buildTreePrefix("feature")).toBe("│ │ ");
-    expect(buildTreePrefix("leaf-phase")).toBe("│ · ");
+    expect(buildTreePrefix("leaf-epic")).toBe("│ · ");
     expect(buildTreePrefix("leaf-feature")).toBe("│ │ · ");
     expect(buildTreePrefix("system")).toBe("");
-  });
-
-  test("formatTreeLine phase label with hex color renders with ansi codes", () => {
-    const timestamp = new Date("2024-04-04T10:30:45Z").getTime();
-    const line = formatTreeLine("phase", "info", "design", "Design Phase", timestamp);
-
-    // Should contain ANSI color codes (not just plain text)
-    expect(line).toContain("\x1b[");
-
-    // Plain text version should contain the message
-    const plain = stripAnsi(line);
-    expect(plain).toContain("Design Phase");
   });
 
   test("formatTreeLine feature with phase prefix applies color", () => {
@@ -62,16 +50,18 @@ describe("tree-format with monokai-palette", () => {
     expect(plain).toContain("Leaf message");
   });
 
-  test("formatTreeLine epic returns message only", () => {
+  test("formatTreeLine epic returns prefixed message", () => {
     const timestamp = new Date("2024-04-04T10:30:45Z").getTime();
     const line = formatTreeLine("epic", "info", undefined, "Epic Name", timestamp);
 
-    expect(stripAnsi(line)).toBe("Epic Name");
+    const plain = stripAnsi(line);
+    expect(plain).toContain("Epic Name");
+    expect(plain).toContain("│");
   });
 
   test("formatTreeLine warn level is colored yellow", () => {
     const timestamp = new Date("2024-04-04T10:30:45Z").getTime();
-    const line = formatTreeLine("leaf-phase", "warn", "plan", "Warning!", timestamp);
+    const line = formatTreeLine("leaf-epic", "warn", "plan", "Warning!", timestamp);
 
     // Yellow ANSI code
     expect(line).toContain("\x1b[33m");
@@ -79,7 +69,7 @@ describe("tree-format with monokai-palette", () => {
 
   test("formatTreeLine error level is colored red", () => {
     const timestamp = new Date("2024-04-04T10:30:45Z").getTime();
-    const line = formatTreeLine("leaf-phase", "error", "plan", "Error!", timestamp);
+    const line = formatTreeLine("leaf-epic", "error", "plan", "Error!", timestamp);
 
     // Red ANSI code
     expect(line).toContain("\x1b[31m");
@@ -87,7 +77,7 @@ describe("tree-format with monokai-palette", () => {
 
   test("formatTreeLine normal level has dim timestamp and green label", () => {
     const timestamp = new Date("2024-04-04T10:30:45Z").getTime();
-    const line = formatTreeLine("leaf-phase", "info", "plan", "Normal msg", timestamp);
+    const line = formatTreeLine("leaf-epic", "info", "plan", "Normal msg", timestamp);
 
     // Dim (2) and green (32) ANSI codes
     expect(line).toContain("\x1b[2m"); // dim

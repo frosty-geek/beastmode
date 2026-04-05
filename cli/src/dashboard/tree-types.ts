@@ -1,8 +1,8 @@
 /**
  * Tree data types for the hierarchical log view.
  *
- * Three-level hierarchy: Epic > Phase > Feature
- * Leaf entries attach to phases (no feature) or features.
+ * Two-level hierarchy under synthetic CLI root: CLI > Epic > Feature.
+ * Phase is a label on entries, not a tree level.
  */
 
 import type { LogLevel } from "../logger.js";
@@ -17,35 +17,33 @@ export interface TreeEntry {
   message: string;
   /** Unique sequence number for stable ordering. */
   seq: number;
+  /** Phase label (design, plan, implement, validate, release). */
+  phase: string;
 }
 
-/** A feature node under a phase. */
+/** A feature node under an epic. */
 export interface FeatureNode {
   /** Feature slug. */
   slug: string;
+  /** Feature status (pending, in-progress, completed, blocked). */
+  status: string;
   /** Leaf entries under this feature. */
   entries: TreeEntry[];
 }
 
-/** A phase node under an epic. */
-export interface PhaseNode {
-  /** Phase name (design, plan, implement, validate, release). */
-  phase: string;
-  /** Feature nodes under this phase (implement fan-out). */
-  features: FeatureNode[];
-  /** Leaf entries directly under the phase (no feature). */
-  entries: TreeEntry[];
-}
-
-/** An epic node — top level of the tree. */
+/** An epic node — second level of the tree. */
 export interface EpicNode {
   /** Epic slug. */
   slug: string;
-  /** Phase nodes under this epic. */
-  phases: PhaseNode[];
+  /** Epic status (design, plan, implement, validate, release, done, cancelled). */
+  status: string;
+  /** Feature nodes under this epic. */
+  features: FeatureNode[];
+  /** Direct entries under the epic (no feature). */
+  entries: TreeEntry[];
 }
 
-/** System-level entry — renders flat, no tree prefix. */
+/** System-level entry — renders under the CLI root node. */
 export interface SystemEntry {
   timestamp: number;
   level: LogLevel;
@@ -53,10 +51,16 @@ export interface SystemEntry {
   seq: number;
 }
 
+/** CLI root node — synthetic root holding system-level entries. */
+export interface CliNode {
+  /** System-level entries (watch loop start/stop, scan events, errors). */
+  entries: SystemEntry[];
+}
+
 /** Full tree state passed to the TreeView component. */
 export interface TreeState {
+  /** CLI root node with system entries. */
+  cli: CliNode;
   /** Epic trees, ordered by creation time. */
   epics: EpicNode[];
-  /** System-level messages (startup, shutdown, etc.). */
-  system: SystemEntry[];
 }

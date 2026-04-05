@@ -4,6 +4,8 @@ import MinSizeGate from "./MinSizeGate.js";
 import PanelBox from "./PanelBox.js";
 import NyanBanner from "./NyanBanner.js";
 import { CHROME } from "./monokai-palette.js";
+import type { FocusedPanel } from "./hooks/use-dashboard-keyboard.js";
+import { NYAN_PALETTE } from "./nyan-colors.js";
 
 export interface ThreePanelLayoutProps {
   /** Watch loop running state. */
@@ -24,6 +26,10 @@ export interface ThreePanelLayoutProps {
   isShuttingDown?: boolean;
   /** Cancel confirmation prompt content. */
   cancelPrompt?: ReactNode;
+  /** Currently focused panel for border highlighting. */
+  focusedPanel?: FocusedPanel;
+  /** Current nyan animation tick for border color computation. */
+  nyanTick?: number;
 }
 
 /** Three-panel k9s-style dashboard layout. */
@@ -37,13 +43,19 @@ export default function ThreePanelLayout({
   keyHints,
   isShuttingDown,
   cancelPrompt,
+  focusedPanel,
+  nyanTick,
 }: ThreePanelLayoutProps) {
+  const focusBorderColor = nyanTick !== undefined
+    ? NYAN_PALETTE[nyanTick % NYAN_PALETTE.length]
+    : undefined;
+
   return (
     <MinSizeGate>
       <Box flexDirection="column" width="100%" height={rows ?? "100%"}>
         {/* Header bar — banner + watch status */}
         <Box flexDirection="row" justifyContent="space-between" paddingX={1} paddingY={1}>
-          <NyanBanner />
+          <NyanBanner tick={nyanTick} />
           <Box flexDirection="column" alignItems="flex-end" justifyContent="flex-start">
             <Box>
               <Text color={watchRunning ? CHROME.watchRunning : CHROME.watchStopped}>
@@ -55,20 +67,20 @@ export default function ThreePanelLayout({
           </Box>
         </Box>
 
-        {/* Main content — vertical split: left column (EPICS + OVERVIEW) | right column (LOG) */}
+        {/* Main content — vertical split: left column (EPICS + DETAILS) | right column (LOG) */}
         <Box flexDirection="row" flexGrow={1}>
           {/* Left column — 35% width */}
           <Box flexDirection="column" width="35%">
-            <PanelBox title="EPICS" height="60%">
+            <PanelBox title="EPICS" height="60%" borderColor={focusedPanel === "epics" ? focusBorderColor : undefined}>
               {epicsSlot}
             </PanelBox>
-            <PanelBox title="OVERVIEW" flexGrow={1}>
+            <PanelBox title="DETAILS" flexGrow={1}>
               {detailsSlot}
             </PanelBox>
           </Box>
 
           {/* Right column — 65% width, LOG at full height */}
-          <PanelBox title="LOG" width="65%">
+          <PanelBox title="LOG" width="65%" borderColor={focusedPanel === "log" ? focusBorderColor : undefined}>
             {logSlot}
           </PanelBox>
         </Box>

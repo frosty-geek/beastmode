@@ -33,7 +33,20 @@ export const DEPTH = {
   panel: "#353236",
 } as const;
 
-/** Returns true for phases that should render dimmed. */
-export function isDim(phase: string): boolean {
-  return phase === "done" || phase === "cancelled";
+/** Returns true for phases/statuses that should render dimmed. */
+export function isDim(status: string): boolean {
+  return status === "done" || status === "cancelled" || status === "blocked" || status === "pending";
+}
+
+/** FeatureStatus-to-hex-color mapping. */
+export const FEATURE_STATUS_COLOR: Record<string, string> = {
+  "pending": CHROME.muted,
+  "in-progress": PHASE_COLOR.implement,
+  "completed": PHASE_COLOR.done,
+  "blocked": PHASE_COLOR.blocked,
+};
+
+/** Returns true for feature statuses that should render dimmed. */
+export function isFeatureDim(status: string): boolean {
+  return status === "completed";
 }

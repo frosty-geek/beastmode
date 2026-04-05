@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.95.0 — Dashboard Extensions (Apr 2026)
+
+- **Tree refactor** — Flatten tree hierarchy from Epic > Phase > Feature to CLI > Epic > Feature; phase displayed as colored badge, not tree level
+- **Epics tree expansion** — Flat row model with `buildFlatRows` and `rowSlugAtIndex`; single-expand toggle, feature status colors
+- **Details panel** — Renamed from OverviewPanel; context-sensitive content by selection type (all/epic/feature), artifact loading, PgUp/PgDn scroll
+- **Keyboard extensions** — Tab focus toggle between Epics and Log panels, 'p' phase filter cycling, 'b' blocked toggle, arrow key routing by focused panel
+- **Focus border** — Animated nyan rainbow border on focused panel using `NYAN_PALETTE[tick % 256]`
+- **Dashboard wiring** — Wire all extensions into App.tsx: filters, scroll offsets, focus state, ThreePanelLayout integration
+
+---
+
 ### v0.94.0 — GitHub Sync Resilience (Apr 2026)
 
 - **Retry queue** — PendingOp types extending SyncRef, exponential backoff (2^retryCount ticks, max 5), enqueue/drain/resolve pure functions, enqueue on sync engine error paths
