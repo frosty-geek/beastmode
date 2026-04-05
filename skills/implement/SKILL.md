@@ -249,10 +249,72 @@ If a task is blocked and has dependents in later waves:
 
 Investigate the blocked task. If resolvable, fix and continue. If not, skip dependent tasks and log.
 
-### 4. Completion
+### 4. Feature-Level BDD Verification
 
-When all waves complete:
-- Report: "Implementation complete. N tasks done, M review cycles."
+After all waves complete (and before reporting completion), run the feature's integration test if Task 0 was dispatched.
+
+#### A. Locate Integration Test
+
+Find the integration test created by Task 0 using convention-based discovery:
+
+1. **File naming:** Look for `<feature-name>.integration.test.ts` or `<feature-name>.feature` in the project's test directories
+2. **Tags:** Look for `@<epic-name>` tag on Gherkin features
+3. **Describe blocks:** Look for the feature name in describe/feature blocks
+
+If no integration test is found (Task 0 was skipped because the feature plan had no Gherkin section), skip BDD verification entirely and proceed to Completion.
+
+#### B. Run Integration Test
+
+Execute the integration test in isolation using the project's test runner with the specific test file or tag filter.
+
+#### C. Handle Result
+
+**If GREEN (pass):** Feature satisfies its acceptance criteria. Proceed to Completion.
+
+**If RED (fail):** Enter the BDD retry loop.
+
+#### D. BDD Retry Loop
+
+The BDD retry loop uses an independent escalation state (separate from per-task escalation):
+
+- **Model ladder:** `["haiku", "sonnet", "opus"]`
+- **Budget:** 6 total retries (2 per tier)
+- **Tier index:** starts at 0 (haiku)
+- **Tier retry counter:** starts at 0, resets on escalation
+
+For each retry:
+
+1. **Analyze failure** — examine test assertions, stack traces, and error messages from the integration test output
+2. **Identify responsible task** — map the failure to the most likely task based on:
+   - Which task's files are referenced in the failure
+   - Which task's acceptance criteria align with the failing assertion
+   - Which task's implementation area covers the failing behavior
+3. **Re-dispatch the responsible task** — build a new implementer prompt:
+   - Append: original task instructions (from .tasks.md)
+   - Append: integration test failure output
+   - Append: failing test assertion details
+   - Append: pre-read file contents for the task's files
+   - Spawn: `Agent(subagent_type="beastmode:implement-dev", model=<current BDD tier>, prompt=<built prompt>)`
+4. **Run the re-dispatched task through the review pipeline** (spec compliance + quality review)
+5. **Re-run the integration test**
+
+**After re-run:**
+- **GREEN:** Stop retrying. Feature is done. Proceed to Completion.
+- **RED:** Increment the BDD retry counter.
+  - If retries at current tier < 2: retry at the same model tier (go to step 1)
+  - If retries at current tier exhausted (2 attempts) and a higher tier exists: escalate — increment the BDD tier index, reset the BDD tier retry counter to 0, retry at the new tier (go to step 1)
+  - If retries exhausted at opus (top tier): mark feature as failed. Report to user:
+    ```
+    BDD verification failed after 6 retries (2x haiku, 2x sonnet, 2x opus).
+    Last failure: [test name] — [assertion message]
+    Responsible task: Task N — [description]
+    ```
+    Proceed to Completion with failure status.
+
+### 5. Completion
+
+When all waves complete and BDD verification passes (or is skipped):
+- Report: "Implementation complete. N tasks done, M review cycles. BDD verification: [passed | failed after K retries | skipped]."
 - Proceed to validate phase.
 
 ## Phase 2: Validate
