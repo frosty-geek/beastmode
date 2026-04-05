@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 import { WatchLoop } from "../commands/watch-loop.js";
 import type { WatchDeps } from "../commands/watch-loop.js";
 import type { EnrichedManifest } from "../manifest/store.js";
-import { SdkSessionFactory } from "../dispatch/factory.js";
 
 const TEST_ROOT = resolve(import.meta.dirname, "../../.test-wave-dispatch-tmp");
 
@@ -21,15 +20,17 @@ function teardownTestRoot(): void {
 function mockDeps(overrides: Partial<WatchDeps> = {}): WatchDeps {
   return {
     scanEpics: async () => [],
-    sessionFactory: new SdkSessionFactory(async (opts) => ({
-      id: `${opts.epicSlug}-${opts.phase}-${Date.now()}`,
-      worktreeSlug: `${opts.epicSlug}-${opts.phase}`,
-      promise: Promise.resolve({
-        success: true,
-        exitCode: 0,
-        durationMs: 500,
+    sessionFactory: {
+      create: async (opts) => ({
+        id: `${opts.epicSlug}-${opts.phase}-${Date.now()}`,
+        worktreeSlug: `${opts.epicSlug}-${opts.phase}`,
+        promise: Promise.resolve({
+          success: true,
+          exitCode: 0,
+          durationMs: 500,
+        }),
       }),
-    })),
+    },
     ...overrides,
   };
 }
@@ -68,18 +69,20 @@ describe("wave-aware dispatch", () => {
         if (scanCount === 1) return [epic];
         return [{ ...epic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
-        dispatched.push(opts.featureSlug ?? "unknown");
-        return {
-          id: `dispatch-${opts.featureSlug}-${Date.now()}`,
-          worktreeSlug: opts.epicSlug,
-          promise: Promise.resolve({
-            success: true,
-            exitCode: 0,
-            durationMs: 500,
-          }),
-        };
-      }),
+      sessionFactory: {
+        create: async (opts) => {
+          dispatched.push(opts.featureSlug ?? "unknown");
+          return {
+            id: `dispatch-${opts.featureSlug}-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: Promise.resolve({
+              success: true,
+              exitCode: 0,
+              durationMs: 500,
+            }),
+          };
+        },
+      },
     });
 
     const loop = new WatchLoop(
@@ -131,18 +134,20 @@ describe("wave-aware dispatch", () => {
         if (scanCount === 1) return [epic];
         return [{ ...epic, nextAction: null }];
       },
-      sessionFactory: new SdkSessionFactory(async (opts) => {
-        dispatched.push(opts.featureSlug ?? "unknown");
-        return {
-          id: `dispatch-${opts.featureSlug}-${Date.now()}`,
-          worktreeSlug: opts.epicSlug,
-          promise: Promise.resolve({
-            success: true,
-            exitCode: 0,
-            durationMs: 500,
-          }),
-        };
-      }),
+      sessionFactory: {
+        create: async (opts) => {
+          dispatched.push(opts.featureSlug ?? "unknown");
+          return {
+            id: `dispatch-${opts.featureSlug}-${Date.now()}`,
+            worktreeSlug: opts.epicSlug,
+            promise: Promise.resolve({
+              success: true,
+              exitCode: 0,
+              durationMs: 500,
+            }),
+          };
+        },
+      },
     });
 
     const loop = new WatchLoop(
