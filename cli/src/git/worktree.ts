@@ -185,7 +185,7 @@ export interface WorktreeInfo {
 }
 
 /** Outcome of a worktree rebase attempt. */
-export type RebaseOutcome = "success" | "skipped" | "conflict";
+export type RebaseOutcome = "success" | "skipped" | "stale";
 
 export interface RebaseResult {
   outcome: RebaseOutcome;
@@ -455,11 +455,16 @@ export async function remove(
 }
 
 /**
- * Rebase the current worktree branch onto local main.
+ * Merge local main into the current worktree branch.
  *
  * - Design phase: skips (design creates fresh worktrees from origin/HEAD)
  * - On success: returns success with one-line log
- * - On conflict: aborts rebase, logs warning, returns conflict
+ * - On conflict: aborts merge, logs warning, returns stale
+ *
+ * Uses merge instead of rebase because rebase replays every commit
+ * individually — intermediate states can conflict even when the final
+ * state is clean. Merge compares only the tips. The feature branch is
+ * squash-merged at release, so branch history topology is irrelevant.
  *
  * No network dependency — targets local main only.
  */
@@ -475,17 +480,17 @@ export async function rebase(
   const cwd = opts.cwd;
   const mainBranch = await resolveMainBranch({ cwd });
 
-  const result = await git(["rebase", mainBranch], { cwd, allowFailure: true });
+  const result = await git(["merge", mainBranch, "--no-edit"], { cwd, allowFailure: true });
 
-  if (result.exitCode !== 0) {
-    // Conflict — abort and warn
-    await git(["rebase", "--abort"], { cwd, allowFailure: true });
-    const msg = `rebase conflict onto ${mainBranch} — proceeding on stale base`;
-    opts.logger?.warn(msg);
-    return { outcome: "conflict", message: msg };
+  if (result.exitCode === 0) {
+    const msg = `merged ${mainBranch} into feature branch`;
+    opts.logger?.log(msg);
+    return { outcome: "success", message: msg };
   }
 
-  const msg = `rebased onto ${mainBranch}`;
-  opts.logger?.log(msg);
-  return { outcome: "success", message: msg };
+  // Conflict — abort and proceed on stale base
+  await git(["merge", "--abort"], { cwd, allowFailure: true });
+  const msg = `merge conflict with ${mainBranch} — proceeding on stale base`;
+  opts.logger?.warn(msg);
+  return { outcome: "stale", message: msg };
 }

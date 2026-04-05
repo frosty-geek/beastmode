@@ -589,6 +589,25 @@ describe("pipeline/runner", () => {
     });
   });
 
+  describe("rebase stale warning", () => {
+    it("logs warning when rebase returns stale outcome", async () => {
+      const warns: string[] = [];
+      const testLogger = {
+        ...nullLogger,
+        warn: (msg: string) => warns.push(msg),
+      };
+
+      mockRebase.mockImplementation(async () => ({
+        outcome: "stale" as const,
+        message: "merge conflict with main — proceeding on stale base",
+      }));
+
+      await run(makeConfig({ logger: testLogger }));
+
+      expect(warns.some(w => w.includes("stale"))).toBe(true);
+    });
+  });
+
   describe("skipWorktreeSetup", () => {
     it("computes worktree path without calling create", async () => {
       const result = await run(makeConfig({ skipWorktreeSetup: true }));

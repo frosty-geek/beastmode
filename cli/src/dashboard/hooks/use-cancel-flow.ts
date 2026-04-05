@@ -5,7 +5,7 @@
  * While confirming, other keybindings should be suppressed (caller checks isModal).
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 export type CancelFlowState =
   | { phase: "idle" }
@@ -31,6 +31,8 @@ export interface CancelFlowResult {
 
 export function useCancelFlow(): CancelFlowResult {
   const [state, setState] = useState<CancelFlowState>({ phase: "idle" });
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const isModal = state.phase === "confirming" || state.phase === "executing";
 
@@ -44,10 +46,11 @@ export function useCancelFlow(): CancelFlowResult {
       key: { escape: boolean },
       onConfirm: (slug: string) => Promise<void>,
     ) => {
-      if (state.phase !== "confirming") return;
+      const current = stateRef.current;
+      if (current.phase !== "confirming") return;
 
       if (input === "y" || input === "Y") {
-        const { slug } = state;
+        const { slug } = current;
         setState({ phase: "executing", slug });
         onConfirm(slug).finally(() => {
           setState({ phase: "idle" });
@@ -55,9 +58,8 @@ export function useCancelFlow(): CancelFlowResult {
       } else if (input === "n" || input === "N" || key.escape) {
         setState({ phase: "idle" });
       }
-      // All other input is swallowed while confirming
     },
-    [state],
+    [],
   );
 
   const reset = useCallback(() => {

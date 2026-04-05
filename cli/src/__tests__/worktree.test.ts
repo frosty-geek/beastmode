@@ -337,11 +337,11 @@ describe("fork-point tracking", () => {
 });
 
 describe("rebase", () => {
-  test("success: rebases onto main when no conflicts", async () => {
+  test("success: merges main when no conflicts", async () => {
     // Create a worktree
     const info = await create("test-rebase-success", { cwd: repoDir });
 
-    // Add a commit on main so there's something to rebase onto
+    // Add a commit on main so there's something to merge
     await Bun.write(join(repoDir, "main-rebase-file.txt"), "main content\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "advance main for rebase test"], { cwd: repoDir });
@@ -361,15 +361,19 @@ describe("rebase", () => {
     const result = await rebase("plan", { cwd: info.path, logger });
 
     expect(result.outcome).toBe("success");
-    expect(result.message).toContain("rebased onto");
+    expect(result.message).toContain("merged");
     expect(logs.length).toBe(1);
     expect(warns.length).toBe(0);
+
+    // Verify main's file is now available in the worktree
+    const mainFile = await Bun.file(join(info.path, "main-rebase-file.txt")).text();
+    expect(mainFile).toBe("main content\n");
 
     // Clean up
     await remove("test-rebase-success", { cwd: repoDir });
   });
 
-  test("conflict: aborts rebase and returns conflict", async () => {
+  test("conflict: aborts merge and returns stale", async () => {
     // Create a worktree
     const info = await create("test-rebase-conflict", { cwd: repoDir });
 
@@ -392,15 +396,17 @@ describe("rebase", () => {
 
     const result = await rebase("implement", { cwd: info.path, logger });
 
-    expect(result.outcome).toBe("conflict");
-    expect(result.message).toContain("rebase conflict");
+    expect(result.outcome).toBe("stale");
+    expect(result.message).toContain("merge conflict");
     expect(result.message).toContain("stale base");
     expect(warns.length).toBe(1);
     expect(logs.length).toBe(0);
 
-    // Verify rebase was aborted (not in rebase state)
+    // Verify merge was aborted (clean working tree, no MERGE_HEAD)
     const statusResult = await git(["status", "--porcelain"], { cwd: info.path, allowFailure: true });
     expect(statusResult.exitCode).toBe(0);
+    const mergeHead = await git(["rev-parse", "--verify", "MERGE_HEAD"], { cwd: info.path, allowFailure: true });
+    expect(mergeHead.exitCode).not.toBe(0);
 
     // Clean up
     await remove("test-rebase-conflict", { cwd: repoDir });

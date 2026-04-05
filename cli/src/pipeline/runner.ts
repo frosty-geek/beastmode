@@ -140,6 +140,9 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     // -- Step 2: git.worktree.rebase ------------------------------------------
     const rebaseResult = await rebase(config.phase, { cwd: worktreePath, logger });
     logger.detail?.(`rebase: ${rebaseResult.outcome}`);
+    if (rebaseResult.outcome === "stale") {
+      logger.warn(`worktree is stale — agent may encounter missing dependencies`);
+    }
 
     // -- Step 3: settings.create ----------------------------------------------
     const claudeDir = resolve(worktreePath, ".claude");

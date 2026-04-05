@@ -66,14 +66,15 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     }),
   );
 
-  // --- Visible epics (filtered by active filter and toggle-all) ---
+  // slugAtIndex reads from a ref so it always sees the latest filteredEpics
+  // (computed below the keyboard hook, updated every render).
+  const filteredEpicsRef = useRef<EnrichedManifest[]>([]);
   const slugAtIndex = useCallback(
     (index: number): string | undefined => {
-      // index 0 = "(all)" row, returns undefined
       if (index === 0) return undefined;
-      return epics[index - 1]?.slug;
+      return filteredEpicsRef.current[index - 1]?.slug;
     },
-    [epics],
+    [],
   );
 
   const handleCancelEpic = useCallback(
@@ -107,6 +108,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   }, []);
 
   // --- Keyboard hook (flat model — no view stack) ---
+  // itemCount uses epics.length as upper bound; clamped below after filtering.
   const keyboard = useDashboardKeyboard({
     itemCount: epics.length + 1, // +1 for "(all)" row
     onCancelEpic: handleCancelEpic,
@@ -127,6 +129,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     }
     return true;
   });
+  filteredEpicsRef.current = filteredEpics;
 
   // Clamp nav when list changes
   useEffect(() => {
