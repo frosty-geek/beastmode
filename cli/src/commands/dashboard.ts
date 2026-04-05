@@ -4,7 +4,7 @@ import type { BeastmodeConfig } from "../config.js";
 import { WatchLoop } from "./watch-loop.js";
 import type { WatchDeps } from "./watch-loop.js";
 import { listEnriched } from "../manifest/store.js";
-import { ReconcilingFactory } from "./watch.js";
+import { ReconcilingFactory } from "../dispatch/reconciling.js";
 import type { SessionFactory } from "../dispatch/factory.js";
 import { ITermSessionFactory } from "../dispatch/it2.js";
 import { It2Client } from "../dispatch/it2.js";
