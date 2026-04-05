@@ -5,7 +5,8 @@
  * handles implement fan-out and graceful shutdown.
  */
 
-import type { EnrichedManifest, ScanResult } from "../manifest/store.js";
+import type { EnrichedEpic } from "../store/index.js";
+import type { ScanResult } from "../dispatch/types.js";
 import type {
   DispatchedSession,
   WatchConfig,
@@ -39,7 +40,7 @@ function resolveVersion(projectRoot: string): string {
 /** Injected dependencies — allows testing without real SDK/scanner. */
 export interface WatchDeps {
   /** Scan state to determine epic states. */
-  scanEpics: (projectRoot: string) => Promise<ScanResult | EnrichedManifest[]>;
+  scanEpics: (projectRoot: string) => Promise<ScanResult | EnrichedEpic[]>;
   /** Factory for creating phase sessions. */
   sessionFactory: SessionFactory;
   /** Scoped logger. Falls back to createLogger(0, {}) if omitted. */
@@ -151,7 +152,7 @@ export class WatchLoop extends EventEmitter {
       this.livenessCheckIds.clear();
     }
 
-    let epics: EnrichedManifest[];
+    let epics: EnrichedEpic[];
     try {
       const result = await this.deps.scanEpics(this.config.projectRoot);
       epics = Array.isArray(result) ? result : result.epics;
@@ -167,7 +168,7 @@ export class WatchLoop extends EventEmitter {
     this.emitTyped('scan-complete', { epicsScanned: epics.length, dispatched });
   }
 
-  private async processEpic(epic: EnrichedManifest): Promise<number> {
+  private async processEpic(epic: EnrichedEpic): Promise<number> {
     // Skip epics blocked on human gates or manual pause
     if (epic.blocked) {
       this.emitTyped('epic-blocked', { epicSlug: epic.slug, gate: epic.blocked.gate, reason: epic.blocked.reason });
@@ -188,7 +189,7 @@ export class WatchLoop extends EventEmitter {
     }
   }
 
-  private async dispatchSingle(epic: EnrichedManifest): Promise<number> {
+  private async dispatchSingle(epic: EnrichedEpic): Promise<number> {
     const action = epic.nextAction!;
 
     // Don't dispatch if the epic worktree is already in use by another phase
@@ -243,7 +244,7 @@ export class WatchLoop extends EventEmitter {
   }
 
   private async dispatchFanOut(
-    epic: EnrichedManifest,
+    epic: EnrichedEpic,
     features: string[],
   ): Promise<number> {
     // Validate feature provenance when worktree exists: each feature must
