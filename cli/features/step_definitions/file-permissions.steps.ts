@@ -85,8 +85,8 @@ Given(
 );
 
 Given("the config has no file-permissions section", function (this: PipelineWorld) {
-  // Default config from world.setup() has no file-permissions section
-  // Just verify it's absent
+  // Remove file-permissions from config to test the default behavior
+  delete (this.config as any)["file-permissions"];
   assert.strictEqual(
     (this.config as any)["file-permissions"],
     undefined,

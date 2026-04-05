@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.90.0 — BDD Feedback Loop (Apr 2026)
+
+- **Inline Gherkin distribution** — Plan invokes integration tester agent in batch, distributes scenarios inline into each feature plan (no dedicated Wave 1 integration-tests feature)
+- **BDD verification in implement** — Post-wave BDD verification section with escalation docs, Task 0 convention discovery, and status summary stats
+- **Targeted validate re-dispatch** — REGRESS_FEATURES event resets only failing features to pending (reDispatchCount budget of 2), passing features retain completed status; blanket REGRESS remains as fallback
+- **regressFeatures() pure function** — ManifestFeature.reDispatchCount tracking with budget enforcement
+- **Integration test scenarios** — 25 Cucumber scenarios (410 steps) covering full pipeline and validate feedback profiles
+
+---
+
 ### v0.89.0 — Spring Cleaning (Apr 2026)
 
 - **Delete cmux/SDK dispatch** — Remove cmux multiplexer, SDK streaming, SdkSessionFactory, and all related types; hardcode iTerm2 as the sole dispatch backend

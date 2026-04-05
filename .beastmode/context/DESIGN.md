@@ -148,7 +148,7 @@ XState v5 state machine module at `cli/src/pipeline-machine/` replacing implicit
 5. ALWAYS persist using same PipelineManifest JSON shape — machine context IS the manifest
 6. ALWAYS accumulate state in memory during machine transitions — single `store.save()` at end of dispatch is the sole disk write
 7. ALWAYS use generic REGRESS event for all regression scenarios — VALIDATE_FAILED is removed, watch loop sends REGRESS with targetPhase "implement" on validate failure
-8. ALWAYS reset all features to pending when REGRESS targets implement or earlier — full-phase regression, no per-feature granularity
+8. ALWAYS use REGRESS_FEATURES when validate identifies specific failing features — resets only failing features to pending, passing features retain completed status; fall back to REGRESS (blanket reset) only when per-feature identification is unavailable
 
 context/design/pipeline-machine.md
 

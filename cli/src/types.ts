@@ -35,6 +35,7 @@ export interface ImplementArtifacts {
 export interface ValidateArtifacts {
   report: string; // path to validation report
   passed: boolean;
+  failedFeatures?: string[];
 }
 
 export interface ReleaseArtifacts {

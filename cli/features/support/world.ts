@@ -75,6 +75,9 @@ export class PipelineWorld extends World {
         '  implement: "auto-answer all questions"',
         '  validate: "auto-answer all questions"',
         '  release: "auto-answer all questions"',
+        "file-permissions:",
+        "  timeout: 30",
+        '  claude-settings: "always defer to human"',
       ].join("\n") + "\n",
     );
 
@@ -185,6 +188,37 @@ export class PipelineWorld extends World {
     writeFileSync(
       join(dir, `${date}-${epicSlug}.md`),
       `---\n${frontmatter}\n---\n\n# Validation Report\n\nAll gates passed.\n`,
+    );
+  }
+
+  writeValidateArtifactWithFailures(
+    wtPath: string,
+    epicSlug: string,
+    results: Array<{ feature: string; result: string }>,
+  ): void {
+    const date = new Date().toISOString().slice(0, 10);
+    const dir = join(wtPath, ".beastmode", "artifacts", "validate");
+    mkdirSync(dir, { recursive: true });
+
+    const failedFeatures = results
+      .filter((r) => r.result === "failed")
+      .map((r) => r.feature);
+
+    const allPassed = failedFeatures.length === 0;
+
+    const frontmatter = [
+      `phase: validate`,
+      `slug: ${epicSlug}`,
+      `epic: ${epicSlug}`,
+      `status: ${allPassed ? "passed" : "failed"}`,
+      ...(failedFeatures.length > 0
+        ? [`failedFeatures: ${failedFeatures.join(",")}`]
+        : []),
+    ].join("\n");
+
+    writeFileSync(
+      join(dir, `${date}-${epicSlug}.md`),
+      `---\n${frontmatter}\n---\n\n# Validation Report\n\n## Results\n${results.map((r) => `- ${r.feature}: ${r.result}`).join("\n")}\n`,
     );
   }
 

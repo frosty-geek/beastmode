@@ -1,19 +1,19 @@
-Feature: Regression loop -- validate failure triggers reset and re-implement
+Feature: Regression loop -- validate failure triggers targeted re-dispatch
 
-  When validation fails, the XState reconciler sends a REGRESS event that
-  resets all features to pending status and moves the manifest phase back
-  to implement. This allows the team to re-implement and re-validate without
-  abandoning the epic or manually recovering state.
+  When validation identifies failing features, the XState reconciler sends a
+  REGRESS_FEATURES event that resets only the failing features to pending
+  status while passing features retain completed status. The manifest phase
+  moves back to implement for re-dispatch of the failing features only.
 
-  This feature exercises the regression path: design → plan (with multiple
-  features across waves) → implement all features → validate with failure →
-  REGRESS event resets state → re-implement → re-validate with success →
-  release → done.
+  This feature exercises the targeted regression path: design → plan (with
+  multiple features across waves) → implement all features → validate with
+  partial failure → REGRESS_FEATURES resets only failing features →
+  re-implement failing feature → re-validate with success → release → done.
 
   The pipeline result remains successful (dispatch succeeded), but the manifest
-  phase changes back to "implement" and all feature statuses reset to "pending".
+  phase changes back to "implement" and only failing feature statuses reset.
 
-  Scenario: Validate failure triggers regression, features reset, re-implement succeeds
+  Scenario: Validate failure triggers targeted regression, only failing feature resets
 
     # -- Phase 1: Design with slug rename --
     Given the initial epic slug is "hex0a1b2c"
@@ -61,25 +61,21 @@ Feature: Regression loop -- validate failure triggers reset and re-implement
     And feature "token-cache" should have status "completed"
     And the manifest phase should be "validate"
 
-    # -- Phase 4a: Validate with FAILURE --
-    When the dispatch will write a validate artifact with status "failed"
+    # -- Phase 4a: Validate with FAILURE (token-cache fails) --
+    When the dispatch will write a validate artifact with failures:
+      | feature      | result |
+      | oauth-server | passed |
+      | client-lib   | passed |
+      | token-cache  | failed |
     And the pipeline runs the "validate" phase
     Then the pipeline result should be successful
     And the pipeline result should indicate regression
     And the manifest phase should be "implement"
-    And all features should have status "pending"
-
-    # -- Phase 3c: Re-implement after regression --
-    When the dispatch will write an implement artifact for feature "oauth-server"
-    And the pipeline runs the "implement" phase for feature "oauth-server"
-    Then the pipeline result should be successful
     And feature "oauth-server" should have status "completed"
-
-    When the dispatch will write an implement artifact for feature "client-lib"
-    And the pipeline runs the "implement" phase for feature "client-lib"
-    Then the pipeline result should be successful
     And feature "client-lib" should have status "completed"
+    And feature "token-cache" should have status "pending"
 
+    # -- Phase 3c: Re-implement only token-cache after regression --
     When the dispatch will write an implement artifact for feature "token-cache"
     And the pipeline runs the "implement" phase for feature "token-cache"
     Then the pipeline result should be successful

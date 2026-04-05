@@ -208,7 +208,15 @@ export async function reconcileValidate(
     if (output?.status === "completed") {
       actor.send({ type: "VALIDATE_COMPLETED" });
     } else {
-      actor.send({ type: "REGRESS", targetPhase: "implement" as Phase });
+      // Check for per-feature failure info
+      const artifacts = output?.artifacts as unknown as Record<string, unknown> | undefined;
+      const failedFeatures = artifacts?.failedFeatures as string[] | undefined;
+      if (failedFeatures && failedFeatures.length > 0) {
+        actor.send({ type: "REGRESS_FEATURES", failingFeatures: failedFeatures });
+      } else {
+        // Fallback: blanket regression (no per-feature info)
+        actor.send({ type: "REGRESS", targetPhase: "implement" as Phase });
+      }
     }
     return extractManifest(actor);
   });

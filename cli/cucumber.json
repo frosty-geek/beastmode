@@ -45,6 +45,7 @@
     "import": [
       "features/step_definitions/pipeline.steps.ts",
       "features/step_definitions/regression.steps.ts",
+      "features/step_definitions/validate-feedback.steps.ts",
       "features/support/world.ts",
       "features/support/hooks.ts"
     ],
@@ -67,6 +68,7 @@
     "import": [
       "features/step_definitions/pipeline.steps.ts",
       "features/step_definitions/error-resilience.steps.ts",
+      "features/step_definitions/validate-feedback.steps.ts",
       "features/support/world.ts",
       "features/support/hooks.ts"
     ],
@@ -78,6 +80,17 @@
     "import": [
       "features/step_definitions/pipeline.steps.ts",
       "features/step_definitions/hitl.steps.ts",
+      "features/support/world.ts",
+      "features/support/hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
+  },
+  "validate-feedback": {
+    "paths": ["features/validate-feedback-loop.feature"],
+    "import": [
+      "features/step_definitions/pipeline.steps.ts",
+      "features/step_definitions/validate-feedback.steps.ts",
       "features/support/world.ts",
       "features/support/hooks.ts"
     ],
@@ -109,6 +122,7 @@
       "features/design-slug-rename.feature",
       "features/pipeline-error-resilience.feature",
       "features/hitl-hook-lifecycle.feature",
+      "features/validate-feedback-loop.feature",
       "features/file-permissions-config.feature",
       "features/file-permissions-hooks.feature",
       "features/file-permissions-logging.feature",
@@ -120,6 +134,7 @@
       "features/step_definitions/slug-rename.steps.ts",
       "features/step_definitions/error-resilience.steps.ts",
       "features/step_definitions/hitl.steps.ts",
+      "features/step_definitions/validate-feedback.steps.ts",
       "features/step_definitions/file-permissions.steps.ts",
       "features/support/world.ts",
       "features/support/hooks.ts"

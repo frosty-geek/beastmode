@@ -22,3 +22,11 @@ Common type errors introduced by new test files that require fixup before the ty
 - String literal type narrowing: declare as `const x: string = "value"` instead of `const x = "value"` when the inferred literal type is too narrow for the target parameter
 - Missing `undefined` in mock type: optional config fields need explicit `| undefined` annotation on mock objects
 - ALWAYS fix new type errors during validate — keeping the type gate clean is the acceptance gate, not an implement concern
+
+## Targeted Re-Dispatch
+
+- ALWAYS write `failedFeatures: feat-a,feat-b` (comma-separated slugs) in validate artifact frontmatter when specific failing features can be identified — pipeline uses this to send REGRESS_FEATURES instead of blanket REGRESS
+- NEVER write `failedFeatures` when status is passed — only present on failure with identifiable per-feature failures
+- Identify failing features by mapping integration test failures to feature slugs via naming conventions (file naming, tags, describe blocks) — same conventions as implement BDD verification
+- When feature-level identification is not possible (non-feature-scoped tests), omit `failedFeatures` and let the pipeline fall back to blanket regression
+- Per-feature re-dispatch budget is 2 cycles; the third failure marks the feature as permanently blocked — report which features are blocked and how many cycles were attempted
