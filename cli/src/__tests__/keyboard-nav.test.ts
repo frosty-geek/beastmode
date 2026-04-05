@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { cancelEpicAction } from "../dashboard/actions/cancel-epic";
 import type { Logger } from "../logger";
+import { JsonFileStore } from "../store/index.js";
 
 // ---------------------------------------------------------------------------
 // cancelEpicAction — integration test with shared cancel-logic module
@@ -16,10 +17,10 @@ const noopLogger: Logger = {
 };
 
 describe("cancelEpicAction", () => {
-  // We need a minimal manifest on disk for store.find to work.
-  // Use temp dir + real manifest store functions.
+  // We need a minimal store entity on disk for cancel-logic to find.
+  // Use temp dir + real store functions.
 
-  const { mkdtempSync, mkdirSync, writeFileSync, existsSync } = require("fs");
+  const { mkdtempSync, mkdirSync } = require("fs");
   const { resolve } = require("path");
   const os = require("os");
 
@@ -28,21 +29,13 @@ describe("cancelEpicAction", () => {
     const stateDir = resolve(tmpDir, ".beastmode", "state");
     mkdirSync(stateDir, { recursive: true });
 
-    const date = new Date().toISOString().slice(0, 10);
-    const manifestPath = resolve(stateDir, `${date}-${slug}.manifest.json`);
-    const manifest = {
-      slug,
-      phase,
-      features: [
-        { slug: "feat-1", plan: "plan.md", status: "pending" },
-      ],
-      artifacts: {},
-      blocked: null,
-      lastUpdated: new Date().toISOString(),
-    };
-    writeFileSync(manifestPath, JSON.stringify(manifest));
+    const storePath = resolve(stateDir, "store.json");
+    const store = new JsonFileStore(storePath);
+    store.load();
+    store.addEpic({ name: slug, slug });
+    store.save();
 
-    return { tmpDir, stateDir, manifestPath };
+    return { tmpDir, stateDir, storePath };
   }
 
   function makeMockTracker() {
@@ -76,8 +69,8 @@ describe("cancelEpicAction", () => {
     };
   }
 
-  test("deletes manifest via shared cancel-logic", async () => {
-    const { tmpDir, manifestPath } = setupTempProject("cancel-test", "implement");
+  test("deletes store entity via shared cancel-logic", async () => {
+    const { tmpDir, storePath } = setupTempProject("cancel-test", "implement");
     const { tracker } = makeMockTracker();
 
     await cancelEpicAction({
@@ -88,12 +81,14 @@ describe("cancelEpicAction", () => {
       logger: noopLogger,
     });
 
-    // Shared module deletes the manifest (not just sets phase to cancelled)
-    expect(existsSync(manifestPath)).toBe(false);
+    // Shared module deletes the store entity
+    const store = new JsonFileStore(storePath);
+    store.load();
+    expect(store.find("cancel-test")).toBeUndefined();
   });
 
-  test("deletes manifest from design phase", async () => {
-    const { tmpDir, manifestPath } = setupTempProject("design-cancel", "design");
+  test("deletes store entity from design phase", async () => {
+    const { tmpDir, storePath } = setupTempProject("design-cancel", "design");
     const { tracker } = makeMockTracker();
 
     await cancelEpicAction({
@@ -104,11 +99,13 @@ describe("cancelEpicAction", () => {
       logger: noopLogger,
     });
 
-    expect(existsSync(manifestPath)).toBe(false);
+    const store = new JsonFileStore(storePath);
+    store.load();
+    expect(store.find("design-cancel")).toBeUndefined();
   });
 
-  test("deletes manifest from validate phase", async () => {
-    const { tmpDir, manifestPath } = setupTempProject("validate-cancel", "validate");
+  test("deletes store entity from validate phase", async () => {
+    const { tmpDir, storePath } = setupTempProject("validate-cancel", "validate");
     const { tracker } = makeMockTracker();
 
     await cancelEpicAction({
@@ -119,7 +116,9 @@ describe("cancelEpicAction", () => {
       logger: noopLogger,
     });
 
-    expect(existsSync(manifestPath)).toBe(false);
+    const store = new JsonFileStore(storePath);
+    store.load();
+    expect(store.find("validate-cancel")).toBeUndefined();
   });
 
   test("aborts only sessions matching the epic slug", async () => {
@@ -138,12 +137,12 @@ describe("cancelEpicAction", () => {
     expect(abortedSlugs).not.toContain("other-epic");
   });
 
-  test("succeeds when manifest not found (idempotent)", async () => {
+  test("succeeds when store entity not found (idempotent)", async () => {
     const tmpDir = mkdtempSync(resolve(os.tmpdir(), "bm-test-"));
     mkdirSync(resolve(tmpDir, ".beastmode", "state"), { recursive: true });
     const { tracker } = makeMockTracker();
 
-    // Shared cancel module is idempotent — no manifest = no-op, not an error
+    // Shared cancel module is idempotent — no entity = no-op, not an error
     await cancelEpicAction({
       slug: "nonexistent",
       projectRoot: tmpDir,
@@ -154,14 +153,8 @@ describe("cancelEpicAction", () => {
     // No throw — idempotent success
   });
 
-  test("handles manifest with blocked state", async () => {
-    const { tmpDir, manifestPath } = setupTempProject("blocked-cancel", "implement");
-
-    // Add blocked state to manifest
-    const { readFileSync } = require("fs");
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
-    manifest.blocked = { gate: "feature", reason: "stuck" };
-    writeFileSync(manifestPath, JSON.stringify(manifest));
+  test("handles epic with blocked state", async () => {
+    const { tmpDir, storePath } = setupTempProject("blocked-cancel", "implement");
 
     const { tracker } = makeMockTracker();
 
@@ -173,8 +166,10 @@ describe("cancelEpicAction", () => {
       logger: noopLogger,
     });
 
-    // Manifest is deleted entirely
-    expect(existsSync(manifestPath)).toBe(false);
+    // Store entity is deleted entirely
+    const store = new JsonFileStore(storePath);
+    store.load();
+    expect(store.find("blocked-cancel")).toBeUndefined();
   });
 });
 

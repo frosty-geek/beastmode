@@ -6,6 +6,7 @@ import type { Logger } from "../logger";
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readdirSync } from "fs";
 import { resolve } from "path";
 import os from "os";
+import { JsonFileStore } from "../store/index.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -27,20 +28,16 @@ function setupTempProject(slug: string, opts?: { epic?: string; phase?: string; 
 
   const epic = opts?.epic ?? slug;
   const phase = opts?.phase ?? "implement";
-  const date = new Date().toISOString().slice(0, 10);
-  const manifestPath = resolve(stateDir, `${date}-${slug}.manifest.json`);
-  const manifest = {
-    slug,
-    epic,
-    phase,
-    features: [],
-    artifacts: {},
-    blocked: null,
-    lastUpdated: new Date().toISOString(),
-  };
-  writeFileSync(manifestPath, JSON.stringify(manifest));
+
+  // Create store entity instead of manifest file
+  const storePath = resolve(stateDir, "store.json");
+  const store = new JsonFileStore(storePath);
+  store.load();
+  store.addEpic({ name: epic, slug });
+  store.save();
 
   if (opts?.withArtifacts) {
+    const date = new Date().toISOString().slice(0, 10);
     for (const p of ["design", "plan", "implement"]) {
       const dir = resolve(tmpDir, ".beastmode", "artifacts", p);
       mkdirSync(dir, { recursive: true });
@@ -49,7 +46,7 @@ function setupTempProject(slug: string, opts?: { epic?: string; phase?: string; 
     }
   }
 
-  return { tmpDir, manifestPath };
+  return { tmpDir, storePath };
 }
 
 function makeConfig(tmpDir: string, identifier: string, overrides?: Partial<CancelConfig>): CancelConfig {
@@ -107,12 +104,16 @@ describe("cancel command parsing", () => {
 // ---------------------------------------------------------------------------
 
 describe("cancelEpic shared module", () => {
-  test("deletes manifest on cancel", async () => {
-    const { tmpDir, manifestPath } = setupTempProject("test-slug");
+  test("deletes store entity on cancel", async () => {
+    const { tmpDir, storePath } = setupTempProject("test-slug");
 
     await cancelEpic(makeConfig(tmpDir, "test-slug"));
 
-    expect(existsSync(manifestPath)).toBe(false);
+    // Verify store entity is gone
+    const store = new JsonFileStore(storePath);
+    store.load();
+    const entity = store.find("test-slug");
+    expect(entity).toBeUndefined();
   });
 
   test("deletes artifacts matching epic name", async () => {
@@ -129,13 +130,13 @@ describe("cancelEpic shared module", () => {
     }
   });
 
-  test("idempotent — second cancel succeeds with no manifest", async () => {
+  test("idempotent — second cancel succeeds with no store entity", async () => {
     const { tmpDir } = setupTempProject("idem-test");
 
     const first = await cancelEpic(makeConfig(tmpDir, "idem-test"));
-    expect(first.cleaned).toContain("manifest");
+    expect(first.cleaned).toContain("store-entity");
 
-    // Second run — manifest already gone
+    // Second run — entity already gone
     const second = await cancelEpic(makeConfig(tmpDir, "idem-test"));
     // Should not throw, just succeed
     expect(second.warned.length + second.cleaned.length).toBeGreaterThan(0);
@@ -148,15 +149,15 @@ describe("cancelEpic shared module", () => {
 
     expect(Array.isArray(result.cleaned)).toBe(true);
     expect(Array.isArray(result.warned)).toBe(true);
-    expect(result.cleaned).toContain("manifest");
+    expect(result.cleaned).toContain("store-entity");
     expect(result.cleaned).toContain("artifacts");
   });
 
-  test("manifest-not-found gracefully handled", async () => {
+  test("entity-not-found gracefully handled", async () => {
     const tmpDir = mkdtempSync(resolve(os.tmpdir(), "bm-cancel-"));
     mkdirSync(resolve(tmpDir, ".beastmode", "state"), { recursive: true });
 
-    // No manifest exists — should not throw
+    // No entity exists — should not throw
     const result = await cancelEpic(makeConfig(tmpDir, "ghost-slug"));
     expect(result).toBeDefined();
   });

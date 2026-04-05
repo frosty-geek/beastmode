@@ -5,6 +5,7 @@ import { ITermSessionFactory } from "../dispatch/it2";
 import type { IIt2Client, It2Session, SpawnFn } from "../dispatch/it2";
 import type { SessionCreateOpts } from "../dispatch/factory";
 import type { DispatchedSession } from "../dispatch/types";
+import { JsonFileStore } from "../store/index.js";
 
 const TEST_ROOT = resolve(import.meta.dirname, "../../.test-it2-session");
 
@@ -538,25 +539,21 @@ describe("ITermSessionFactory", () => {
     expect(result.success).toBe(true);
   });
 
-  test("reconciliation closes live session when manifest phase is done", async () => {
+  test("reconciliation closes live session when epic phase is done", async () => {
     const liveSessions: It2Session[] = [
       { id: "orphan-tab-1", name: "bm-done-epic", tabId: "w0t10", isAlive: true },
     ];
     mockClient = createMockIt2Client({ sessions: liveSessions });
 
-    // Write a "done" manifest for the epic
+    // Write a "done" store entity for the epic
     const stateDir = resolve(TEST_ROOT, ".beastmode", "state");
     mkdirSync(stateDir, { recursive: true });
-    writeFileSync(
-      resolve(stateDir, "2026-04-03-done-epic.manifest.json"),
-      JSON.stringify({
-        slug: "done-epic",
-        phase: "done",
-        features: [],
-        artifacts: {},
-        lastUpdated: new Date().toISOString(),
-      }),
-    );
+    const storePath = resolve(stateDir, "store.json");
+    const store = new JsonFileStore(storePath);
+    store.load();
+    const epic = store.addEpic({ name: "done-epic", slug: "done-epic" });
+    store.updateEpic(epic.id, { status: "done" as any });
+    store.save();
 
     const factory = new ITermSessionFactory(mockClient, {
       watchTimeoutMs: 2000,
@@ -579,25 +576,21 @@ describe("ITermSessionFactory", () => {
     expect(closeCalls).toHaveLength(1);
   });
 
-  test("reconciliation adopts live session when manifest phase is active", async () => {
+  test("reconciliation adopts live session when epic phase is active", async () => {
     const liveSessions: It2Session[] = [
       { id: "active-tab-1", name: "bm-active-epic", tabId: "w0t11", isAlive: true },
     ];
     mockClient = createMockIt2Client({ sessions: liveSessions });
 
-    // Write an "implement" (active) manifest for the epic
+    // Write an "implement" (active) store entity for the epic
     const stateDir = resolve(TEST_ROOT, ".beastmode", "state");
     mkdirSync(stateDir, { recursive: true });
-    writeFileSync(
-      resolve(stateDir, "2026-04-03-active-epic.manifest.json"),
-      JSON.stringify({
-        slug: "active-epic",
-        phase: "implement",
-        features: [],
-        artifacts: {},
-        lastUpdated: new Date().toISOString(),
-      }),
-    );
+    const storePath = resolve(stateDir, "store.json");
+    const store = new JsonFileStore(storePath);
+    store.load();
+    store.addEpic({ name: "active-epic", slug: "active-epic" });
+    // Status defaults to "design" which is an active phase, not done/cancelled
+    store.save();
 
     const factory = new ITermSessionFactory(mockClient, {
       watchTimeoutMs: 2000,

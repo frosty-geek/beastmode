@@ -1,21 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { createActor } from "xstate";
 import { epicMachine } from "../pipeline-machine/epic.js";
-import type { EpicContext } from "../pipeline-machine/types.js";
-import type { PipelineManifest, ManifestFeature } from "../manifest/store.js";
-import type { NextAction } from "../manifest/pure.js";
-import type { DispatchType } from "../pipeline-machine/types.js";
+import type { EpicContext, MachineFeature, DispatchType } from "../pipeline-machine/types.js";
+import type { NextAction } from "../store/types.js";
 
 /**
  * Inline version of deriveNextActionFromMachine for unit testing.
  * Mirrors the real implementation in state-scanner.ts.
  */
-function deriveNextAction(manifest: PipelineManifest): NextAction | null {
+function deriveNextAction(ctx: EpicContext): NextAction | null {
   const snapshot = epicMachine.resolveState({
-    value: manifest.phase,
-    context: manifest as unknown as EpicContext,
+    value: ctx.status,
+    context: ctx,
   });
-  const actor = createActor(epicMachine, { snapshot, input: manifest as unknown as EpicContext });
+  const actor = createActor(epicMachine, { snapshot, input: ctx });
   actor.start();
 
   const currentSnapshot = actor.getSnapshot();
@@ -29,7 +27,7 @@ function deriveNextAction(manifest: PipelineManifest): NextAction | null {
   if (!dispatchType || dispatchType === "skip") return null;
 
   if (dispatchType === "fan-out") {
-    const incompleteFeatures = manifest.features
+    const incompleteFeatures = ctx.features
       .filter((f) => f.status === "pending" || f.status === "in-progress" || f.status === "blocked");
     if (incompleteFeatures.length === 0) return null;
 
@@ -44,7 +42,7 @@ function deriveNextAction(manifest: PipelineManifest): NextAction | null {
 
     return {
       phase: stateValue,
-      args: [manifest.slug],
+      args: [ctx.slug],
       type: "fan-out",
       features: dispatchable,
     };
@@ -52,18 +50,22 @@ function deriveNextAction(manifest: PipelineManifest): NextAction | null {
 
   return {
     phase: stateValue,
-    args: [manifest.slug],
+    args: [ctx.slug],
     type: "single",
   };
 }
 
-function makeManifest(features: ManifestFeature[]): PipelineManifest {
+function makeManifest(features: MachineFeature[]): EpicContext {
   return {
+    id: "test-id",
     slug: "test-epic",
-    phase: "implement",
+    name: "test-epic",
+    status: "implement",
+    depends_on: [],
+    created_at: "2026-03-31T00:00:00Z",
+    updated_at: "2026-03-31T00:00:00Z",
     features,
     artifacts: {},
-    lastUpdated: "2026-03-31T00:00:00Z",
   };
 }
 
