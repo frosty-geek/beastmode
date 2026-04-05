@@ -397,6 +397,66 @@ describe("formatFeatureBody", () => {
     expect(storyIdx).toBeGreaterThan(-1);
     expect(epicIdx).toBeGreaterThan(storyIdx);
   });
+
+  // --- whatToBuild ---
+
+  test("renders what-to-build section when whatToBuild present", () => {
+    const body = formatFeatureBody(
+      { slug: "feat-a", description: "desc", whatToBuild: "### Component\n\nBuild the thing" },
+      42,
+    );
+    expect(body).toContain("## What to Build\n\n### Component\n\nBuild the thing");
+  });
+
+  test("omits what-to-build section when whatToBuild absent", () => {
+    const body = formatFeatureBody(
+      { slug: "feat-a", description: "desc" },
+      42,
+    );
+    expect(body).not.toContain("## What to Build");
+  });
+
+  // --- acceptanceCriteria ---
+
+  test("renders acceptance criteria section when acceptanceCriteria present", () => {
+    const body = formatFeatureBody(
+      { slug: "feat-a", description: "desc", acceptanceCriteria: "- [ ] Works\n- [ ] Tests pass" },
+      42,
+    );
+    expect(body).toContain("## Acceptance Criteria\n\n- [ ] Works\n- [ ] Tests pass");
+  });
+
+  test("omits acceptance criteria section when acceptanceCriteria absent", () => {
+    const body = formatFeatureBody(
+      { slug: "feat-a", description: "desc" },
+      42,
+    );
+    expect(body).not.toContain("## Acceptance Criteria");
+  });
+
+  // --- section ordering ---
+
+  test("feature body sections appear in correct order: description, user story, what to build, acceptance criteria, epic ref", () => {
+    const body = formatFeatureBody(
+      {
+        slug: "feat-a",
+        description: "Description text",
+        userStory: "As a user...",
+        whatToBuild: "Build this",
+        acceptanceCriteria: "- [ ] Done",
+      },
+      42,
+    );
+    const descIdx = body.indexOf("Description text");
+    const storyIdx = body.indexOf("## User Story");
+    const buildIdx = body.indexOf("## What to Build");
+    const criteriaIdx = body.indexOf("## Acceptance Criteria");
+    const epicIdx = body.indexOf("**Epic:** #42");
+    expect(descIdx).toBeLessThan(storyIdx);
+    expect(storyIdx).toBeLessThan(buildIdx);
+    expect(buildIdx).toBeLessThan(criteriaIdx);
+    expect(criteriaIdx).toBeLessThan(epicIdx);
+  });
 });
 
 // --- formatClosingComment ---

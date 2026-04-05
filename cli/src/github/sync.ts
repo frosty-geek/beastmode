@@ -79,6 +79,10 @@ export interface FeatureBodyInput {
   description?: string;
   /** User story text extracted from the feature plan. */
   userStory?: string;
+  /** What to Build section from the feature plan. */
+  whatToBuild?: string;
+  /** Acceptance Criteria section from the feature plan. */
+  acceptanceCriteria?: string;
 }
 
 /**
@@ -169,6 +173,16 @@ export function formatFeatureBody(
   // User story (optional, from feature plan)
   if (input.userStory) {
     sections.push(`## User Story\n\n${input.userStory}`);
+  }
+
+  // What to Build (optional, from feature plan)
+  if (input.whatToBuild) {
+    sections.push(`## What to Build\n\n${input.whatToBuild}`);
+  }
+
+  // Acceptance Criteria (optional, from feature plan)
+  if (input.acceptanceCriteria) {
+    sections.push(`## Acceptance Criteria\n\n${input.acceptanceCriteria}`);
   }
 
   sections.push(`**Epic:** #${epicNumber}`);
@@ -694,8 +708,10 @@ async function syncFeature(
   result: SyncResult,
   opts: { logger?: Logger; projectRoot?: string } = {},
 ): Promise<void> {
-  // Read user story from feature plan (if projectRoot available)
+  // Read plan sections from feature plan (if projectRoot available)
   let userStory: string | undefined;
+  let whatToBuild: string | undefined;
+  let acceptanceCriteria: string | undefined;
   if (opts.projectRoot && feature.plan) {
     const planPath = resolve(opts.projectRoot, feature.plan);
     try {
@@ -703,6 +719,10 @@ async function syncFeature(
         const planContent = readFileSync(planPath, "utf-8");
         const section = extractSection(planContent, "User Stories");
         if (section) userStory = section;
+        const wtb = extractSection(planContent, "What to Build");
+        if (wtb) whatToBuild = wtb;
+        const ac = extractSection(planContent, "Acceptance Criteria");
+        if (ac) acceptanceCriteria = ac;
       }
     } catch {
       // Graceful degradation
@@ -715,7 +735,7 @@ async function syncFeature(
 
   if (!featureNumber) {
     const featureBody = formatFeatureBody(
-      { slug: feature.slug, description: feature.description, userStory },
+      { slug: feature.slug, description: feature.description, userStory, whatToBuild, acceptanceCriteria },
       epicNumber,
     );
     featureNumber = await ghIssueCreate(
@@ -774,7 +794,7 @@ async function syncFeature(
   // --- Feature Body Update ---
   if (!featureJustCreated) {
     const featureBody = formatFeatureBody(
-      { slug: feature.slug, description: feature.description, userStory },
+      { slug: feature.slug, description: feature.description, userStory, whatToBuild, acceptanceCriteria },
       epicNumber,
     );
     const featureBodyHash = hashBody(featureBody);
