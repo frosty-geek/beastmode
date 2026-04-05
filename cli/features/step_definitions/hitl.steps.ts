@@ -68,7 +68,6 @@ Then("the worktree settings should contain a PreToolUse hook for {string}", func
   assert.ok(settings.hooks.PreToolUse, "No PreToolUse in settings.hooks");
   assert.ok(Array.isArray(settings.hooks.PreToolUse), "PreToolUse is not an array");
 
-  // Find the AskUserQuestion PreToolUse hook entry
   const hitlEntry = settings.hooks.PreToolUse.find(
     (entry: any) => entry.matcher === "AskUserQuestion",
   );
@@ -77,19 +76,50 @@ Then("the worktree settings should contain a PreToolUse hook for {string}", func
   assert.ok(hitlEntry.hooks, "Hook entry has no hooks array");
   assert.ok(Array.isArray(hitlEntry.hooks) && hitlEntry.hooks.length > 0, "Hook entry has empty hooks array");
 
-  // Find the prompt hook within the entry
-  const promptHook = hitlEntry.hooks.find((h: any) => h.type === "prompt");
-  assert.ok(promptHook, "No prompt-type hook found in AskUserQuestion PreToolUse entry");
-
-  // Verify phase prose is in the hook prompt
-  const expectedProse = this.config.hitl[phase as keyof typeof this.config.hitl];
-  assert.ok(expectedProse, `No HITL prose configured for phase "${phase}"`);
+  const commandHook = hitlEntry.hooks.find((h: any) => h.type === "command");
+  assert.ok(commandHook, "No command-type hook found in AskUserQuestion PreToolUse entry");
   assert.ok(
-    promptHook.prompt.includes(expectedProse as string),
-    `PreToolUse hook prompt does not contain phase prose. Expected "${expectedProse}" to appear in prompt.`,
+    commandHook.command.includes("hitl-auto.ts"),
+    `Command should reference hitl-auto.ts, got: ${commandHook.command}`,
+  );
+  assert.ok(
+    commandHook.command.includes(phase),
+    `Command should include phase "${phase}", got: ${commandHook.command}`,
   );
 
-  // Store captured settings for later phases
+  (this as any)._lastCapturedSettings = settings;
+});
+
+Then("the worktree settings should contain a command-type PreToolUse hook for {string}", function (
+  this: PipelineWorld,
+  phase: string,
+) {
+  const settingsPath = getWorktreeSettingsPath(this);
+  assert.ok(existsSync(settingsPath), `Settings file does not exist at ${settingsPath}`);
+
+  const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+  assert.ok(settings.hooks, "No hooks in settings");
+  assert.ok(settings.hooks.PreToolUse, "No PreToolUse in settings.hooks");
+  assert.ok(Array.isArray(settings.hooks.PreToolUse), "PreToolUse is not an array");
+
+  const hitlEntry = settings.hooks.PreToolUse.find(
+    (entry: any) => entry.matcher === "AskUserQuestion",
+  );
+
+  assert.ok(hitlEntry, "No PreToolUse hook found for AskUserQuestion in settings");
+  assert.ok(hitlEntry.hooks, "Hook entry has no hooks array");
+
+  const commandHook = hitlEntry.hooks.find((h: any) => h.type === "command");
+  assert.ok(commandHook, "No command-type hook found in AskUserQuestion PreToolUse entry");
+  assert.ok(
+    commandHook.command.includes("hitl-auto.ts"),
+    `Command should reference hitl-auto.ts, got: ${commandHook.command}`,
+  );
+  assert.ok(
+    commandHook.command.includes(phase),
+    `Command should include phase "${phase}", got: ${commandHook.command}`,
+  );
+
   (this as any)._lastCapturedSettings = settings;
 });
 

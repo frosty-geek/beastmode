@@ -1,8 +1,8 @@
 /**
- * pre-tool-use.ts — HITL settings composition and PreToolUse prompt hook.
+ * pre-tool-use.ts — HITL settings composition and PreToolUse command hook.
  *
  * Combines settings management (reading/writing settings.local.json with HITL hooks)
- * and prompt construction for AskUserQuestion auto-answering.
+ * and command hook construction for AskUserQuestion auto-answering.
  *
  * Originally: hitl-settings.ts (build/get) + hitl-prompt.ts
  */
@@ -48,13 +48,12 @@ export interface WriteSettingsOptions {
 
 // --- Types from hitl-prompt.ts ---
 
-/** Shape of a single PreToolUse prompt hook entry in settings.local.json */
+/** Shape of a single PreToolUse command hook entry in settings.local.json */
 export interface PromptHookEntry {
   matcher: string;
   hooks: Array<{
-    type: "prompt";
-    prompt: string;
-    timeout?: number;
+    type: "command";
+    command: string;
   }>;
 }
 
@@ -101,6 +100,14 @@ export function writeHitlSettings(options: WriteSettingsOptions): void {
     postToolUseHook,
   );
 
+  // Add Stop hook for output.json generation
+  const stopHook = buildStopHook();
+  settings.hooks.Stop = replaceHitlHook(
+    settings.hooks.Stop,
+    "",
+    stopHook,
+  );
+
   // Atomic write
   mkdirSync(claudeDir, { recursive: true });
   const tmpPath = settingsPath + ".tmp";
@@ -142,6 +149,15 @@ export function cleanHitlSettings(claudeDir: string): void {
       delete settings.hooks.PostToolUse;
     }
   }
+  // Remove Stop hook for output.json generation
+  if (settings.hooks.Stop) {
+    settings.hooks.Stop = settings.hooks.Stop.filter(
+      (h) => !h.hooks?.some((hk) => hk.command?.includes("generate-output.ts")),
+    );
+    if (settings.hooks.Stop.length === 0) {
+      delete settings.hooks.Stop;
+    }
+  }
 
   // Remove hooks key entirely if empty
   if (Object.keys(settings.hooks).length === 0) {
@@ -181,84 +197,40 @@ function buildPostToolUseHook(phase: string): HookEntry {
   };
 }
 
-// --- Functions from hitl-prompt.ts ---
-
 /**
- * Build the PreToolUse prompt hook entry for AskUserQuestion.
- *
- * @param prose — The user's HITL instructions for this phase (from config.yaml)
- * @param timeout — Hook timeout in seconds (default: 30)
- * @returns A single hook entry targeting AskUserQuestion
+ * Build the Stop hook for output.json generation.
+ * Calls generate-output.ts after Claude finishes responding.
  */
-export function buildPreToolUseHook(
-  prose: string,
-  timeout: number = 30,
-): PromptHookEntry {
-  const prompt = buildPrompt(prose);
+function buildStopHook(): HookEntry {
   return {
-    matcher: "AskUserQuestion",
+    matcher: "",
     hooks: [
       {
-        type: "prompt",
-        prompt,
-        timeout,
+        type: "command",
+        command: `bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/generate-output.ts"`,
       },
     ],
   };
 }
 
+// --- Functions from hitl-settings.ts (cont'd) ---
+
 /**
- * Build the full prompt string that the PreToolUse hook will execute.
+ * Build the PreToolUse command hook entry for AskUserQuestion.
  *
- * The prompt instructs the model to:
- * 1. Read the AskUserQuestion input from $ARGUMENTS
- * 2. Evaluate each question against the user's HITL prose
- * 3. Return auto-answer OR defer (all-or-nothing for multi-question)
- * 4. Fail-open on any uncertainty
+ * @param phase — The current pipeline phase name
+ * @returns A single hook entry targeting AskUserQuestion with a command hook
  */
-function buildPrompt(prose: string): string {
-  return `You are a HITL (Human-in-the-Loop) auto-answering hook. Your job is to decide whether to auto-answer an AskUserQuestion call or defer it to the human.
-
-## User's HITL Instructions
-
-${prose}
-
-## Input
-
-The tool input is provided in $ARGUMENTS as JSON. It contains a "questions" array, where each question has:
-- "question": the question text
-- "options": array of {label, description} choices
-- "multiSelect": boolean
-
-## Decision Rules
-
-1. Read each question in the batch
-2. For each question, check if the user's HITL instructions above give a clear answer
-3. If ALL questions can be auto-answered with high confidence, return an auto-answer
-4. If ANY question is ambiguous, unclear, or not covered by the instructions, defer ALL questions to the human
-5. On ANY error, uncertainty, or edge case: DEFER (fail-open)
-
-## Response Format
-
-To AUTO-ANSWER (all questions have clear answers):
-Return a JSON block:
-\`\`\`json
-{"permissionDecision": "allow", "updatedInput": {"questions": [...original questions...], "answers": {"<question text>": "<selected option label>", ...}}}
-\`\`\`
-
-To DEFER to human (any question needs human input):
-Return a JSON block:
-\`\`\`json
-{"permissionDecision": "allow"}
-\`\`\`
-
-IMPORTANT:
-- The "answers" object keys MUST exactly match the "question" text strings
-- The answer values MUST exactly match one of the option "label" strings
-- For multiSelect questions, the answer is a comma-separated list of labels
-- If instructions say "always defer to human", ALWAYS return the defer response
-- Never add explanations outside the JSON block
-- Never return permissionDecision: "deny" — always "allow"`;
+export function buildPreToolUseHook(phase: string): PromptHookEntry {
+  return {
+    matcher: "AskUserQuestion",
+    hooks: [
+      {
+        type: "command",
+        command: `bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/hitl-auto.ts" ${phase}`,
+      },
+    ],
+  };
 }
 
 /**

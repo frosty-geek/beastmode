@@ -1,18 +1,17 @@
 Feature: HITL hook lifecycle -- settings written before dispatch, cleaned between phases
 
-  The pipeline writes HITL settings (PreToolUse prompt hook + PostToolUse log hook)
+  The pipeline writes HITL settings (PreToolUse command hook + PostToolUse log hook)
   to the worktree's `.claude/settings.local.json` before dispatch, and cleans them
   between dispatches.
 
   Pipeline step 3 does:
   1. cleanHitlSettings(claudeDir) — removes old HITL hooks
-  2. getPhaseHitlProse(config.hitl, phase) — gets prose for current phase
-  3. buildPreToolUseHook(prose, model, timeout) — builds hook entry
-  4. writeHitlSettings({claudeDir, preToolUseHook, phase}) — writes to settings.local.json
+  2. buildPreToolUseHook(phase) — builds command hook entry
+  3. writeHitlSettings({claudeDir, preToolUseHook, phase}) — writes to settings.local.json
 
   This feature verifies:
   - HITL settings exist during dispatch for each phase
-  - Settings contain correct phase-specific prose
+  - Settings contain correct command-type hook with phase argument
   - Settings are cleaned and rewritten between consecutive phases
   - Non-HITL settings survive the clean/write cycles
 
@@ -26,7 +25,7 @@ Feature: HITL hook lifecycle -- settings written before dispatch, cleaned betwee
       | feat-1  | 1    | Feature 1   |
     And the pipeline runs the "plan" phase
     Then the pipeline result should be successful
-    And the worktree settings should contain a PreToolUse hook for "plan"
+    And the worktree settings should contain a command-type PreToolUse hook for "plan"
 
 
   Scenario: HITL settings are phase-specific across consecutive phases
@@ -43,14 +42,14 @@ Feature: HITL hook lifecycle -- settings written before dispatch, cleaned betwee
       | solution | Test solution   |
     And the pipeline runs the "design" phase
     Then the pipeline result should be successful
-    And the worktree settings should contain a PreToolUse hook for "design"
+    And the worktree settings should contain a command-type PreToolUse hook for "design"
 
     When the dispatch will write plan artifacts:
       | feature | wave | description |
       | feat-1  | 1    | Feature 1   |
     And the pipeline runs the "plan" phase
     Then the pipeline result should be successful
-    And the worktree settings should contain a PreToolUse hook for "plan"
+    And the worktree settings should contain a command-type PreToolUse hook for "plan"
 
 
   Scenario: Custom settings survive HITL clean/write cycles
@@ -68,4 +67,5 @@ Feature: HITL hook lifecycle -- settings written before dispatch, cleaned betwee
       | solution | Test solution |
     And the pipeline runs the "design" phase
     Then the pipeline result should be successful
+    And the worktree settings should contain a command-type PreToolUse hook for "design"
     And the worktree settings should preserve custom setting "myCustom"

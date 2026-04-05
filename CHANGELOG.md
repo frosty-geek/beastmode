@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.96.0 — Static HITL Hooks (Apr 2026)
+
+- **Command-type hooks** — Replace prompt-based HITL hooks with static command-type hooks; `buildPreToolUseHook(phase)` emits `type: "command"` entries instead of prompt injection
+- **hitl-auto.ts** — Standalone auto-answer script that reads config at runtime, enabling config changes without hook regeneration
+- **BDD integration tests** — Full Cucumber test suite for static HITL hook behavior with path resolution fixes
+
+---
+
 ### v0.95.0 — Dashboard Extensions (Apr 2026)
 
 - **Tree refactor** — Flatten tree hierarchy from Epic > Phase > Feature to CLI > Epic > Feature; phase displayed as colored badge, not tree level
