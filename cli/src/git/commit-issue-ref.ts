@@ -1,23 +1,26 @@
 /**
- * Commit issue reference — amends the most recent commit message to append
+ * Commit issue reference — amends commit messages to append
  * a GitHub issue reference (#N).
  *
- * Three commit types:
- * 1. Phase checkpoint (feature/<slug> branch) → epic issue number
- * 2. Impl task (impl/<slug>--<feature> branch) → feature issue number
- * 3. Release squash-merge (main branch) → epic issue number
- *
- * No-op when issue number is unavailable.
+ * Reads issue numbers from github-sync.json (sync refs),
+ * reads epic/feature identity from store entities.
  */
 
 import { git } from "./worktree.js";
 import { tagName } from "./tags.js";
-import type { PipelineManifest } from "../manifest/store.js";
+import type { SyncRefs } from "../github/sync-refs.js";
+import { getSyncRef } from "../github/sync-refs.js";
 
 /** Result of parsing an impl branch name. */
 export interface ImplBranchParts {
   slug: string;
   feature: string;
+}
+
+/** Minimal feature info needed for issue resolution. */
+export interface IssueRefFeature {
+  id: string;
+  slug: string;
 }
 
 /**
@@ -31,32 +34,35 @@ export function parseImplBranch(branchName: string): ImplBranchParts | undefined
 }
 
 /**
- * Resolve the issue number for the current branch from the manifest.
+ * Resolve the issue number for the current branch from sync refs.
  *
- * - impl/<slug>--<feature> → feature issue number from manifest.features
- * - feature/<slug> → epic issue number from manifest.github.epic
- * - main/master → epic issue number from manifest.github.epic
+ * - impl/<slug>--<feature> → feature issue number
+ * - feature/<slug> → epic issue number
+ * - main/master → epic issue number
  * - anything else → undefined (no-op)
  */
 export function resolveIssueNumber(
   branchName: string,
-  manifest: PipelineManifest,
+  syncRefs: SyncRefs,
+  epicId: string,
+  features: IssueRefFeature[],
 ): number | undefined {
   // Impl branch → feature issue
   const implParts = parseImplBranch(branchName);
   if (implParts) {
-    const feature = manifest.features.find((f) => f.slug === implParts.feature);
-    return feature?.github?.issue;
+    const feature = features.find((f) => f.slug === implParts.feature);
+    if (feature) return getSyncRef(syncRefs, feature.id)?.issue;
+    return getSyncRef(syncRefs, epicId)?.issue;
   }
 
   // Feature branch → epic issue
   if (branchName.startsWith("feature/")) {
-    return manifest.github?.epic;
+    return getSyncRef(syncRefs, epicId)?.issue;
   }
 
   // Main/master → epic issue (release squash-merge)
   if (branchName === "main" || branchName === "master") {
-    return manifest.github?.epic;
+    return getSyncRef(syncRefs, epicId)?.issue;
   }
 
   return undefined;
@@ -93,35 +99,44 @@ const PHASE_ORDER = ["design", "plan", "implement", "validate", "release"] as co
  * - `implement(<slug>--<feature>): ...` → feature issue (impl checkpoint)
  * - Everything else → epic issue (phase checkpoints, misc)
  *
- * Falls back to epic issue if feature not found in manifest.
- * Returns undefined if manifest has no github config.
+ * Falls back to epic issue if feature not found.
+ * Returns undefined if epic has no sync ref.
  */
 export function resolveCommitIssueNumber(
   commitMessage: string,
-  manifest: PipelineManifest,
+  syncRefs: SyncRefs,
+  epicId: string,
+  features: IssueRefFeature[],
 ): number | undefined {
-  if (!manifest.github?.epic) return undefined;
+  const epicIssue = getSyncRef(syncRefs, epicId)?.issue;
+  if (!epicIssue) return undefined;
 
   // feat(<feature>): pattern — impl task commits
   const featMatch = commitMessage.match(/^feat\(([^)]+)\):/);
   if (featMatch) {
     const featureSlug = featMatch[1];
-    const feature = manifest.features.find((f) => f.slug === featureSlug);
-    if (feature?.github?.issue) return feature.github.issue;
-    return manifest.github.epic;
+    const feature = features.find((f) => f.slug === featureSlug);
+    if (feature) {
+      const featureIssue = getSyncRef(syncRefs, feature.id)?.issue;
+      if (featureIssue) return featureIssue;
+    }
+    return epicIssue;
   }
 
   // implement(<slug>--<feature>): pattern — impl branch checkpoint
   const implMatch = commitMessage.match(/^implement\([^)]*--([^)]+)\):/);
   if (implMatch) {
     const featureSlug = implMatch[1];
-    const feature = manifest.features.find((f) => f.slug === featureSlug);
-    if (feature?.github?.issue) return feature.github.issue;
-    return manifest.github.epic;
+    const feature = features.find((f) => f.slug === featureSlug);
+    if (feature) {
+      const featureIssue = getSyncRef(syncRefs, feature.id)?.issue;
+      if (featureIssue) return featureIssue;
+    }
+    return epicIssue;
   }
 
   // Default: epic issue (phase checkpoints, misc commits)
-  return manifest.github.epic;
+  return epicIssue;
 }
 
 /**
@@ -169,16 +184,17 @@ export interface AmendRangeResult {
  * Enumerates commits from range start to HEAD, pre-computes which need
  * amending and their new messages, then uses `git rebase --exec` with
  * a shell script that checks each replayed commit and amends if needed.
- *
- * The shell script uses only git + sh — no Bun dependency during rebase.
  */
 export async function amendCommitsInRange(
-  manifest: PipelineManifest,
+  syncRefs: SyncRefs,
+  epicId: string,
+  features: IssueRefFeature[],
   slug: string,
   currentPhase: string,
   opts: { cwd?: string; rangeStartOverride?: string } = {},
 ): Promise<AmendRangeResult> {
-  if (!manifest.github?.epic) {
+  const epicIssue = getSyncRef(syncRefs, epicId)?.issue;
+  if (!epicIssue) {
     return { amended: 0, skipped: 0 };
   }
 
@@ -223,7 +239,7 @@ export async function amendCommitsInRange(
       skipped++;
       continue;
     }
-    const issueNumber = resolveCommitIssueNumber(commit.subject, manifest);
+    const issueNumber = resolveCommitIssueNumber(commit.subject, syncRefs, epicId, features);
     if (issueNumber) {
       amendments.set(commit.subject, `${commit.subject} (#${issueNumber})`);
     } else {
@@ -248,7 +264,6 @@ export async function amendCommitsInRange(
   await writeFile(mapPath, mapLines.join("\n") + "\n");
 
   // Shell script that reads current HEAD subject, looks up in map, amends.
-  // Uses only git + sh — no Bun dependency during rebase.
   const scriptPath = join(cwd, ".git", "beastmode-amend.sh");
   const escapedMapPath = mapPath.replace(/'/g, "'\\''");
   const script = `#!/bin/sh
@@ -288,14 +303,16 @@ fi
 /**
  * Amend the most recent commit to append an issue reference.
  *
- * Reads the current branch name and manifest, resolves the issue number,
+ * Reads the current branch name, resolves the issue number from sync refs,
  * and amends the commit message. No-op if:
  * - Branch can't be determined
  * - Issue number can't be resolved
  * - Commit message already has an issue ref
  */
 export async function amendCommitWithIssueRef(
-  manifest: PipelineManifest,
+  syncRefs: SyncRefs,
+  epicId: string,
+  features: IssueRefFeature[],
   opts: { cwd?: string } = {},
 ): Promise<{ amended: boolean; issueNumber?: number }> {
   // Get current branch name
@@ -309,7 +326,7 @@ export async function amendCommitWithIssueRef(
   const branchName = branchResult.stdout;
 
   // Resolve issue number
-  const issueNumber = resolveIssueNumber(branchName, manifest);
+  const issueNumber = resolveIssueNumber(branchName, syncRefs, epicId, features);
   if (!issueNumber) {
     return { amended: false };
   }

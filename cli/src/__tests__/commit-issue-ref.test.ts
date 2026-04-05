@@ -10,9 +10,10 @@ import {
   resolveCommitIssueNumber,
   resolveRangeStart,
   amendCommitsInRange,
+  type IssueRefFeature,
 } from "../git/commit-issue-ref.js";
 import { git } from "../git/worktree.js";
-import type { PipelineManifest } from "../manifest/store.js";
+import type { SyncRefs } from "../github/sync-refs.js";
 
 // --- Pure function tests (no git repo needed) ---
 
@@ -45,59 +46,49 @@ describe("parseImplBranch", () => {
 });
 
 describe("resolveIssueNumber", () => {
-  const manifest: PipelineManifest = {
-    slug: "my-epic-5aa1b9",
-    epic: "my-epic",
-    phase: "implement",
-    features: [
-      {
-        slug: "commit-issue-refs",
-        plan: "plan.md",
-        status: "in-progress",
-        github: { issue: 99 },
-      },
-      {
-        slug: "other-feature",
-        plan: "other.md",
-        status: "pending",
-      },
-    ],
-    artifacts: {},
-    github: { epic: 42, repo: "owner/repo" },
-    lastUpdated: "2026-04-05T00:00:00Z",
+  const syncRefs: SyncRefs = {
+    "epic-id-42": { issue: 42 },
+    "feature-id-99": { issue: 99 },
   };
 
+  const features: IssueRefFeature[] = [
+    { id: "feature-id-99", slug: "commit-issue-refs" },
+    { id: "feature-id-88", slug: "other-feature" },
+  ];
+
+  const epicId = "epic-id-42";
+
   test("resolves feature issue for impl branch", () => {
-    expect(resolveIssueNumber("impl/my-epic-5aa1b9--commit-issue-refs", manifest)).toBe(99);
+    expect(resolveIssueNumber("impl/my-epic-5aa1b9--commit-issue-refs", syncRefs, epicId, features)).toBe(99);
   });
 
-  test("returns undefined for impl branch with unknown feature", () => {
-    expect(resolveIssueNumber("impl/my-epic-5aa1b9--unknown-feature", manifest)).toBeUndefined();
+  test("returns epic issue for impl branch with unknown feature (fallback)", () => {
+    expect(resolveIssueNumber("impl/my-epic-5aa1b9--unknown-feature", syncRefs, epicId, features)).toBe(42);
   });
 
-  test("returns undefined for impl branch feature without github issue", () => {
-    expect(resolveIssueNumber("impl/my-epic-5aa1b9--other-feature", manifest)).toBeUndefined();
+  test("returns undefined for impl branch feature without sync ref", () => {
+    expect(resolveIssueNumber("impl/my-epic-5aa1b9--other-feature", syncRefs, epicId, features)).toBeUndefined();
   });
 
   test("resolves epic issue for feature branch", () => {
-    expect(resolveIssueNumber("feature/my-epic-5aa1b9", manifest)).toBe(42);
+    expect(resolveIssueNumber("feature/my-epic-5aa1b9", syncRefs, epicId, features)).toBe(42);
   });
 
   test("resolves epic issue for main branch", () => {
-    expect(resolveIssueNumber("main", manifest)).toBe(42);
+    expect(resolveIssueNumber("main", syncRefs, epicId, features)).toBe(42);
   });
 
   test("resolves epic issue for master branch", () => {
-    expect(resolveIssueNumber("master", manifest)).toBe(42);
+    expect(resolveIssueNumber("master", syncRefs, epicId, features)).toBe(42);
   });
 
   test("returns undefined for unrecognized branch", () => {
-    expect(resolveIssueNumber("develop", manifest)).toBeUndefined();
+    expect(resolveIssueNumber("develop", syncRefs, epicId, features)).toBeUndefined();
   });
 
-  test("returns undefined when manifest has no github", () => {
-    const noGithub: PipelineManifest = { ...manifest, github: undefined };
-    expect(resolveIssueNumber("feature/my-epic", noGithub)).toBeUndefined();
+  test("returns undefined when epic has no sync ref", () => {
+    const emptySyncRefs: SyncRefs = {};
+    expect(resolveIssueNumber("feature/my-epic", emptySyncRefs, epicId, features)).toBeUndefined();
   });
 });
 
@@ -134,56 +125,46 @@ describe("appendIssueRef", () => {
 });
 
 describe("resolveCommitIssueNumber", () => {
-  const manifest: PipelineManifest = {
-    slug: "my-epic-5aa1b9",
-    epic: "my-epic",
-    phase: "implement",
-    features: [
-      {
-        slug: "commit-traceability",
-        plan: "plan.md",
-        status: "in-progress",
-        github: { issue: 99 },
-      },
-      {
-        slug: "body-enrichment",
-        plan: "other.md",
-        status: "completed",
-        github: { issue: 88 },
-      },
-    ],
-    artifacts: {},
-    github: { epic: 42, repo: "owner/repo" },
-    lastUpdated: "2026-04-05T00:00:00Z",
+  const syncRefs: SyncRefs = {
+    "epic-id-42": { issue: 42 },
+    "feature-id-99": { issue: 99 },
+    "feature-id-88": { issue: 88 },
   };
 
+  const features: IssueRefFeature[] = [
+    { id: "feature-id-99", slug: "commit-traceability" },
+    { id: "feature-id-88", slug: "body-enrichment" },
+  ];
+
+  const epicId = "epic-id-42";
+
   test("returns epic issue for phase checkpoint commit", () => {
-    expect(resolveCommitIssueNumber("implement(my-epic): checkpoint", manifest)).toBe(42);
+    expect(resolveCommitIssueNumber("implement(my-epic): checkpoint", syncRefs, epicId, features)).toBe(42);
   });
 
   test("returns epic issue for design checkpoint", () => {
-    expect(resolveCommitIssueNumber("design(my-epic): checkpoint", manifest)).toBe(42);
+    expect(resolveCommitIssueNumber("design(my-epic): checkpoint", syncRefs, epicId, features)).toBe(42);
   });
 
   test("returns feature issue for feat(<feature>): prefix", () => {
-    expect(resolveCommitIssueNumber("feat(commit-traceability): add parsing", manifest)).toBe(99);
+    expect(resolveCommitIssueNumber("feat(commit-traceability): add parsing", syncRefs, epicId, features)).toBe(99);
   });
 
   test("returns feature issue for implement(<slug>--<feature>): prefix", () => {
-    expect(resolveCommitIssueNumber("implement(my-epic-5aa1b9--commit-traceability): checkpoint", manifest)).toBe(99);
+    expect(resolveCommitIssueNumber("implement(my-epic-5aa1b9--commit-traceability): checkpoint", syncRefs, epicId, features)).toBe(99);
   });
 
   test("returns epic issue for unrecognized commit message format", () => {
-    expect(resolveCommitIssueNumber("some random commit", manifest)).toBe(42);
+    expect(resolveCommitIssueNumber("some random commit", syncRefs, epicId, features)).toBe(42);
   });
 
   test("falls back to epic when feature slug not found", () => {
-    expect(resolveCommitIssueNumber("feat(unknown-feature): something", manifest)).toBe(42);
+    expect(resolveCommitIssueNumber("feat(unknown-feature): something", syncRefs, epicId, features)).toBe(42);
   });
 
-  test("returns undefined when no github on manifest", () => {
-    const noGithub: PipelineManifest = { ...manifest, github: undefined };
-    expect(resolveCommitIssueNumber("design(my-epic): checkpoint", noGithub)).toBeUndefined();
+  test("returns undefined when no sync ref for epic", () => {
+    const emptySyncRefs: SyncRefs = {};
+    expect(resolveCommitIssueNumber("design(my-epic): checkpoint", emptySyncRefs, epicId, features)).toBeUndefined();
   });
 });
 
@@ -192,22 +173,16 @@ describe("resolveCommitIssueNumber", () => {
 describe("amendCommitWithIssueRef", () => {
   let repoDir: string;
 
-  const manifest: PipelineManifest = {
-    slug: "test-epic-abc123",
-    epic: "test-epic",
-    phase: "implement",
-    features: [
-      {
-        slug: "my-feature",
-        plan: "plan.md",
-        status: "in-progress",
-        github: { issue: 77 },
-      },
-    ],
-    artifacts: {},
-    github: { epic: 42, repo: "owner/repo" },
-    lastUpdated: "2026-04-05T00:00:00Z",
+  const syncRefs: SyncRefs = {
+    "epic-id-42": { issue: 42 },
+    "feature-id-77": { issue: 77 },
   };
+
+  const features: IssueRefFeature[] = [
+    { id: "feature-id-77", slug: "my-feature" },
+  ];
+
+  const epicId = "epic-id-42";
 
   beforeAll(async () => {
     repoDir = await mkdtemp(join(tmpdir(), "beastmode-issue-ref-test-"));
@@ -229,7 +204,7 @@ describe("amendCommitWithIssueRef", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "design(test-epic): checkpoint"], { cwd: repoDir });
 
-    const result = await amendCommitWithIssueRef(manifest, { cwd: repoDir });
+    const result = await amendCommitWithIssueRef(syncRefs, epicId, features, { cwd: repoDir });
 
     expect(result.amended).toBe(true);
     expect(result.issueNumber).toBe(42);
@@ -247,7 +222,7 @@ describe("amendCommitWithIssueRef", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "feat(my-feature): add parsing"], { cwd: repoDir });
 
-    const result = await amendCommitWithIssueRef(manifest, { cwd: repoDir });
+    const result = await amendCommitWithIssueRef(syncRefs, epicId, features, { cwd: repoDir });
 
     expect(result.amended).toBe(true);
     expect(result.issueNumber).toBe(77);
@@ -264,7 +239,7 @@ describe("amendCommitWithIssueRef", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "release(test-epic): v1.0.0"], { cwd: repoDir });
 
-    const result = await amendCommitWithIssueRef(manifest, { cwd: repoDir });
+    const result = await amendCommitWithIssueRef(syncRefs, epicId, features, { cwd: repoDir });
 
     expect(result.amended).toBe(true);
     expect(result.issueNumber).toBe(42);
@@ -273,13 +248,13 @@ describe("amendCommitWithIssueRef", () => {
     expect(log.stdout).toBe("release(test-epic): v1.0.0 (#42)");
   });
 
-  test("no-op when manifest has no github", async () => {
+  test("no-op when epic has no sync ref", async () => {
     await Bun.write(join(repoDir, "noop.txt"), "noop\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "some commit"], { cwd: repoDir });
 
-    const noGithub: PipelineManifest = { ...manifest, github: undefined };
-    const result = await amendCommitWithIssueRef(noGithub, { cwd: repoDir });
+    const emptySyncRefs: SyncRefs = {};
+    const result = await amendCommitWithIssueRef(emptySyncRefs, epicId, features, { cwd: repoDir });
 
     expect(result.amended).toBe(false);
 
@@ -292,7 +267,7 @@ describe("amendCommitWithIssueRef", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "design(test-epic): checkpoint (#42)"], { cwd: repoDir });
 
-    const result = await amendCommitWithIssueRef(manifest, { cwd: repoDir });
+    const result = await amendCommitWithIssueRef(syncRefs, epicId, features, { cwd: repoDir });
 
     expect(result.amended).toBe(false);
 
@@ -370,22 +345,16 @@ describe("resolveRangeStart", () => {
 describe("amendCommitsInRange", () => {
   let repoDir: string;
 
-  const manifest: PipelineManifest = {
-    slug: "test-epic-abc123",
-    epic: "test-epic",
-    phase: "plan",
-    features: [
-      {
-        slug: "my-feature",
-        plan: "plan.md",
-        status: "in-progress",
-        github: { issue: 77 },
-      },
-    ],
-    artifacts: {},
-    github: { epic: 42, repo: "owner/repo" },
-    lastUpdated: "2026-04-05T00:00:00Z",
+  const syncRefs: SyncRefs = {
+    "epic-id-42": { issue: 42 },
+    "feature-id-77": { issue: 77 },
   };
+
+  const features: IssueRefFeature[] = [
+    { id: "feature-id-77", slug: "my-feature" },
+  ];
+
+  const epicId = "epic-id-42";
 
   beforeAll(async () => {
     repoDir = await mkdtemp(join(tmpdir(), "beastmode-range-amend-"));
@@ -413,7 +382,7 @@ describe("amendCommitsInRange", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan(test-epic): second change"], { cwd: repoDir });
 
-    const result = await amendCommitsInRange(manifest, "test-epic-abc123", "plan", {
+    const result = await amendCommitsInRange(syncRefs, epicId, features, "test-epic-abc123", "plan", {
       cwd: repoDir,
       rangeStartOverride: "beastmode/test-epic-abc123/design-multi",
     });
@@ -445,7 +414,7 @@ describe("amendCommitsInRange", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan(test-epic): needs ref"], { cwd: repoDir });
 
-    const result = await amendCommitsInRange(manifest, "test-epic-abc123", "plan", {
+    const result = await amendCommitsInRange(syncRefs, epicId, features, "test-epic-abc123", "plan", {
       cwd: repoDir,
       rangeStartOverride: "beastmode/test-epic-abc123/design-skip",
     });
@@ -466,7 +435,7 @@ describe("amendCommitsInRange", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan(test-epic): done (#42)"], { cwd: repoDir });
 
-    const result = await amendCommitsInRange(manifest, "test-epic-abc123", "plan", {
+    const result = await amendCommitsInRange(syncRefs, epicId, features, "test-epic-abc123", "plan", {
       cwd: repoDir,
       rangeStartOverride: "beastmode/test-epic-abc123/design-noop",
     });
@@ -491,7 +460,7 @@ describe("amendCommitsInRange", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "implement(test-epic): checkpoint"], { cwd: repoDir });
 
-    const result = await amendCommitsInRange(manifest, "test-epic-abc123", "plan", {
+    const result = await amendCommitsInRange(syncRefs, epicId, features, "test-epic-abc123", "plan", {
       cwd: repoDir,
       rangeStartOverride: "beastmode/test-epic-abc123/design-route",
     });
@@ -517,7 +486,7 @@ describe("amendCommitsInRange", () => {
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "design(test-epic): checkpoint"], { cwd: repoDir });
 
-    const result = await amendCommitsInRange(manifest, "test-epic-abc123", "design", { cwd: repoDir });
+    const result = await amendCommitsInRange(syncRefs, epicId, features, "test-epic-abc123", "design", { cwd: repoDir });
 
     expect(result.amended).toBe(1);
 
@@ -528,9 +497,9 @@ describe("amendCommitsInRange", () => {
     await git(["branch", "-D", "feature/test-epic-abc123-des"], { cwd: repoDir });
   });
 
-  test("returns zero when manifest has no github", async () => {
-    const noGithub: PipelineManifest = { ...manifest, github: undefined };
-    const result = await amendCommitsInRange(noGithub, "test-epic-abc123", "plan", { cwd: repoDir });
+  test("returns zero when epic has no sync ref", async () => {
+    const emptySyncRefs: SyncRefs = {};
+    const result = await amendCommitsInRange(emptySyncRefs, epicId, features, "test-epic-abc123", "plan", { cwd: repoDir });
     expect(result.amended).toBe(0);
     expect(result.skipped).toBe(0);
   });
