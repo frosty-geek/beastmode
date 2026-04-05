@@ -33,7 +33,20 @@ export interface ReconcileResult {
 
 /** Hydrate an ephemeral XState actor at the manifest's current phase. */
 function hydrateActor(manifest: PipelineManifest): HydratedActor {
-  return hydrateEpicActor(manifest.phase, manifest as unknown as EpicContext);
+  const bridgedContext = {
+    id: manifest.originId ?? manifest.slug,
+    slug: manifest.slug,
+    name: manifest.epic ?? manifest.slug,
+    status: manifest.phase,
+    features: manifest.features,
+    artifacts: manifest.artifacts,
+    summary: manifest.summary,
+    worktree: manifest.worktree,
+    depends_on: [],
+    created_at: manifest.lastUpdated,
+    updated_at: manifest.lastUpdated,
+  } as unknown as EpicContext;
+  return hydrateEpicActor(manifest.phase, bridgedContext);
 }
 
 /** Extract the manifest from an actor snapshot. */
@@ -42,9 +55,11 @@ function extractManifest(actor: HydratedActor): PipelineManifest {
   const phase = (typeof snapshot.value === "string"
     ? snapshot.value
     : "design") as Phase;
+  const ctx = snapshot.context as unknown as Record<string, unknown>;
   const manifest = {
-    ...(snapshot.context as unknown as PipelineManifest),
+    ...(ctx as unknown as PipelineManifest),
     phase,
+    lastUpdated: (ctx.updated_at as string) ?? new Date().toISOString(),
   };
   actor.stop();
   return manifest;
