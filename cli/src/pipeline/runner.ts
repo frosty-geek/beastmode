@@ -53,7 +53,7 @@ import {
   buildFilePermissionPostToolUseHooks,
 } from "../hooks/file-permission-settings.js";
 import type { BeastmodeConfig } from "../config.js";
-import { getCategoryProse } from "../config.js";
+import { getCategoryProse, DEFAULT_HITL_PROSE } from "../config.js";
 
 /** Dispatch strategy type -- determines how the phase session runs. */
 export type DispatchStrategy = "interactive" | "sdk" | "cmux" | "iterm2";
@@ -153,8 +153,10 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
 
     // File-permission hooks
     cleanFilePermissionSettings(claudeDir);
-    const fpProse = getCategoryProse(config.config["file-permissions"], "claude-settings");
-    const fpPreToolUseHooks = buildFilePermissionPreToolUseHooks(fpProse, config.config["file-permissions"].timeout);
+    const fpConfig = config.config["file-permissions"];
+    const fpProse = fpConfig ? getCategoryProse(fpConfig, "claude-settings") : DEFAULT_HITL_PROSE;
+    const fpTimeout = fpConfig?.timeout ?? 30;
+    const fpPreToolUseHooks = buildFilePermissionPreToolUseHooks(fpProse, fpTimeout);
     const fpPostToolUseHooks = buildFilePermissionPostToolUseHooks(config.phase);
     writeFilePermissionSettings({ claudeDir, preToolUseHooks: fpPreToolUseHooks, postToolUseHooks: fpPostToolUseHooks });
   }

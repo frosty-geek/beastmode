@@ -75,6 +75,9 @@ export class PipelineWorld extends World {
         '  implement: "auto-answer all questions"',
         '  validate: "auto-answer all questions"',
         '  release: "auto-answer all questions"',
+        "file-permissions:",
+        "  timeout: 30",
+        '  claude-settings: "always defer to human"',
       ].join("\n") + "\n",
     );
 
@@ -94,6 +97,10 @@ export class PipelineWorld extends World {
         implement: "auto-answer all questions",
         validate: "auto-answer all questions",
         release: "auto-answer all questions",
+      },
+      "file-permissions": {
+        timeout: 30,
+        "claude-settings": "always defer to human",
       },
     };
   }
