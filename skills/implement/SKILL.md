@@ -88,6 +88,16 @@ The following statuses do NOT trigger model escalation:
 - **Spec review FAIL** — a requirement misunderstanding, not a model capability limitation. Re-dispatch implementer at the same tier.
 - **Quality review NOT_APPROVED with only Minor issues** — treated as approved. No retry needed.
 
+### BDD Verification Escalation
+
+The controller also maintains a separate BDD verification escalation state, used during the post-implementation integration test retry loop (see Phase 1, Step 4):
+
+- **Model ladder:** `["haiku", "sonnet", "opus"]` (same ladder)
+- **Budget:** 6 total retries (2 per tier)
+- **Independence:** BDD verification escalation is fully independent from per-task escalation. A task that completed at haiku during initial dispatch may be re-dispatched at sonnet during BDD verification if the integration test keeps failing.
+
+The BDD verification escalation resets to tier 0 (haiku) when a new BDD retry loop begins. It does NOT carry over from per-task escalation.
+
 ### 0. Write Plan
 
 Before dispatching, produce a detailed `.tasks.md` document from the feature plan. This is the inspection point between "plan says what to build" and "agent writes code."
