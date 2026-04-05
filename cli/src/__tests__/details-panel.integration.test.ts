@@ -35,9 +35,11 @@ function mockEpic(overrides: Partial<EnrichedEpic> = {}): EnrichedEpic {
 describe("Details panel shows context-sensitive content", () => {
   test('Panel title is "DETAILS" not "OVERVIEW"', async () => {
     const { readFileSync } = await import("fs");
-    const { resolve } = await import("path");
+    const { resolve, dirname } = await import("path");
+    const { fileURLToPath } = await import("url");
+    const currentDir = dirname(fileURLToPath(import.meta.url));
     const layoutPath = resolve(
-      import.meta.dir,
+      currentDir,
       "../dashboard/ThreePanelLayout.tsx",
     );
     const content = readFileSync(layoutPath, "utf-8");
