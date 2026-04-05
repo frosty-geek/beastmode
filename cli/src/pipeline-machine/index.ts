@@ -9,7 +9,7 @@ export { featureMachine } from "./feature";
 
 // ── Types ──────────────────────────────────────────────────────
 
-export type { EpicContext, EpicEvent, FeatureContext, FeatureEvent, DispatchType } from "./types";
+export type { EpicContext, EpicEvent, FeatureContext, FeatureEvent, DispatchType, MachineFeature } from "./types";
 export type { SyncGitHubResult } from "./services";
 
 // ── Action overrides ──────────────────────────────────────────
