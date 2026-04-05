@@ -32,6 +32,7 @@ export interface ArtifactFrontmatter {
   problem?: string;
   solution?: string;
   wave?: string;
+  failedFeatures?: string;
 }
 
 /**
@@ -105,9 +106,16 @@ export function buildOutput(
 
     case "validate": {
       const passed = fm.status !== "failed";
+      const failedFeatures = fm.failedFeatures
+        ? fm.failedFeatures.split(",").map((s) => s.trim()).filter(Boolean)
+        : undefined;
       return {
         status: passed ? "completed" : "error",
-        artifacts: { report: artifactPath, passed },
+        artifacts: {
+          report: artifactPath,
+          passed,
+          ...(failedFeatures && failedFeatures.length > 0 ? { failedFeatures } : {}),
+        },
       };
     }
 

@@ -143,6 +143,28 @@ describe("buildOutput", () => {
   });
 });
 
+describe("validate buildOutput with failedFeatures", () => {
+  test("includes failedFeatures in artifacts when present", () => {
+    const fm = parseFrontmatter(
+      "---\nphase: validate\nslug: test\nepic: test\nstatus: failed\nfailedFeatures: token-cache,auth-lib\n---\n",
+    );
+    const output = buildOutput("test.md", fm, "/tmp");
+    expect(output).toBeDefined();
+    expect(output!.status).toBe("error");
+    expect((output!.artifacts as any).failedFeatures).toEqual(["token-cache", "auth-lib"]);
+  });
+
+  test("does not include failedFeatures when absent", () => {
+    const fm = parseFrontmatter(
+      "---\nphase: validate\nslug: test\nepic: test\nstatus: passed\n---\n",
+    );
+    const output = buildOutput("test.md", fm, "/tmp");
+    expect(output).toBeDefined();
+    expect(output!.status).toBe("completed");
+    expect((output!.artifacts as any).failedFeatures).toBeUndefined();
+  });
+});
+
 // --- scanPlanFeatures ---
 
 describe("scanPlanFeatures", () => {
