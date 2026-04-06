@@ -1,41 +1,109 @@
 <img src="docs/assets/banner.svg" alt="beastmode" width="100%">
 
-A disciplined engineering partner for Claude Code.
-
-Without structure, you re-explain your project every session, lose decisions between context windows, and get inconsistent results. Beastmode fixes this. Five phases. Context persists. Patterns compound.
+Turns Claude Code into a disciplined engineering partner. Five phases. Context that compounds. Patterns that stick.
 
 ```
 /design → /plan → /implement → /validate → /release
 ```
 
-## What It Does
+## The Problem
 
-**Quick fix?** Jump to `/implement`.
-**New feature?** Design the approach. Plan the tasks. Implement. Validate. Release.
-**Multi-session?** Each phase writes artifacts to `.beastmode/`. The next session picks up where you left off.
+Every AI coding session starts from scratch. You re-explain your architecture. Re-state your conventions. Re-describe decisions you made three sessions ago. The agent forgets everything between context windows, so you become the memory.
+
+This works for quick fixes. It falls apart for anything that spans sessions.
 
 ## Install
+
+Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Git](https://git-scm.com/), and [iTerm2](https://iterm2.com/) (for pipeline orchestration). Optional: [GitHub CLI](https://cli.github.com/) for issue and project board sync.
 
 ```bash
 claude plugin add beastmode@beastmode-marketplace
 ```
 
-Then initialize your project:
+Initialize your project:
 
 ```bash
-/beastmode init                   # auto-detect and populate context
+/beastmode init
 ```
 
-## Skills
+Init detects your stack and bootstraps the full knowledge hierarchy — inventory, context writing, retro, and synthesis. Existing projects get 17 detected domains populated from your codebase. New projects get the skeleton and a nudge toward `/design`.
 
-| Skill | What it does |
-|-------|-------------|
-| `/design` | Turn ideas into design specs through dialogue |
-| `/plan` | Break designs into bite-sized implementation tasks |
-| `/implement` | Execute plans in isolated git worktrees |
-| `/validate` | Quality gate — tests, lint, type checks |
-| `/release` | Changelog, version bump, squash-merge to main |
-| `/beastmode` | Project init, feature status, deferred ideas |
+## The Pipeline
+
+| Phase | Skill | What Happens |
+|-------|-------|-------------|
+| Design | `/design` | Structured dialogue. Research from 3+ sources. Lock decisions before writing code. |
+| Plan | `/plan` | Break the design into wave-ordered, file-isolated tasks. Generate integration tests. |
+| Implement | `/implement` | Fan out one agent per feature in parallel worktrees. Two-stage review per task. |
+| Validate | `/validate` | Tests, lint, type checks. Failing features regress to implement automatically. |
+| Release | `/release` | Changelog, version bump, retro, squash-merge to main. |
+
+**Quick fix?** Jump straight to `/implement`.
+**New feature?** Start at `/design`. Each phase writes artifacts to `.beastmode/`. The next session picks up where you left off.
+
+## Three Ideas
+
+### 1. Context That Survives
+
+Most AI coding tools are stateless. The ones that try to fix this embed everything into a vector space and hope similarity search returns the right chunks.
+
+Beastmode takes a different approach. Project knowledge lives in a four-level hierarchy — curated summaries, not embeddings. Agents navigate from high-level overviews down to specific details. Deterministic paths through a known structure, not probabilistic retrieval.
+
+```
+L0  BEASTMODE.md          ← always loaded (~40 lines)
+L1  context/DESIGN.md     ← loaded at phase start
+L2  context/design/arch…  ← loaded on demand
+L3  artifacts/design/…    ← linked from L2
+```
+
+No vector database. No embeddings to regenerate. Markdown files in git. A compaction agent prunes stale records, folds restatements, and promotes cross-phase patterns upward — run it with `beastmode compact` whenever the tree needs trimming.
+
+<img src="docs/assets/progressive-knowledge-hierarchy.svg" alt="Progressive Knowledge Hierarchy" width="100%">
+
+[Why this works better than embeddings.](docs/progressive-hierarchy.md)
+
+### 2. A System That Learns
+
+Every release ends with a retro. Two agents review what happened across all phases: one checks published knowledge for drift, the other extracts operational insights.
+
+Single observations start at low confidence. When the same pattern recurs across sessions, confidence rises. Recurring patterns promote to procedures that load automatically.
+
+```
+Session 3: "snake_case for DB columns"  → recorded
+Session 5: same finding                 → recurring
+Session 7: same finding                 → promoted to procedure
+```
+
+The agent stops re-discovering your conventions. The hierarchy gets sharper with every release.
+
+<img src="docs/assets/retro-bubble-up.svg" alt="Retro Bubble-Up" width="100%">
+
+[How the retro loop compounds knowledge.](docs/retro-loop.md)
+
+### 3. Progressive Autonomy
+
+Two modes — manual or autonomous — is a false choice. Trust is granular.
+
+Beastmode places human-in-the-loop gates at every phase. Start supervised everywhere. As trust builds, flip individual phases to autonomous:
+
+```yaml
+# .beastmode/config.yaml
+hitl:
+  design: "always defer to human"                            # you approve designs
+  plan: "auto-answer all questions, never defer to human"    # agent plans alone
+  implement: "auto-answer all questions, never defer to human"
+  validate: "auto-answer all questions, never defer to human"
+  release: "always defer to human"                           # you approve releases
+```
+
+Same workflow, different trust level. The retro loop is what makes this credible — you flip gates because the agent has demonstrated it learned your patterns. Every HITL decision is logged. At release, retro analyzes your patterns and generates ready-to-paste config snippets for questions you always answer the same way.
+
+File write permissions work the same way — category-based prose rules that control which files the agent can modify without asking:
+
+```yaml
+file-permissions:
+  claude-settings: "allow read, write to ./skill ./agent ./hooks"
+```
 
 ## How It Works
 
@@ -45,89 +113,79 @@ Each phase follows four steps:
 prime → execute → validate → checkpoint
 ```
 
-Prime loads context from `.beastmode/`. Execute does the work. Validate checks quality. Checkpoint saves artifacts. The session ends. The next phase starts clean — fresh context, no leftover state, just the artifacts the previous phase wrote.
-
-`.beastmode/` is the shared bus. Design specs, implementation plans, validation records, release notes. All markdown, all in git. Your root `CLAUDE.md` imports the project context. Every session starts with full knowledge of your project.
+**Prime** loads context from `.beastmode/`. **Execute** does the work. **Validate** checks quality. **Checkpoint** saves artifacts. The session ends. The next phase starts clean — fresh context, no leftover state, just artifacts.
 
 Three domains organize what gets persisted:
 
-- **Artifacts** — skill outputs (design specs, plans, validation records, release notes)
-- **Context** — project knowledge (architecture, conventions, product vision)
-- **Research** — research artifacts (competitive analyses, technology research, reference material)
+| Domain | Contents |
+|--------|----------|
+| **Artifacts** | Skill outputs — design specs, plans, validation records, release notes |
+| **Context** | Project knowledge — architecture, conventions, product vision |
+| **Research** | Research artifacts — competitive analyses, technology research, reference material |
 
-## What's Different
+## The CLI
 
-**Context that survives sessions.**
+Skills handle the work inside each phase. The `beastmode` CLI handles everything around it.
 
-Most AI coding tools are stateless. Every session starts from zero. You re-describe your architecture, re-explain your conventions, re-state your preferences.
-
-Beastmode persists project knowledge in `.beastmode/` — organized into four levels, each summarizing the level below. Agents navigate summaries first, then load detail when the task demands it. Deterministic navigation through a known structure, not similarity search through a vector space.
-
-<img src="docs/assets/progressive-knowledge-hierarchy.svg" alt="Progressive Knowledge Hierarchy" width="100%">
-
-No vector database to maintain. No embeddings to regenerate. Context survives sessions, branches, and collaborators — markdown files in git.
-
-[Read the full argument.](docs/progressive-hierarchy.md)
-
-**A system that learns from experience.**
-
-Most AI coding tools treat every session as their first. Past mistakes teach nothing. Solved problems recur.
-
-Beastmode captures what worked and what failed at every checkpoint. Retro agents review each finding and record it with a confidence level. Recurring patterns promote to procedures that load automatically in future sessions. Each cycle sharpens Claude's understanding of *your* codebase, not codebases in general.
-
-<img src="docs/assets/retro-bubble-up.svg" alt="Retro Bubble-Up" width="100%">
-
-[Read the full argument.](docs/retro-loop.md)
-
-**Progressive autonomy through configurable gates.**
-
-Most AI coding tools offer two modes: manual or autonomous. No middle ground.
-
-Beastmode places human-in-the-loop gates at every phase: design approval, plan review, implementation decisions, validation, release. Gates default to human. As trust builds, flip individual phases to autonomous in `.beastmode/config.yaml`:
-
-```yaml
-# .beastmode/config.yaml
-hitl:
-  design: "always defer to human"                            # start supervised
-  plan: "auto-answer all questions, never defer to human"    # trust the process
-  implement: "auto-answer all questions, never defer to human"
-  validate: "auto-answer all questions, never defer to human"
-  release: "always defer to human"                           # human approves releases
+```
+beastmode <phase> <slug>     # run a single phase
+beastmode dashboard          # fullscreen pipeline monitor + orchestrator
+beastmode cancel <slug>      # clean up a feature (worktree, branch, tags, artifacts, GitHub issue)
+beastmode compact            # prune and promote the context tree
 ```
 
-[Read the full argument.](docs/configurable-gates.md)
+### Dashboard
 
-Same workflow, different trust level. The structure scales from supervised to autonomous.
+`beastmode dashboard` is both the monitor and the orchestrator. It scans for epics that have a design but no release, and drives them through plan → implement → validate → release automatically.
 
-## Why?
+- Fullscreen terminal UI with epic list, detail panel, and live log stream
+- Dispatches one terminal session per phase, one per feature during implement
+- Keyboard navigation, phase and status filters, inline cancel with confirmation
+- Color-coded phase badges, animated header, verbosity cycling
 
-Software moves through layers.
+### Orchestration
+
+The pipeline is a state machine. Each epic tracks its phase, features, and artifacts in a manifest file. The CLI owns the full lifecycle:
+
+- **Worktrees** — created at first phase, persisted through all phases, squash-merged and removed at release. Branch detection reuses `feature/<slug>` if it exists.
+- **Parallel implement** — one agent per feature in isolated worktrees. After all agents finish, worktrees merge sequentially with pre-merge conflict simulation. Manifest verified for completeness.
+- **Phase regression** — validation failures regress specific failing features back to implement with a dispatch budget. Blanket regression available as fallback. Phase tags mark reset points.
+- **Recovery** — manifests are the recovery point. On startup, existing worktrees with uncommitted changes are detected and re-dispatched from last committed state.
+
+### GitHub Integration
+
+When `github.enabled: true` in config, the CLI mirrors pipeline state to GitHub:
+
+- **Epic and feature issues** — created automatically, updated after each phase
+- **Labels as source of truth** — phase, type, and status labels drive the state model
+- **Project board sync** — issues appear on a GitHub Projects V2 board
+- **Commit refs** — phase checkpoints and release merges annotate commit messages with issue numbers
+
+## The Persona
+
+Beastmode has a voice. Deadpan minimalist, slightly annoyed, deeply competent. Says the quiet part out loud. Complains about the work while doing it flawlessly.
+
+This isn't decoration. Consistent tone across long sessions affects how you interact with the tool — and how much you trust it. The persona loads from `BEASTMODE.md` and survives context compaction.
+
+## Where It Fits
 
 <img src="docs/assets/SAFE.svg" alt="SAFe layers with beastmode at Development" width="100%">
 
-Portfolio decides what matters. Program breaks it into features. Development turns features into code. Delivery ships it. Operations keeps it alive. SAFe formalizes this into five layers, each with its own rituals, roles, and artifacts.
+Every layer of software delivery has tooling — except where engineers write code. Portfolio has Jira. Delivery has CI/CD. Operations has Datadog.
 
-Every layer has tooling — except where engineers write the code.
+The Development layer — where a feature becomes a design, a design becomes a plan, and a plan becomes validated code — is manual. Developers carry the workflow in their heads.
 
-Portfolio has Jira, Aha!, ProductBoard. Program has PI planning boards and capacity calculators. Delivery has CI/CD pipelines, feature flags, deployment orchestrators. Operations has Datadog, PagerDuty, Kubernetes.
-
-Development? You get an IDE and good luck.
-
-The Development layer — where a feature becomes a design, a design becomes a plan, a plan becomes code, and code becomes a validated story — has no structural tooling. Developers carry the workflow in their heads. Context lives in memory. Decisions evaporate between sessions. The handoff from "I understand the feature" to "here's a tested story" is manual.
-
-Beastmode fills that gap. Not portfolio strategy. Not CI/CD. Not monitoring. Five phases that turn a feature into working code:
+Beastmode fills that gap.
 
 ```
 Feature → Design → Plan → Implement → Validate → Story
 ```
 
-The gap nobody tools for, because it's "just development." But this layer loses the most context, generates the most rework, and gives AI agents the most leverage — if they have structure.
+## What It's Not
 
-## What Beastmode Is NOT
-
-- **Not portfolio strategy.** It doesn't decide what to build — it turns decisions into working code.
-- **Not CI/CD.** It doesn't deploy, monitor, or roll back. It stops at "validated story."
-- **Not project management.** No sprints, no velocity charts, no resource allocation. One feature at a time, start to finish.
+- **Not portfolio strategy.** Doesn't decide what to build.
+- **Not CI/CD.** Doesn't deploy, monitor, or roll back.
+- **Not project management.** No sprints. No velocity charts. One feature, start to finish.
 
 ## Credits
 

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { writeHitlSettings, cleanHitlSettings } from "../hooks/hitl-settings";
+import { writeHitlSettings, cleanHitlSettings, buildPreToolUseHook } from "../hooks/hitl-settings";
 import { mkdtempSync, writeFileSync, readFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -15,15 +15,7 @@ function readSettings(claudeDir: string): Record<string, unknown> {
   return JSON.parse(readFileSync(join(claudeDir, "settings.local.json"), "utf-8"));
 }
 
-const mockPreToolUseHook = {
-  matcher: "AskUserQuestion",
-  hooks: [
-    {
-      type: "command" as const,
-      command: 'bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/hitl-auto.ts" design',
-    },
-  ],
-};
+const mockPreToolUseHook = buildPreToolUseHook("design");
 
 describe("writeHitlSettings", () => {
   test("creates settings.local.json when none exists", () => {
@@ -178,6 +170,33 @@ describe("writeHitlSettings", () => {
 
     const settings = readSettings(claudeDir);
     expect(settings.hooks).toBeDefined();
+  });
+
+  test("hook commands use absolute paths, not shell substitution", () => {
+    const claudeDir = makeTempClaudeDir();
+    writeHitlSettings({
+      claudeDir,
+      preToolUseHook: mockPreToolUseHook,
+      phase: "design",
+    });
+
+    const settings = readSettings(claudeDir);
+    const hooks = settings.hooks as Record<string, Array<{matcher: string; hooks: Array<{command?: string}>}>>;
+
+    // PreToolUse
+    const preCmd = hooks.PreToolUse[0].hooks[0].command!;
+    expect(preCmd).toMatch(/^bun run "\/.*hitl-auto\.ts"/);
+    expect(preCmd).not.toContain("git rev-parse");
+
+    // PostToolUse
+    const postCmd = hooks.PostToolUse[0].hooks[0].command!;
+    expect(postCmd).toMatch(/^bun run "\/.*hitl-log\.ts"/);
+    expect(postCmd).not.toContain("git rev-parse");
+
+    // Stop
+    const stopCmd = hooks.Stop[0].hooks[0].command!;
+    expect(stopCmd).toMatch(/^bun run "\/.*generate-output\.ts"/);
+    expect(stopCmd).not.toContain("git rev-parse");
   });
 });
 

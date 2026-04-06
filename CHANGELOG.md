@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.99.0 — Fix Hook Paths (Apr 2026)
+
+- **Absolute hook paths** — Replace fragile shell `$(dirname "$0")` substitution with `import.meta.dirname` in HITL and file-permission hook builders, making hook paths absolute and portable across worktrees
+- **Remove static Stop hook** — Remove obsolete Stop hook from both `settings.json` and `hooks/hooks.json`; all hooks now generated into `settings.local.json` at dispatch time
+- **Null guard fixes** — Add null guards for optional `file-permissions` config section in `config.ts` and pipeline runner timeout lookups
+
+---
+
 ### v0.98.1 — README Refresh (Apr 2026)
 
 - **HITL config example** — Replace fictional gates config in README with real `hitl:` structure from config.yaml

@@ -253,9 +253,14 @@ export async function amendCommitsInRange(
 
   // Write temp map file: each line is "old_subject\tnew_message"
   const { writeFile, unlink } = await import("node:fs/promises");
-  const { join } = await import("node:path");
+  const { join, resolve } = await import("node:path");
   const cwd = opts.cwd ?? process.cwd();
-  const mapPath = join(cwd, ".git", "beastmode-amend-map.txt");
+  // Resolve actual git dir (worktrees have .git as a file, not a directory)
+  const gitDirResult = await git(["rev-parse", "--git-dir"], { cwd: opts.cwd, allowFailure: true });
+  const gitDir = gitDirResult.exitCode === 0 && gitDirResult.stdout
+    ? resolve(cwd, gitDirResult.stdout)
+    : join(cwd, ".git");
+  const mapPath = join(gitDir, "beastmode-amend-map.txt");
 
   const mapLines: string[] = [];
   for (const [oldSubject, newMessage] of amendments) {
@@ -264,7 +269,7 @@ export async function amendCommitsInRange(
   await writeFile(mapPath, mapLines.join("\n") + "\n");
 
   // Shell script that reads current HEAD subject, looks up in map, amends.
-  const scriptPath = join(cwd, ".git", "beastmode-amend.sh");
+  const scriptPath = join(gitDir, "beastmode-amend.sh");
   const escapedMapPath = mapPath.replace(/'/g, "'\\''");
   const script = `#!/bin/sh
 SUBJECT=$(git log -1 --format=%s)

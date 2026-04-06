@@ -158,8 +158,9 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
 
     // File-permission hooks
     cleanFilePermissionSettings(claudeDir);
-    const fpProse = getCategoryProse(config.config["file-permissions"], "claude-settings");
-    const fpPreToolUseHooks = buildFilePermissionPreToolUseHooks(fpProse, config.config["file-permissions"].timeout);
+    const fpConfig = config.config["file-permissions"];
+    const fpProse = getCategoryProse(fpConfig, "claude-settings");
+    const fpPreToolUseHooks = buildFilePermissionPreToolUseHooks(fpProse, fpConfig?.timeout);
     const fpPostToolUseHooks = buildFilePermissionPostToolUseHooks(config.phase);
     writeFilePermissionSettings({ claudeDir, preToolUseHooks: fpPreToolUseHooks, postToolUseHooks: fpPostToolUseHooks });
   }
