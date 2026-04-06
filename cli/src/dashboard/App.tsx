@@ -265,7 +265,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     const onStarted = (ev: WatchLoopEventMap["started"][0]) => {
       setVersion(ev.version);
       setWatchRunning(true);
-      pushSystemEntry("watch loop started");
+      pushSystemEntry("watch loop started", "debug");
     };
     const onStopped = () => {
       setWatchRunning(false);
