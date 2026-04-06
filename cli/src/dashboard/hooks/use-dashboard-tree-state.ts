@@ -93,7 +93,7 @@ export function buildTreeState(
     // Get or create epic node (for sessions that reference epics not in store)
     let epic = epicMap.get(session.epicSlug);
     if (!epic) {
-      epic = { slug: session.epicSlug, status: "unknown", features: [], entries: [] };
+      epic = { slug: session.epicSlug, status: session.phase, features: [], entries: [] };
       epicMap.set(session.epicSlug, epic);
     }
 
@@ -108,7 +108,7 @@ export function buildTreeState(
       // Find or create feature node
       let feature = epic.features.find((f) => f.slug === session.featureSlug);
       if (!feature) {
-        feature = { slug: session.featureSlug, status: "unknown", entries: [] };
+        feature = { slug: session.featureSlug, status: "in-progress", entries: [] };
         epic.features.push(feature);
       }
       feature.entries.push(...treeEntries);
