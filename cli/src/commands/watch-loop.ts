@@ -18,27 +18,14 @@ import { DispatchTracker } from "../dispatch/tracker.js";
 import { acquireLock, releaseLock } from "../lockfile.js";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { execSync } from "node:child_process";
 import { createLogger, createStdioSink } from "../logger.js";
+import { resolveVersion } from "../version.js";
 import { createTag } from "../git/tags.js";
 import { createImplBranch } from "../git/worktree.js";
 import { reconcileGitHub } from "../github/reconcile.js";
 import { loadSyncRefs, saveSyncRefs } from "../github/sync-refs.js";
 import { loadConfig } from "../config.js";
 import { discoverGitHub } from "../github/discovery.js";
-
-// --- Version banner ---
-
-function resolveVersion(projectRoot: string): string {
-  try {
-    const pkg = JSON.parse(readFileSync(resolve(projectRoot, "cli", "package.json"), "utf-8"));
-    const version = pkg.version ?? "unknown";
-    const hash = execSync("git rev-parse --short HEAD", { cwd: projectRoot, encoding: "utf-8" }).trim();
-    return `v${version} (${hash})`;
-  } catch {
-    return "v?.?.?";
-  }
-}
 
 /** Injected dependencies — allows testing without real SDK/scanner. */
 export interface WatchDeps {
@@ -89,7 +76,7 @@ export class WatchLoop extends EventEmitter {
     }
 
     this.running = true;
-    const version = resolveVersion(this.config.projectRoot);
+    const version = resolveVersion();
     this.emitTyped('started', { version, pid: process.pid, intervalSeconds: this.config.intervalSeconds });
 
     if (this.config.installSignalHandlers !== false) {
