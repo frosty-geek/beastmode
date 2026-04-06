@@ -56,7 +56,7 @@ Implement `npx beastmode install` — a single command that installs the beastmo
 
 Write the integration test from the Gherkin scenarios. Uses Node.js built-in `node:test` and `node:assert`. Tests run against the install module with a mocked HOME directory (temp dir) and mocked shell commands. Expected to fail (RED) until implementation is complete.
 
-- [ ] **Step 1: Write the integration test**
+- [x] **Step 1: Write the integration test**
 
 ```javascript
 // src/npx-cli/__tests__/install-command.integration.test.mjs
@@ -393,12 +393,12 @@ async function pathExists(p) {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --test src/npx-cli/__tests__/install-command.integration.test.mjs`
 Expected: FAIL — `install.mjs` module does not exist yet
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/npx-cli/__tests__/install-command.integration.test.mjs
@@ -418,7 +418,7 @@ git commit -m "test(install-command): add integration test (RED)"
 
 Create the root `package.json` for npm publishing and the version reader module.
 
-- [ ] **Step 1: Write the version reader**
+- [x] **Step 1: Write the version reader**
 
 ```javascript
 // src/npx-cli/version.mjs
@@ -436,7 +436,7 @@ export async function getVersion() {
 }
 ```
 
-- [ ] **Step 2: Create root package.json**
+- [x] **Step 2: Create root package.json**
 
 ```json
 {
@@ -475,7 +475,7 @@ export async function getVersion() {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add package.json src/npx-cli/version.mjs
@@ -493,7 +493,7 @@ git commit -m "feat(install-command): add root package.json and version reader"
 - Create: `src/npx-cli/prereqs.mjs`
 - Create: `src/npx-cli/__tests__/prereqs.test.mjs`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```javascript
 // src/npx-cli/__tests__/prereqs.test.mjs
@@ -557,12 +557,12 @@ describe('checkPrereqs', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test src/npx-cli/__tests__/prereqs.test.mjs`
 Expected: FAIL — `prereqs.mjs` does not exist
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```javascript
 // src/npx-cli/prereqs.mjs
@@ -602,12 +602,12 @@ export async function checkPrereqs({ platform, execCommand }) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test src/npx-cli/__tests__/prereqs.test.mjs`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/npx-cli/prereqs.mjs src/npx-cli/__tests__/prereqs.test.mjs
@@ -625,7 +625,7 @@ git commit -m "feat(install-command): add prerequisite checker"
 - Create: `src/npx-cli/bun-installer.mjs`
 - Create: `src/npx-cli/__tests__/bun-installer.test.mjs`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```javascript
 // src/npx-cli/__tests__/bun-installer.test.mjs
@@ -696,12 +696,12 @@ describe('ensureBun', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test src/npx-cli/__tests__/bun-installer.test.mjs`
 Expected: FAIL — `bun-installer.mjs` does not exist
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```javascript
 // src/npx-cli/bun-installer.mjs
@@ -739,12 +739,12 @@ export async function ensureBun({ execCommand }) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test src/npx-cli/__tests__/bun-installer.test.mjs`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/npx-cli/bun-installer.mjs src/npx-cli/__tests__/bun-installer.test.mjs
@@ -762,7 +762,7 @@ git commit -m "feat(install-command): add bun auto-installer"
 - Create: `src/npx-cli/plugin-copier.mjs`
 - Create: `src/npx-cli/__tests__/plugin-copier.test.mjs`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```javascript
 // src/npx-cli/__tests__/plugin-copier.test.mjs
@@ -838,12 +838,12 @@ describe('copyPlugin', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test src/npx-cli/__tests__/plugin-copier.test.mjs`
 Expected: FAIL — `plugin-copier.mjs` does not exist
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```javascript
 // src/npx-cli/plugin-copier.mjs
@@ -893,12 +893,12 @@ export async function copyPlugin({ homeDir, packageDir, version }) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test src/npx-cli/__tests__/plugin-copier.test.mjs`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/npx-cli/plugin-copier.mjs src/npx-cli/__tests__/plugin-copier.test.mjs
@@ -916,7 +916,7 @@ git commit -m "feat(install-command): add plugin copier"
 - Create: `src/npx-cli/config-merger.mjs`
 - Create: `src/npx-cli/__tests__/config-merger.test.mjs`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```javascript
 // src/npx-cli/__tests__/config-merger.test.mjs
@@ -1016,12 +1016,12 @@ describe('mergeConfigs', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test src/npx-cli/__tests__/config-merger.test.mjs`
 Expected: FAIL — `config-merger.mjs` does not exist
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```javascript
 // src/npx-cli/config-merger.mjs
@@ -1107,12 +1107,12 @@ async function mergeSettings(homeDir) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test src/npx-cli/__tests__/config-merger.test.mjs`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/npx-cli/config-merger.mjs src/npx-cli/__tests__/config-merger.test.mjs
@@ -1130,7 +1130,7 @@ git commit -m "feat(install-command): add JSON config merger"
 - Create: `src/npx-cli/cli-linker.mjs`
 - Create: `src/npx-cli/__tests__/cli-linker.test.mjs`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```javascript
 // src/npx-cli/__tests__/cli-linker.test.mjs
@@ -1188,12 +1188,12 @@ describe('linkCli', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test src/npx-cli/__tests__/cli-linker.test.mjs`
 Expected: FAIL — `cli-linker.mjs` does not exist
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```javascript
 // src/npx-cli/cli-linker.mjs
@@ -1234,12 +1234,12 @@ export async function linkCli({ cliDir, execCommand }) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test src/npx-cli/__tests__/cli-linker.test.mjs`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/npx-cli/cli-linker.mjs src/npx-cli/__tests__/cli-linker.test.mjs
@@ -1257,7 +1257,7 @@ git commit -m "feat(install-command): add CLI linker"
 - Create: `src/npx-cli/verify.mjs`
 - Create: `src/npx-cli/__tests__/verify.test.mjs`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```javascript
 // src/npx-cli/__tests__/verify.test.mjs
@@ -1321,12 +1321,12 @@ describe('verifyInstall', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `node --test src/npx-cli/__tests__/verify.test.mjs`
 Expected: FAIL — `verify.mjs` does not exist
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```javascript
 // src/npx-cli/verify.mjs
@@ -1367,12 +1367,12 @@ export async function verifyInstall({ execCommand }) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --test src/npx-cli/__tests__/verify.test.mjs`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/npx-cli/verify.mjs src/npx-cli/__tests__/verify.test.mjs
@@ -1391,7 +1391,7 @@ git commit -m "feat(install-command): add verification module"
 
 Wires all modules together into the `install()` function that the integration test calls.
 
-- [ ] **Step 1: Write the implementation**
+- [x] **Step 1: Write the implementation**
 
 ```javascript
 // src/npx-cli/install.mjs
@@ -1540,12 +1540,12 @@ function defaultExec(cmd) {
 }
 ```
 
-- [ ] **Step 2: Run integration tests**
+- [x] **Step 2: Run integration tests**
 
 Run: `node --test src/npx-cli/__tests__/install-command.integration.test.mjs`
 Expected: Tests should now pass (most of them) — the `install` function exists and modules are wired
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/npx-cli/install.mjs
@@ -1564,7 +1564,7 @@ git commit -m "feat(install-command): add install orchestrator"
 
 The `#!/usr/bin/env node` entry point that routes commands.
 
-- [ ] **Step 1: Write the entry point**
+- [x] **Step 1: Write the entry point**
 
 ```javascript
 #!/usr/bin/env node
@@ -1619,13 +1619,13 @@ switch (command) {
 }
 ```
 
-- [ ] **Step 2: Make it executable**
+- [x] **Step 2: Make it executable**
 
 ```bash
 chmod +x src/npx-cli/index.mjs
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/npx-cli/index.mjs
