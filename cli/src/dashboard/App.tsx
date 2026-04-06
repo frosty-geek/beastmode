@@ -192,6 +192,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     selectedEpicSlug,
     fallbackEntries: fallbackStoreRef.current,
     systemEntries: systemEntriesRef.current,
+    enrichedEpics: epics,
   });
 
   // --- Filter pipeline for log tree ---
