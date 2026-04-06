@@ -283,12 +283,10 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     const onSessionStarted = (ev: WatchLoopEventMap["session-started"][0]) => {
       setActiveSessions((prev) => new Set([...prev, ev.epicSlug]));
       refreshSessions();
-      fallbackStoreRef.current.push(
-        ev.epicSlug,
-        ev.phase,
-        ev.featureSlug,
-        lifecycleToLogEntry("session-started", ev),
-      );
+      const entries = lifecycleToLogEntry("session-started", ev);
+      for (const entry of entries) {
+        fallbackStoreRef.current.push(ev.epicSlug, ev.phase, ev.featureSlug, entry);
+      }
     };
 
     const onSessionCompleted = (ev: WatchLoopEventMap["session-completed"][0]) => {
