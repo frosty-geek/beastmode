@@ -93,8 +93,9 @@ export async function phaseCommand(
 
     // File-permission hooks
     cleanFilePermissionSettings(claudeDir);
-    const fpProse = getCategoryProse(_config["file-permissions"], "claude-settings");
-    const fpPreToolUseHooks = buildFilePermissionPreToolUseHooks(fpProse, _config["file-permissions"].timeout);
+    const fpConfig = _config["file-permissions"];
+    const fpProse = getCategoryProse(fpConfig, "claude-settings");
+    const fpPreToolUseHooks = buildFilePermissionPreToolUseHooks(fpProse, fpConfig?.timeout);
     const fpPostToolUseHooks = buildFilePermissionPostToolUseHooks(phase);
     writeFilePermissionSettings({ claudeDir, preToolUseHooks: fpPreToolUseHooks, postToolUseHooks: fpPostToolUseHooks });
 

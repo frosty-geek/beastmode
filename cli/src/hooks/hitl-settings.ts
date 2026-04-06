@@ -186,12 +186,13 @@ function replaceHitlHook(
  * Calls hitl-log.ts with the phase argument.
  */
 function buildPostToolUseHook(phase: string): HookEntry {
+  const scriptPath = resolve(import.meta.dirname, "hitl-log.ts");
   return {
     matcher: "AskUserQuestion",
     hooks: [
       {
         type: "command",
-        command: `bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/hitl-log.ts" ${phase}`,
+        command: `bun run "${scriptPath}" ${phase}`,
       },
     ],
   };
@@ -202,12 +203,13 @@ function buildPostToolUseHook(phase: string): HookEntry {
  * Calls generate-output.ts after Claude finishes responding.
  */
 function buildStopHook(): HookEntry {
+  const scriptPath = resolve(import.meta.dirname, "generate-output.ts");
   return {
     matcher: "",
     hooks: [
       {
         type: "command",
-        command: `bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/generate-output.ts"`,
+        command: `bun run "${scriptPath}"`,
       },
     ],
   };
@@ -222,12 +224,13 @@ function buildStopHook(): HookEntry {
  * @returns A single hook entry targeting AskUserQuestion with a command hook
  */
 export function buildPreToolUseHook(phase: string): PromptHookEntry {
+  const scriptPath = resolve(import.meta.dirname, "hitl-auto.ts");
   return {
     matcher: "AskUserQuestion",
     hooks: [
       {
         type: "command",
-        command: `bun run "$(git rev-parse --show-toplevel)/cli/src/hooks/hitl-auto.ts" ${phase}`,
+        command: `bun run "${scriptPath}" ${phase}`,
       },
     ],
   };
