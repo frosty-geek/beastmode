@@ -701,6 +701,8 @@ async function syncFeature(
   let acceptanceCriteria: string | undefined;
   if (opts.projectRoot && feature.plan) {
     const planPath = join(opts.projectRoot, ".beastmode", "artifacts", "plan", basename(feature.plan));
+    opts.logger?.debug("syncFeature: stored plan path", { path: feature.plan });
+    opts.logger?.debug("syncFeature: resolved plan path", { path: planPath });
     try {
       if (existsSync(planPath)) {
         const planContent = readFileSync(planPath, "utf-8");
@@ -710,9 +712,12 @@ async function syncFeature(
         if (wtb) whatToBuild = wtb;
         const ac = extractSection(planContent, "Acceptance Criteria");
         if (ac) acceptanceCriteria = ac;
+      } else {
+        opts.logger?.warn("syncFeature: plan file does not exist", { path: planPath });
       }
-    } catch {
-      // Graceful degradation
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      opts.logger?.error(`syncFeature: failed to read plan file: ${message}`, { path: planPath });
     }
   }
 
@@ -930,9 +935,10 @@ async function syncProjectStatus(
  * Build an artifacts record from the store epic's flat phase fields.
  * Maps { design?: string, plan?: string, ... } to Record<string, string[]>.
  */
-function buildArtifactsMap(
+export function buildArtifactsMap(
   entity: { design?: string; plan?: string; implement?: string; validate?: string; release?: string },
   projectRoot?: string,
+  logger?: Logger,
 ): Record<string, string[]> | undefined {
   const map: Record<string, string[]> = {};
   const phases = ["design", "plan", "implement", "validate", "release"] as const;
@@ -942,6 +948,7 @@ function buildArtifactsMap(
       const normalized = projectRoot && isAbsolute(rawPath)
         ? relative(projectRoot, rawPath)
         : rawPath;
+      logger?.debug(`buildArtifactsMap: ${phase} artifact`, { path: rawPath, normalized });
       map[phase] = [normalized];
     }
   }
@@ -992,7 +999,7 @@ export async function syncGitHubForEpic(opts: {
         description: f.description,
         plan: f.plan,
       })),
-      artifacts: buildArtifactsMap(epicEntity, opts.projectRoot),
+      artifacts: buildArtifactsMap(epicEntity, opts.projectRoot, opts.logger),
     };
 
     const result = await syncGitHub(epicInput, syncRefs, config, resolved, {
