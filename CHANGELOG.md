@@ -4,6 +4,14 @@ All notable changes to beastmode.
 
 ---
 
+### v0.98.1 — README Refresh (Apr 2026)
+
+- **HITL config example** — Replace fictional gates config in README with real `hitl:` structure from config.yaml
+- **Domain list correction** — Fix domain attribution from "Meta" to "Research" in README knowledge hierarchy section
+- **README accuracy test** — Add integration test validating README config examples and domain descriptions match actual project structure
+
+---
+
 ### v0.98.0 — Dashboard Log Fixes (Apr 2026)
 
 - **CLI verbosity filter** — CLI root entries now pass through `shouldShowEntry` so they respect the dashboard verbosity toggle instead of always rendering
