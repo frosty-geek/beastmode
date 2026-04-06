@@ -30,7 +30,7 @@ describe("hooks-command integration", () => {
         questions: [{ question: "Approve?", options: [{ label: "Yes" }] }],
       });
 
-      const tempDir = makeTempProject("implement", "approve all tool calls without asking");
+      const tempDir = makeTempProjectWithGit("implement", "approve all tool calls without asking");
 
       const result = execSync(
         `bun run "${CLI_PATH}" hooks hitl-auto implement`,
@@ -111,7 +111,7 @@ describe("hooks-command integration", () => {
         questions: [{ question: "Test?", options: [{ label: "Yes" }] }],
       });
 
-      const tempDir = makeTempProject("plan", "auto-approve everything");
+      const tempDir = makeTempProjectWithGit("plan", "auto-approve everything");
 
       const result = execSync(
         `bun run "${CLI_PATH}" hooks hitl-auto plan`,
