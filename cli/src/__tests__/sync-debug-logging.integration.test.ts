@@ -34,7 +34,6 @@ vi.mock("../github/cli", () => ({
 
 import { syncGitHub } from "../github/sync";
 import type { EpicSyncInput } from "../github/sync";
-import type { SyncRefs } from "../github/sync-refs";
 import type { BeastmodeConfig } from "../config";
 import type { ResolvedGitHub } from "../github/discovery";
 import type { Logger } from "../logger";
