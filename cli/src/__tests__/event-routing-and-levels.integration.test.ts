@@ -143,4 +143,67 @@ describe("Event routing, deduplication, and level assignment", () => {
       expect(entry.text).toContain(`session: ${sessionId}`);
     }
   });
+
+  // --- Level propagation through tree ---
+
+  test("debug-level lifecycle entry propagates debug to tree entry", () => {
+    const store = new FallbackEntryStore();
+    const entry = lifecycleToLogEntry("session-started", {
+      epicSlug: "auth-system",
+      phase: "implement",
+      sessionId: "w:1",
+    });
+    store.push("auth-system", "implement", undefined, entry);
+
+    const sessions = [{ epicSlug: "auth-system", phase: "implement" }];
+    const state = buildTreeState(
+      sessions,
+      (s) => store.get(s.epicSlug, s.phase, s.featureSlug),
+      store,
+    );
+
+    const epic = state.epics.find((e) => e.slug === "auth-system")!;
+    expect(epic.entries[0].level).toBe("debug");
+  });
+
+  test("warn-level lifecycle entry propagates warn to tree entry", () => {
+    const store = new FallbackEntryStore();
+    const entry = lifecycleToLogEntry("epic-blocked", {
+      epicSlug: "auth-system",
+      gate: "validate",
+      reason: "tests failing",
+    });
+    store.push("auth-system", "unknown", undefined, entry);
+
+    const sessions = [{ epicSlug: "auth-system", phase: "unknown" }];
+    const state = buildTreeState(
+      sessions,
+      (s) => store.get(s.epicSlug, s.phase, s.featureSlug),
+      store,
+    );
+
+    const epic = state.epics.find((e) => e.slug === "auth-system")!;
+    expect(epic.entries[0].level).toBe("warn");
+  });
+
+  test("error-level lifecycle entry propagates error to tree entry", () => {
+    const store = new FallbackEntryStore();
+    const entry = lifecycleToLogEntry("session-completed", {
+      epicSlug: "auth-system",
+      phase: "implement",
+      success: false,
+      durationMs: 3000,
+    });
+    store.push("auth-system", "implement", undefined, entry);
+
+    const sessions = [{ epicSlug: "auth-system", phase: "implement" }];
+    const state = buildTreeState(
+      sessions,
+      (s) => store.get(s.epicSlug, s.phase, s.featureSlug),
+      store,
+    );
+
+    const epic = state.epics.find((e) => e.slug === "auth-system")!;
+    expect(epic.entries[0].level).toBe("error");
+  });
 });
