@@ -25,9 +25,10 @@ describe("buildPreToolUseHook", () => {
     expect(entry.hooks[0].command).toContain("bun run");
   });
 
-  test("command uses git rev-parse for repo root", () => {
+  test("command uses absolute path, not shell substitution", () => {
     const entry = buildPreToolUseHook("validate");
-    expect(entry.hooks[0].command).toContain("git rev-parse --show-toplevel");
+    expect(entry.hooks[0].command).toMatch(/^bun run "\/.*hitl-auto\.ts"/);
+    expect(entry.hooks[0].command).not.toContain("git rev-parse");
   });
 
   test("does not contain prompt field", () => {
