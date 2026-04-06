@@ -937,7 +937,7 @@ async function syncProjectStatus(
  */
 export function buildArtifactsMap(
   entity: { design?: string; plan?: string; implement?: string; validate?: string; release?: string },
-  projectRoot?: string,
+  _projectRoot?: string,
   logger?: Logger,
 ): Record<string, string[]> | undefined {
   const map: Record<string, string[]> = {};
@@ -945,9 +945,7 @@ export function buildArtifactsMap(
   for (const phase of phases) {
     const rawPath = entity[phase];
     if (rawPath) {
-      const normalized = projectRoot && isAbsolute(rawPath)
-        ? relative(projectRoot, rawPath)
-        : rawPath;
+      const normalized = `.beastmode/artifacts/${phase}/${basename(rawPath)}`;
       logger?.debug(`buildArtifactsMap: ${phase} artifact`, { path: rawPath, normalized });
       map[phase] = [normalized];
     }

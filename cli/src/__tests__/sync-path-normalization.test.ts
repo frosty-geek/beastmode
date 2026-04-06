@@ -309,3 +309,104 @@ describe("syncFeature plan path normalization", () => {
     expect(body).toContain("As a user, I want plan paths to resolve");
   });
 });
+
+describe("buildArtifactsMap path normalization", () => {
+  let tmpDir: string;
+  let store: InMemoryTaskStore;
+
+  beforeEach(() => {
+    mockCalls.length = 0;
+    tmpDir = mkdtempSync(join(tmpdir(), "sync-artifacts-norm-"));
+    store = new InMemoryTaskStore();
+
+    // Create design artifact so PRD sections can be read
+    const designDir = join(tmpDir, ".beastmode", "artifacts", "design");
+    mkdirSync(designDir, { recursive: true });
+    writeFileSync(
+      join(designDir, "2026-04-05-slug.md"),
+      "---\nphase: design\n---\n\n## Problem Statement\n\nTest.\n",
+    );
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test("normalizes absolute worktree path to repo-relative display path", async () => {
+    const epic = store.addEpic({ name: "Test", slug: "test" });
+    const absPath = "/Users/someone/.claude/worktrees/old-slug/.beastmode/artifacts/design/2026-04-05-slug.md";
+    store.updateEpic(epic.id, { status: "plan", design: absPath });
+
+    await syncGitHubForEpic({
+      projectRoot: tmpDir,
+      epicId: epic.id,
+      epicSlug: "test",
+      store,
+      resolved: { repo: "org/repo" },
+    });
+
+    const body = callsTo("ghIssueCreate")[0]?.args[2] as string;
+    // Artifact table should have clean path
+    expect(body).toContain(".beastmode/artifacts/design/2026-04-05-slug.md");
+    // Should NOT contain the stale worktree prefix
+    expect(body).not.toContain("/Users/someone");
+    expect(body).not.toContain("worktrees");
+  });
+
+  test("normalizes bare filename to repo-relative display path", async () => {
+    const epic = store.addEpic({ name: "Test", slug: "test" });
+    store.updateEpic(epic.id, { status: "plan", design: "2026-04-05-slug.md" });
+
+    await syncGitHubForEpic({
+      projectRoot: tmpDir,
+      epicId: epic.id,
+      epicSlug: "test",
+      store,
+      resolved: { repo: "org/repo" },
+    });
+
+    const body = callsTo("ghIssueCreate")[0]?.args[2] as string;
+    expect(body).toContain(".beastmode/artifacts/design/2026-04-05-slug.md");
+  });
+
+  test("preserves already-correct repo-relative path", async () => {
+    const epic = store.addEpic({ name: "Test", slug: "test" });
+    store.updateEpic(epic.id, {
+      status: "plan",
+      design: ".beastmode/artifacts/design/2026-04-05-slug.md",
+    });
+
+    await syncGitHubForEpic({
+      projectRoot: tmpDir,
+      epicId: epic.id,
+      epicSlug: "test",
+      store,
+      resolved: { repo: "org/repo" },
+    });
+
+    const body = callsTo("ghIssueCreate")[0]?.args[2] as string;
+    expect(body).toContain(".beastmode/artifacts/design/2026-04-05-slug.md");
+  });
+
+  test("normalizes paths for all phase types", async () => {
+    const epic = store.addEpic({ name: "Test", slug: "test" });
+    store.updateEpic(epic.id, {
+      status: "validate",
+      design: "/abs/path/.beastmode/artifacts/design/design-file.md",
+      validate: "/abs/path/.beastmode/artifacts/validate/validate-file.md",
+    });
+
+    await syncGitHubForEpic({
+      projectRoot: tmpDir,
+      epicId: epic.id,
+      epicSlug: "test",
+      store,
+      resolved: { repo: "org/repo" },
+    });
+
+    const body = callsTo("ghIssueCreate")[0]?.args[2] as string;
+    expect(body).toContain(".beastmode/artifacts/design/design-file.md");
+    expect(body).toContain(".beastmode/artifacts/validate/validate-file.md");
+    expect(body).not.toContain("/abs/path/");
+  });
+});
