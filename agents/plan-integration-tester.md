@@ -131,6 +131,23 @@ Use standard BDD patterns:
 
 Do not use framework-specific extensions (Cucumber hooks syntax, Vitest-specific Gherkin plugins, etc.).
 
+### Test Depth
+
+The integration test suite sits at the top of the test pyramid. Follow these depth rules:
+
+**Happy paths first:** Every capability domain touched by the epic must have at least one happy-path scenario representing a successful end-to-end flow. This is the minimum — a capability domain with no happy path is incomplete.
+
+**Error paths by risk:** Include error-path scenarios only when the agent judges them high-risk based on:
+- Complexity of the failure mode (multiple interacting components)
+- User-visible impact (data loss, silent corruption, broken workflow)
+- Likelihood of regression (fragile integration points)
+
+Routine error handling (validation messages, expected 404s, input sanitization) does NOT warrant integration scenarios — those belong in unit tests.
+
+**No edge cases:** Edge cases, boundary conditions, and exhaustive input variation belong in unit tests. Integration scenarios test representative flows, not exhaustive coverage.
+
+**Depth decision is authoritative:** The agent decides which error paths are high-risk. No human review step for depth classification.
+
 ### Greenfield Handling
 
 When the glob finds no `.feature` files:
