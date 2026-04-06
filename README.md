@@ -83,19 +83,16 @@ Beastmode captures what worked and what failed at every checkpoint. Retro agents
 
 Most AI coding tools offer two modes: manual or autonomous. No middle ground.
 
-Beastmode places human-in-the-loop gates at every decision point: design approval, plan review, version confirmation, merge strategy. Gates default to human. As trust builds, flip individual gates to `auto` in `.beastmode/config.yaml`:
+Beastmode places human-in-the-loop gates at every phase: design approval, plan review, implementation decisions, validation, release. Gates default to human. As trust builds, flip individual phases to autonomous in `.beastmode/config.yaml`:
 
 ```yaml
 # .beastmode/config.yaml
-gates:
-  design:
-    existing-design-choice: human     # start supervised
-    decision-tree: human
-    prd-approval: human
-  implement:
-    architectural-deviation: auto     # claude handles deviations
-    blocked-task-decision: auto
-    validation-failure: auto
+hitl:
+  design: "always defer to human"                            # start supervised
+  plan: "auto-answer all questions, never defer to human"    # trust the process
+  implement: "auto-answer all questions, never defer to human"
+  validate: "auto-answer all questions, never defer to human"
+  release: "always defer to human"                           # human approves releases
 ```
 
 [Read the full argument.](docs/configurable-gates.md)
