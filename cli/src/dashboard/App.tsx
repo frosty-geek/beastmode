@@ -201,6 +201,13 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   const logTotalLines = countTreeLines(filteredTreeState);
   logTotalLinesRef.current = logTotalLines;
 
+  // Compute maxVisibleLines for log panel from terminal dimensions
+  // Layout: header (5 rows: padY top + banner + status×2 + padY bottom) + bottom bar (1) + panel border (2)
+  const headerHeight = 5;
+  const footerHeight = 1;
+  const panelBorderHeight = 2;
+  const maxVisibleLines = Math.max(5, (rows ?? 24) - headerHeight - footerHeight - panelBorderHeight);
+
   // --- Clock tick every 1s ---
   useEffect(() => {
     const timer = setInterval(() => setClock(formatClock()), 1000);
@@ -466,6 +473,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
           verbosity={keyboard.verbosity}
           scrollOffset={keyboard.logScrollOffset}
           autoFollow={keyboard.logAutoFollow}
+          maxVisibleLines={maxVisibleLines}
         />
       }
       keyHints={keyHintText}
