@@ -1,3 +1,10 @@
+/**
+ * Session stats accumulator — subscribes to WatchLoop EventEmitter events
+ * and maintains running session metrics.
+ *
+ * Pure logic module, decoupled from React rendering.
+ */
+
 import type { EventEmitter } from "node:events";
 import type {
   SessionStartedEvent,
@@ -5,25 +12,42 @@ import type {
   ScanCompleteEvent,
 } from "../dispatch/types.js";
 
-/** Snapshot of accumulated session statistics. */
+/** Pipeline phases tracked for duration averages. */
+const TRACKED_PHASES = ["plan", "implement", "validate", "release"] as const;
+type TrackedPhase = (typeof TRACKED_PHASES)[number];
+
+/** Snapshot of accumulated session metrics. */
 export interface SessionStats {
+  /** Total completed sessions. */
   total: number;
+  /** Currently active (in-flight) sessions. */
   active: number;
+  /** Successfully completed sessions. */
   successes: number;
+  /** Failed sessions. */
   failures: number;
+  /** Sessions re-dispatched (same epic+phase+feature combo completed more than once). */
   reDispatches: number;
+  /** Success rate as a percentage (0-100). 0 when no sessions completed. */
   successRate: number;
+  /** Milliseconds since accumulator was created (updated on scan-complete). */
   uptimeMs: number;
+  /** Sum of all completed session durations in milliseconds. */
   cumulativeMs: number;
+  /** True until the first session-completed event fires. */
   isEmpty: boolean;
-  phaseDurations: Record<"plan" | "implement" | "validate" | "release", number | null>;
+  /** Average duration per phase in ms, or null for unseen phases. */
+  phaseDurations: Record<TrackedPhase, number | null>;
 }
 
-const PIPELINE_PHASES = ["plan", "implement", "validate", "release"] as const;
+/** Options for dependency injection (testing). */
+export interface AccumulatorOptions {
+  /** Override Date.now() for deterministic uptime testing. */
+  nowFn?: () => number;
+}
 
 /**
  * Subscribes to WatchLoop events and accumulates session metrics.
- * Pure logic — no React or rendering imports.
  */
 export class SessionStatsAccumulator {
   private total = 0;
@@ -32,73 +56,45 @@ export class SessionStatsAccumulator {
   private failures = 0;
   private reDispatches = 0;
   private cumulativeMs = 0;
-  private isEmpty = true;
+  private isEmpty_ = true;
   private uptimeMs = 0;
-  private startedAt = Date.now();
 
-  /** Per-phase duration arrays for computing averages. */
-  private phaseDurationArrays: Record<string, number[]> = {
-    plan: [],
-    implement: [],
-    validate: [],
-    release: [],
-  };
-
-  /** Tracks completed session keys for re-dispatch detection. */
+  /** Set of "epic:phase:feature" keys that have completed at least once. */
   private completedKeys = new Set<string>();
 
-  private readonly emitter: EventEmitter;
-  private readonly onStarted: (ev: SessionStartedEvent) => void;
-  private readonly onCompleted: (ev: SessionCompletedEvent) => void;
-  private readonly onScan: (ev: ScanCompleteEvent) => void;
+  /** Per-phase duration arrays for computing averages. */
+  private phaseDurationArrays: Record<string, number[]> = {};
 
-  constructor(emitter: EventEmitter) {
-    this.emitter = emitter;
+  private readonly startTime: number;
+  private readonly nowFn: () => number;
 
-    this.onStarted = (ev) => {
-      this.active++;
-      const key = `${ev.epicSlug}:${ev.featureSlug ?? ""}:${ev.phase}`;
-      if (this.completedKeys.has(key)) {
-        this.reDispatches++;
-      }
-    };
+  constructor(emitter: EventEmitter, options?: AccumulatorOptions) {
+    this.nowFn = options?.nowFn ?? (() => Date.now());
+    this.startTime = this.nowFn();
 
-    this.onCompleted = (ev) => {
-      this.active = Math.max(0, this.active - 1);
-      this.total++;
-      this.cumulativeMs += ev.durationMs;
-      this.isEmpty = false;
+    emitter.on("session-started", (event: SessionStartedEvent) => {
+      this.onSessionStarted(event);
+    });
 
-      if (ev.success) {
-        this.successes++;
-      } else {
-        this.failures++;
-      }
+    emitter.on("session-completed", (event: SessionCompletedEvent) => {
+      this.onSessionCompleted(event);
+    });
 
-      const key = `${ev.epicSlug}:${ev.featureSlug ?? ""}:${ev.phase}`;
-      this.completedKeys.add(key);
-
-      if (PIPELINE_PHASES.includes(ev.phase as any)) {
-        this.phaseDurationArrays[ev.phase].push(ev.durationMs);
-      }
-    };
-
-    this.onScan = () => {
-      this.uptimeMs = Date.now() - this.startedAt;
-    };
-
-    emitter.on("session-started", this.onStarted);
-    emitter.on("session-completed", this.onCompleted);
-    emitter.on("scan-complete", this.onScan);
+    emitter.on("scan-complete", (_event: ScanCompleteEvent) => {
+      this.onScanComplete();
+    });
   }
 
+  /** Return a snapshot of all accumulated metrics. */
   getStats(): SessionStats {
-    const phaseDurations = {} as Record<"plan" | "implement" | "validate" | "release", number | null>;
-    for (const phase of PIPELINE_PHASES) {
+    const phaseDurations = {} as Record<TrackedPhase, number | null>;
+    for (const phase of TRACKED_PHASES) {
       const arr = this.phaseDurationArrays[phase];
-      phaseDurations[phase] = arr.length > 0
-        ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
-        : null;
+      if (arr && arr.length > 0) {
+        phaseDurations[phase] = arr.reduce((a, b) => a + b, 0) / arr.length;
+      } else {
+        phaseDurations[phase] = null;
+      }
     }
 
     return {
@@ -110,14 +106,44 @@ export class SessionStatsAccumulator {
       successRate: this.total > 0 ? Math.round((this.successes / this.total) * 100) : 0,
       uptimeMs: this.uptimeMs,
       cumulativeMs: this.cumulativeMs,
-      isEmpty: this.isEmpty,
+      isEmpty: this.isEmpty_,
       phaseDurations,
     };
   }
 
-  dispose(): void {
-    this.emitter.off("session-started", this.onStarted);
-    this.emitter.off("session-completed", this.onCompleted);
-    this.emitter.off("scan-complete", this.onScan);
+  private onSessionStarted(event: SessionStartedEvent): void {
+    this.active++;
+  }
+
+  private onSessionCompleted(event: SessionCompletedEvent): void {
+    this.active = Math.max(0, this.active - 1);
+    this.total++;
+    this.isEmpty_ = false;
+
+    if (event.success) {
+      this.successes++;
+    } else {
+      this.failures++;
+    }
+
+    this.cumulativeMs += event.durationMs;
+
+    // Phase duration tracking
+    if (!this.phaseDurationArrays[event.phase]) {
+      this.phaseDurationArrays[event.phase] = [];
+    }
+    this.phaseDurationArrays[event.phase].push(event.durationMs);
+
+    // Re-dispatch detection
+    const key = `${event.epicSlug}:${event.phase}:${event.featureSlug ?? ""}`;
+    if (this.completedKeys.has(key)) {
+      this.reDispatches++;
+    } else {
+      this.completedKeys.add(key);
+    }
+  }
+
+  private onScanComplete(): void {
+    this.uptimeMs = this.nowFn() - this.startTime;
   }
 }

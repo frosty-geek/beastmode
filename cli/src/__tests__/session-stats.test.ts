@@ -1,116 +1,193 @@
-import { describe, test, expect, beforeEach } from "vitest";
+import { describe, test, expect } from "vitest";
 import { EventEmitter } from "node:events";
 import { SessionStatsAccumulator } from "../dashboard/session-stats.js";
 import type { SessionStats } from "../dashboard/session-stats.js";
 
+function createAccumulator(): { emitter: EventEmitter; acc: SessionStatsAccumulator } {
+  const emitter = new EventEmitter();
+  const acc = new SessionStatsAccumulator(emitter);
+  return { emitter, acc };
+}
+
 describe("SessionStatsAccumulator", () => {
-  let emitter: EventEmitter;
-  let acc: SessionStatsAccumulator;
+  describe("initial state", () => {
+    test("all counters are zero", () => {
+      const { acc } = createAccumulator();
+      const stats = acc.getStats();
+      expect(stats.total).toBe(0);
+      expect(stats.active).toBe(0);
+      expect(stats.successes).toBe(0);
+      expect(stats.failures).toBe(0);
+      expect(stats.reDispatches).toBe(0);
+      expect(stats.cumulativeMs).toBe(0);
+    });
 
-  beforeEach(() => {
-    emitter = new EventEmitter();
-    acc = new SessionStatsAccumulator(emitter);
+    test("isEmpty is true", () => {
+      const { acc } = createAccumulator();
+      expect(acc.getStats().isEmpty).toBe(true);
+    });
+
+    test("successRate is 0", () => {
+      const { acc } = createAccumulator();
+      expect(acc.getStats().successRate).toBe(0);
+    });
+
+    test("all phase durations are null", () => {
+      const { acc } = createAccumulator();
+      const stats = acc.getStats();
+      expect(stats.phaseDurations.plan).toBeNull();
+      expect(stats.phaseDurations.implement).toBeNull();
+      expect(stats.phaseDurations.validate).toBeNull();
+      expect(stats.phaseDurations.release).toBeNull();
+    });
   });
 
-  test("initial state: all zeros, isEmpty true", () => {
-    const s = acc.getStats();
-    expect(s.total).toBe(0);
-    expect(s.active).toBe(0);
-    expect(s.successes).toBe(0);
-    expect(s.failures).toBe(0);
-    expect(s.reDispatches).toBe(0);
-    expect(s.successRate).toBe(0);
-    expect(s.cumulativeMs).toBe(0);
-    expect(s.isEmpty).toBe(true);
-    expect(s.phaseDurations.plan).toBeNull();
-    expect(s.phaseDurations.implement).toBeNull();
-    expect(s.phaseDurations.validate).toBeNull();
-    expect(s.phaseDurations.release).toBeNull();
+  describe("session-started", () => {
+    test("increments active count", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      expect(acc.getStats().active).toBe(1);
+    });
+
+    test("multiple starts increment active count", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-started", { epicSlug: "e2", phase: "plan", sessionId: "s2" });
+      expect(acc.getStats().active).toBe(2);
+    });
   });
 
-  test("session-started increments active count", () => {
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    expect(acc.getStats().active).toBe(1);
+  describe("session-completed", () => {
+    test("increments total and decrements active on success", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 5000 });
+      const stats = acc.getStats();
+      expect(stats.total).toBe(1);
+      expect(stats.active).toBe(0);
+      expect(stats.successes).toBe(1);
+    });
+
+    test("increments failures on failure", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: false, durationMs: 5000 });
+      const stats = acc.getStats();
+      expect(stats.total).toBe(1);
+      expect(stats.failures).toBe(1);
+      expect(stats.successes).toBe(0);
+    });
+
+    test("sets isEmpty to false after first completion", () => {
+      const { emitter, acc } = createAccumulator();
+      expect(acc.getStats().isEmpty).toBe(true);
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 5000 });
+      expect(acc.getStats().isEmpty).toBe(false);
+    });
+
+    test("accumulates cumulative duration", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 120000 });
+      emitter.emit("session-started", { epicSlug: "e2", phase: "plan", sessionId: "s2" });
+      emitter.emit("session-completed", { epicSlug: "e2", phase: "plan", success: true, durationMs: 60000 });
+      expect(acc.getStats().cumulativeMs).toBe(180000);
+    });
   });
 
-  test("session-completed decrements active, increments total", () => {
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    emitter.emit("session-completed", { epicSlug: "a", phase: "plan", success: true, durationMs: 5000 });
-    const s = acc.getStats();
-    expect(s.active).toBe(0);
-    expect(s.total).toBe(1);
-    expect(s.successes).toBe(1);
+  describe("success rate", () => {
+    test("computes percentage from successes and total", () => {
+      const { emitter, acc } = createAccumulator();
+      for (let i = 1; i <= 3; i++) {
+        emitter.emit("session-started", { epicSlug: `e${i}`, phase: "plan", sessionId: `s${i}` });
+        emitter.emit("session-completed", { epicSlug: `e${i}`, phase: "plan", success: true, durationMs: 5000 });
+      }
+      emitter.emit("session-started", { epicSlug: "e4", phase: "plan", sessionId: "s4" });
+      emitter.emit("session-completed", { epicSlug: "e4", phase: "plan", success: false, durationMs: 5000 });
+      expect(acc.getStats().successRate).toBe(75);
+    });
+
+    test("returns 0 when no sessions completed", () => {
+      const { acc } = createAccumulator();
+      expect(acc.getStats().successRate).toBe(0);
+    });
   });
 
-  test("failed session increments failures", () => {
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    emitter.emit("session-completed", { epicSlug: "a", phase: "plan", success: false, durationMs: 3000 });
-    const s = acc.getStats();
-    expect(s.failures).toBe(1);
-    expect(s.total).toBe(1);
+  describe("phase durations", () => {
+    test("tracks average duration per phase", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 30000 });
+      emitter.emit("session-started", { epicSlug: "e2", phase: "plan", sessionId: "s2" });
+      emitter.emit("session-completed", { epicSlug: "e2", phase: "plan", success: true, durationMs: 50000 });
+      expect(acc.getStats().phaseDurations.plan).toBe(40000);
+    });
+
+    test("unseen phases remain null", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 30000 });
+      const stats = acc.getStats();
+      expect(stats.phaseDurations.implement).toBeNull();
+      expect(stats.phaseDurations.validate).toBeNull();
+      expect(stats.phaseDurations.release).toBeNull();
+    });
+
+    test("each phase tracks independently", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 30000 });
+      emitter.emit("session-started", { epicSlug: "e2", phase: "implement", sessionId: "s2" });
+      emitter.emit("session-completed", { epicSlug: "e2", phase: "implement", success: true, durationMs: 60000 });
+      const stats = acc.getStats();
+      expect(stats.phaseDurations.plan).toBe(30000);
+      expect(stats.phaseDurations.implement).toBe(60000);
+    });
   });
 
-  test("success rate computed correctly", () => {
-    for (let i = 0; i < 3; i++) {
-      emitter.emit("session-started", { epicSlug: `e${i}`, phase: "plan", sessionId: `s${i}` });
-      emitter.emit("session-completed", { epicSlug: `e${i}`, phase: "plan", success: true, durationMs: 1000 });
-    }
-    emitter.emit("session-started", { epicSlug: "f", phase: "plan", sessionId: "sf" });
-    emitter.emit("session-completed", { epicSlug: "f", phase: "plan", success: false, durationMs: 1000 });
-    expect(acc.getStats().successRate).toBe(75);
+  describe("re-dispatch detection", () => {
+    test("detects re-dispatch when same epic+phase+feature completes again", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 5000 });
+      expect(acc.getStats().reDispatches).toBe(0);
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s2" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 5000 });
+      expect(acc.getStats().reDispatches).toBe(1);
+    });
+
+    test("different epic+phase combos do not count as re-dispatch", () => {
+      const { emitter, acc } = createAccumulator();
+      emitter.emit("session-started", { epicSlug: "e1", phase: "plan", sessionId: "s1" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "plan", success: true, durationMs: 5000 });
+      emitter.emit("session-started", { epicSlug: "e1", phase: "implement", sessionId: "s2" });
+      emitter.emit("session-completed", { epicSlug: "e1", phase: "implement", success: true, durationMs: 5000 });
+      expect(acc.getStats().reDispatches).toBe(0);
+    });
   });
 
-  test("cumulative session time sums durations", () => {
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    emitter.emit("session-completed", { epicSlug: "a", phase: "plan", success: true, durationMs: 120000 });
-    emitter.emit("session-started", { epicSlug: "b", phase: "plan", sessionId: "s2" });
-    emitter.emit("session-completed", { epicSlug: "b", phase: "plan", success: true, durationMs: 60000 });
-    expect(acc.getStats().cumulativeMs).toBe(180000);
-  });
+  describe("uptime", () => {
+    test("computes uptime from start on scan-complete", () => {
+      let now = 1000000;
+      const emitter = new EventEmitter();
+      const acc = new SessionStatsAccumulator(emitter, { nowFn: () => now });
+      now = 1000000 + 300000;
+      emitter.emit("scan-complete", { epicsScanned: 1, dispatched: 0 });
+      const stats = acc.getStats();
+      expect(stats.uptimeMs).toBe(300000);
+    });
 
-  test("per-phase average durations", () => {
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    emitter.emit("session-completed", { epicSlug: "a", phase: "plan", success: true, durationMs: 30000 });
-    emitter.emit("session-started", { epicSlug: "b", phase: "plan", sessionId: "s2" });
-    emitter.emit("session-completed", { epicSlug: "b", phase: "plan", success: true, durationMs: 50000 });
-    expect(acc.getStats().phaseDurations.plan).toBe(40000);
-  });
-
-  test("unseen phases return null", () => {
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    emitter.emit("session-completed", { epicSlug: "a", phase: "plan", success: true, durationMs: 45000 });
-    const s = acc.getStats();
-    expect(s.phaseDurations.implement).toBeNull();
-    expect(s.phaseDurations.validate).toBeNull();
-    expect(s.phaseDurations.release).toBeNull();
-  });
-
-  test("isEmpty becomes false after first completion", () => {
-    expect(acc.getStats().isEmpty).toBe(true);
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    emitter.emit("session-completed", { epicSlug: "a", phase: "plan", success: true, durationMs: 1000 });
-    expect(acc.getStats().isEmpty).toBe(false);
-  });
-
-  test("re-dispatch detection", () => {
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    emitter.emit("session-completed", { epicSlug: "a", phase: "plan", success: false, durationMs: 5000 });
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s2" });
-    expect(acc.getStats().reDispatches).toBe(1);
-  });
-
-  test("uptime computed on scan-complete", () => {
-    // Simulate time passing
-    (acc as any).startedAt = Date.now() - 300000;
-    emitter.emit("scan-complete", { epicsScanned: 5, dispatched: 2 });
-    const s = acc.getStats();
-    expect(s.uptimeMs).toBeGreaterThanOrEqual(299000);
-    expect(s.uptimeMs).toBeLessThanOrEqual(301000);
-  });
-
-  test("dispose removes all listeners", () => {
-    acc.dispose();
-    emitter.emit("session-started", { epicSlug: "a", phase: "plan", sessionId: "s1" });
-    expect(acc.getStats().active).toBe(0);
+    test("uptime updates on each scan-complete", () => {
+      let now = 0;
+      const emitter = new EventEmitter();
+      const acc = new SessionStatsAccumulator(emitter, { nowFn: () => now });
+      now = 60000;
+      emitter.emit("scan-complete", { epicsScanned: 1, dispatched: 0 });
+      expect(acc.getStats().uptimeMs).toBe(60000);
+      now = 120000;
+      emitter.emit("scan-complete", { epicsScanned: 1, dispatched: 0 });
+      expect(acc.getStats().uptimeMs).toBe(120000);
+    });
   });
 });
