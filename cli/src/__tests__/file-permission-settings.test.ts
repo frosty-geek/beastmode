@@ -104,6 +104,15 @@ describe("buildFilePermissionPostToolUseHooks", () => {
       expect(hook.hooks[0].command).toContain("validate");
     }
   });
+
+  test("hook commands use absolute paths, not shell substitution", () => {
+    const hooks = buildFilePermissionPostToolUseHooks("implement");
+    for (const hook of hooks) {
+      const cmd = hook.hooks[0].command as string;
+      expect(cmd).toMatch(/^bun run "\/.*hitl-log\.ts"/);
+      expect(cmd).not.toContain("git rev-parse");
+    }
+  });
 });
 
 describe("writeFilePermissionSettings", () => {
