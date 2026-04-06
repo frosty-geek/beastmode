@@ -302,14 +302,6 @@
     "format": ["progress-bar"],
     "publishQuiet": true
   },
-  "absolute-hook-paths": {
-    "paths": ["features/absolute-hook-paths.feature"],
-    "import": [
-      "features/step_definitions/absolute-hook-paths.steps.ts"
-    ],
-    "format": ["progress-bar"],
-    "publishQuiet": true
-  },
   "portable-settings": {
     "paths": ["features/portable-settings.feature"],
     "import": [
