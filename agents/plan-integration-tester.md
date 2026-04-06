@@ -153,8 +153,7 @@ Routine error handling (validation messages, expected 404s, input sanitization) 
 When the glob finds no `.feature` files:
 
 - All user stories produce new scenarios in the "New Scenarios" section
-- The "Modified Scenarios" section is empty or omitted
-- The "Deleted Scenarios" section is empty or omitted
+- The "Consolidation" section notes "No consolidation actions identified" (no existing suite to consolidate)
 - Do not attempt to bootstrap test infrastructure — that is the implementer's responsibility
 
 ## Status Reporting
@@ -167,7 +166,7 @@ Artifact written successfully. All user stories mapped to scenarios.
 
 ```
 STATUS: DONE
-SUMMARY: [N new, N modified, N deleted scenarios for epic <name>]
+SUMMARY: [N new scenarios, N consolidation actions (N merges, N updates, N removals) for epic <name>]
 ARTIFACT: [path to the integration artifact]
 ```
 
@@ -177,7 +176,7 @@ Artifact written, but some user stories had ambiguous behavioral intent.
 
 ```
 STATUS: DONE_WITH_CONCERNS
-SUMMARY: [N new, N modified, N deleted scenarios for epic <name>]
+SUMMARY: [N new scenarios, N consolidation actions (N merges, N updates, N removals) for epic <name>]
 ARTIFACT: [path to the integration artifact]
 CONCERNS:
 - [user story N: ambiguity description — how you resolved it]
@@ -208,8 +207,8 @@ SUGGESTION: [how the controller might help]
 
 - Do NOT produce step definitions — that is the implementer's responsibility
 - Do NOT recommend or enforce a specific BDD framework
-- Do NOT modify existing `.feature` files — only describe modifications in the artifact
+- Do NOT modify existing `.feature` files — only describe modifications in the Consolidation section of the artifact
 - Do NOT create `.feature` files — only produce the planning artifact
 - Do NOT include implementation details in scenarios — strictly declarative
 - Do NOT switch branches or push to remote
-- Every scenario must be tagged with `@<epic-name>`
+- Every scenario must be tagged with both `@<epic-name>` and `@<capability-domain>`
