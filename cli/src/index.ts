@@ -10,11 +10,10 @@ import { dashboardCommand } from "./commands/dashboard";
 import { storeCommand } from "./commands/store";
 import { hooksCommand } from "./commands/hooks";
 import { isValidPhase } from "./types";
-
-const VERSION = "0.1.0";
+import { resolveVersion } from "./version";
 
 function printHelp(): void {
-  process.stdout.write(`beastmode v${VERSION}
+  process.stdout.write(`beastmode ${resolveVersion()}
 
 Usage:
   beastmode design [topic]             Start a new design
