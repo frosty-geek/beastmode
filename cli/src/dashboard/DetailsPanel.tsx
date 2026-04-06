@@ -5,7 +5,9 @@ import {
   type DetailsPanelSelection,
   resolveDetailsContent,
 } from "./details-panel.js";
-import { PHASE_COLOR } from "./monokai-palette.js";
+import { PHASE_COLOR, CHROME } from "./monokai-palette.js";
+import { formatDuration } from "./format-duration.js";
+import type { SessionStats } from "./session-stats.js";
 
 export interface DetailsPanelProps {
   selection: DetailsPanelSelection;
@@ -15,6 +17,7 @@ export interface DetailsPanelProps {
   gitStatus: GitStatus | null;
   scrollOffset: number;
   visibleHeight: number;
+  stats?: SessionStats;
 }
 
 export default function DetailsPanel({
@@ -25,12 +28,14 @@ export default function DetailsPanel({
   gitStatus,
   scrollOffset,
   visibleHeight,
+  stats,
 }: DetailsPanelProps) {
   const result = resolveDetailsContent(selection, {
     epics,
     activeSessions,
     gitStatus,
     projectRoot,
+    stats,
   });
 
   if (result.kind === "overview") {
@@ -65,6 +70,50 @@ export default function DetailsPanel({
         ) : (
           <Text dimColor>  loading...</Text>
         )}
+      </Box>
+    );
+  }
+
+  if (result.kind === "stats") {
+    if (result.stats.isEmpty) {
+      return (
+        <Box flexDirection="column" overflowY="hidden">
+          <Text color={CHROME.muted}>waiting for sessions...</Text>
+        </Box>
+      );
+    }
+
+    const s = result.stats;
+    const PHASES = ["plan", "implement", "validate", "release"] as const;
+
+    return (
+      <Box flexDirection="column" overflowY="hidden">
+        <Text bold>Sessions</Text>
+        <Text>  total: {s.total}</Text>
+        <Text>  active: {s.active}</Text>
+        <Text>  success rate: {s.successRate}%</Text>
+        <Text>  uptime: {formatDuration(s.uptimeMs)}</Text>
+        <Text>  session time: {formatDuration(s.cumulativeMs)}</Text>
+
+        <Text> </Text>
+
+        <Text bold>Phase Duration</Text>
+        {PHASES.map((phase) => (
+          <Text key={phase}>
+            {"  "}
+            <Text color={PHASE_COLOR[phase] as Parameters<typeof Text>[0]["color"]}>
+              {phase}
+            </Text>
+            {" "}
+            {s.phaseDurations[phase] !== null ? formatDuration(s.phaseDurations[phase]!) : "--"}
+          </Text>
+        ))}
+
+        <Text> </Text>
+
+        <Text bold>Retries</Text>
+        <Text>  re-dispatches: {s.reDispatches}</Text>
+        <Text>  failures: {s.failures}</Text>
       </Box>
     );
   }
