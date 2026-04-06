@@ -4,6 +4,17 @@ All notable changes to beastmode.
 
 ---
 
+### v0.106.0 — Integration Test Hygiene (Apr 2026)
+
+- **Behavioral-change skip gate** — Plan skill step 4 now evaluates each feature's behavioral impact before dispatching the plan-integration-tester agent; documentation-only, refactoring, config-change, and covered-fix features are classified as non-behavioral and skip agent dispatch entirely
+- **Agent consolidation analysis** — plan-integration-tester agent restructured to two-section artifact format (New Scenarios + Consolidation), replacing the prior three-section format; consolidation section absorbs merges, updates, and deletions to existing scenarios
+- **Capability domain organization** — New scenarios organized by capability domain with happy-path priority and risk-based error path inclusion; Gherkin Feature lines carry both epic and capability tags
+- **Test depth guidance** — Agent definition updated with test depth heuristics for scenario generation
+- **Integration test feature files** — BDD feature files added for skip-gate and agent-consolidation behaviors documenting the behavioral contracts declaratively
+- **Heading consistency fix** — Fixed heading level and Feature-line consistency in the consolidation template
+
+---
+
 ### v0.105.0 — Details Panel Stats (Apr 2026)
 
 - **Session stats accumulator** — Event-driven `SessionStatsAccumulator` subscribes to WatchLoop events (`session-started`, `session-completed`, `scan-complete`) and maintains running session metrics with dispose cleanup
