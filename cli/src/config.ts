@@ -155,6 +155,7 @@ export function getCategoryProse(
   filePermissionsConfig: FilePermissionsConfig,
   category: string,
 ): string {
+  if (!filePermissionsConfig) return DEFAULT_HITL_PROSE;
   const prose = filePermissionsConfig[category as keyof Omit<FilePermissionsConfig, "timeout">];
   return (typeof prose === "string" && prose.length > 0) ? prose : DEFAULT_HITL_PROSE;
 }
