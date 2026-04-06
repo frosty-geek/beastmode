@@ -309,5 +309,13 @@
     ],
     "format": ["progress-bar"],
     "publishQuiet": true
+  },
+  "version-consolidation": {
+    "paths": ["features/version-consolidation.feature"],
+    "import": [
+      "features/step_definitions/version-consolidation.steps.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
   }
 }

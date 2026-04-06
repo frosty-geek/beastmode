@@ -4,6 +4,16 @@ All notable changes to beastmode.
 
 ---
 
+### v0.104.0 — Version Awareness (Apr 2026)
+
+- **Shared version module** — Single `cli/src/version.ts` resolves version from plugin.json at runtime, eliminating scattered hardcoded version strings
+- **CLI help integration** — Help output uses shared version module instead of hardcoded string
+- **Watch loop integration** — Status display uses shared version module for consistent version reporting
+- **BDD coverage** — 6 Cucumber scenarios with inline World pattern verify end-to-end version resolution from plugin.json
+- **Test runner context correction** — L2 testing rules now distinguish `bun:test` (store tests) from `vitest` (cli/__tests__) imports
+
+---
+
 ### v0.103.0 — Dashboard Log Fixes (Apr 2026)
 
 - **SYSTEM node rename** — Rename CLI root node to SYSTEM with hierarchical tree prefix connectors matching epic node formatting
