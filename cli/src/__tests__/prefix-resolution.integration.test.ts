@@ -16,11 +16,14 @@ describe("CLI prefix resolution", () => {
 
   beforeEach(() => {
     store = new InMemoryTaskStore();
-    // Background: two epics with collision-proof slugs (auto-derived: name-shortId)
+    // Background: two epics with collision-proof slugs (name-hexSuffix format)
+    // Use addEpic then directly set slug via the entities map (slug is immutable in updateEpic)
     const d = store.addEpic({ name: "Dashboard Redesign" });
-    dashboardEpic = { id: d.id, slug: d.slug };
+    (d as any).slug = "dashboard-redesign-f3a7";
+    dashboardEpic = { id: d.id, slug: "dashboard-redesign-f3a7" };
     const a = store.addEpic({ name: "Auth System" });
-    authEpic = { id: a.id, slug: a.slug };
+    (a as any).slug = "auth-system-b2c4";
+    authEpic = { id: a.id, slug: "auth-system-b2c4" };
   });
 
   it("Exact slug match takes priority over prefix match", () => {
@@ -52,8 +55,9 @@ describe("CLI prefix resolution", () => {
   });
 
   it("Ambiguous prefix match returns an error", () => {
-    // Add a second dashboard-prefixed epic
-    const metrics = store.addEpic({ name: "Dashboard Metrics" });
+    // Add a second dashboard-prefixed epic with collision-proof slug
+    const m = store.addEpic({ name: "Dashboard Metrics" });
+    (m as any).slug = "dashboard-metrics-e5f6";
 
     const result = resolveIdentifier(store, "dashboard", {
       allowPrefix: true,
@@ -62,7 +66,7 @@ describe("CLI prefix resolution", () => {
     if (result.kind === "ambiguous") {
       const slugs = result.matches.map((e) => e.slug).sort();
       expect(slugs).toContain(dashboardEpic.slug);
-      expect(slugs).toContain(metrics.slug);
+      expect(slugs).toContain("dashboard-metrics-e5f6");
     }
   });
 
