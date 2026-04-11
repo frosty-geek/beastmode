@@ -7,6 +7,10 @@ import { mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { assembleContext, formatOutput } from "../hooks/session-start";
+import {
+  writeSessionStartHook,
+  cleanSessionStartHook,
+} from "../hooks/hitl-settings";
 
 describe("assembleContext", () => {
   let tempDir: string;
@@ -171,5 +175,67 @@ describe("assembleContext", () => {
       expect(parsed.hookSpecificOutput).toBeDefined();
       expect(parsed.hookSpecificOutput.additionalContext).toBe("some context");
     });
+  });
+});
+
+describe("session-start settings writer", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = join(tmpdir(), `session-start-settings-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
+    mkdirSync(tempDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  test("writeSessionStartHook adds SessionStart hook to settings.local.json", () => {
+    const claudeDir = join(tempDir, ".claude");
+    mkdirSync(claudeDir, { recursive: true });
+
+    writeSessionStartHook({ claudeDir, phase: "plan", epic: "my-epic", slug: "abc123" });
+
+    const settings = JSON.parse(readFileSync(join(claudeDir, "settings.local.json"), "utf-8"));
+    expect(settings.hooks.SessionStart).toBeDefined();
+    expect(settings.hooks.SessionStart).toHaveLength(1);
+    expect(settings.hooks.SessionStart[0].hooks[0].command).toContain("session-start");
+    expect(settings.hooks.SessionStart[0].hooks[0].command).toContain("BEASTMODE_PHASE=plan");
+  });
+
+  test("cleanSessionStartHook removes SessionStart hook from settings", () => {
+    const claudeDir = join(tempDir, ".claude");
+    mkdirSync(claudeDir, { recursive: true });
+
+    writeSessionStartHook({ claudeDir, phase: "plan", epic: "my-epic", slug: "abc123" });
+    cleanSessionStartHook(claudeDir);
+
+    const settings = JSON.parse(readFileSync(join(claudeDir, "settings.local.json"), "utf-8"));
+    expect(settings.hooks?.SessionStart).toBeUndefined();
+  });
+
+  test("preserves existing hooks when writing SessionStart hook", () => {
+    const claudeDir = join(tempDir, ".claude");
+    mkdirSync(claudeDir, { recursive: true });
+    writeFileSync(join(claudeDir, "settings.local.json"), JSON.stringify({
+      hooks: { PreToolUse: [{ matcher: "AskUserQuestion", hooks: [{ type: "command", command: "existing" }] }] }
+    }, null, 2));
+
+    writeSessionStartHook({ claudeDir, phase: "plan", epic: "my-epic", slug: "abc123" });
+
+    const settings = JSON.parse(readFileSync(join(claudeDir, "settings.local.json"), "utf-8"));
+    expect(settings.hooks.PreToolUse).toBeDefined();
+    expect(settings.hooks.SessionStart).toBeDefined();
+  });
+
+  test("includes feature env var for implement phase", () => {
+    const claudeDir = join(tempDir, ".claude");
+    mkdirSync(claudeDir, { recursive: true });
+
+    writeSessionStartHook({ claudeDir, phase: "implement", epic: "my-epic", slug: "abc123", feature: "my-feat" });
+
+    const settings = JSON.parse(readFileSync(join(claudeDir, "settings.local.json"), "utf-8"));
+    const command = settings.hooks.SessionStart[0].hooks[0].command;
+    expect(command).toContain("BEASTMODE_FEATURE=my-feat");
   });
 });
