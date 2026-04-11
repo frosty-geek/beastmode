@@ -4,6 +4,15 @@ All notable changes to beastmode.
 
 ---
 
+### v0.108.0 — Sync Log Hygiene (Apr 2026)
+
+- **Phase-aware sync gating** — `readPrdSections` and plan file reads now skip early via `isPhaseAtOrPast()` when the producing phase hasn't completed, eliminating expected missing-artifact warnings from the log
+- **`isPhaseAtOrPast` utility** — Centralized phase comparison function in `cli/src/types.ts` replaces scattered string comparisons across the sync engine
+- **Log level corrections** — `createLinkedBranch returned null` downgraded from warn to debug (idempotent success path); `readPrdSections` catch block downgraded from error to warn (degradation, not hard error)
+- **Phase context propagation** — `logger.child({ phase: epic.phase })` at the sync entry point enriches all downstream log calls with phase context automatically
+
+---
+
 ### v0.107.0 — Release Rebase Fix (Apr 2026)
 
 - **Rebase before squash merge** — Release workflow now rebases the feature branch onto main before squash merge, preventing stale fork points from overwriting intermediate main commits

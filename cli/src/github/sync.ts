@@ -21,6 +21,7 @@ import type { ResolvedGitHub } from "./discovery.js";
 import { discoverGitHub } from "./discovery.js";
 import type { Logger } from "../logger.js";
 import type { Phase } from "../types.js";
+import { isPhaseAtOrPast } from "../types.js";
 import { loadConfig } from "../config.js";
 import type { SyncRefs } from "./sync-refs.js";
 import { loadSyncRefs, saveSyncRefs, getSyncRef, setSyncRef } from "./sync-refs.js";
@@ -358,6 +359,12 @@ function readPrdSections(
   const designPaths = epic.artifacts?.["design"];
   if (!designPaths || designPaths.length === 0) return undefined;
 
+  // Phase gate: design artifact exists from plan onward (written at design checkpoint)
+  if (!isPhaseAtOrPast(epic.phase, "plan")) {
+    logger?.debug("readPrdSections: skipped — phase not yet past design", { phase: epic.phase });
+    return undefined;
+  }
+
   const storedPath = designPaths[0];
   logger?.debug("readPrdSections: stored artifact path", { path: storedPath });
 
@@ -394,7 +401,7 @@ function readPrdSections(
     return Object.keys(result).length > 0 ? result : undefined;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    logger?.error(`readPrdSections: failed to read design artifact: ${message}`, { path: designPath });
+    logger?.warn(`readPrdSections: failed to read design artifact: ${message}`, { path: designPath });
     return undefined;
   }
 }
@@ -506,9 +513,12 @@ export async function syncGitHub(
   const repo = resolved.repo;
   const [owner] = repo.split("/");
 
+  // Create phase-scoped logger for all sync operations
+  const log = opts.logger?.child({ phase: epic.phase });
+
   // Compute enrichment data if projectRoot available
   const prdSections = opts.projectRoot
-    ? readPrdSections(epic, opts.projectRoot, opts.logger)
+    ? readPrdSections(epic, opts.projectRoot, log)
     : undefined;
   const artifactLinks = resolveArtifactLinks(epic, repo);
 
@@ -534,7 +544,7 @@ export async function syncGitHub(
       epicTitle(epic.slug, epic.name),
       initialEpicBody,
       ["type/epic", `phase/${epic.phase}`],
-      { logger: opts.logger },
+      { logger: log },
     );
     if (epicNumber) {
       result.mutations.push({ type: "setEpic", entityId: epic.id, issue: epicNumber, repo });
@@ -556,7 +566,7 @@ export async function syncGitHub(
   if (!epicJustCreated) {
     // Update epic title to use human-readable name
     const expectedEpicTitle = epicTitle(epic.slug, epic.name);
-    await ghIssueEdit(repo, epicNumber, { title: expectedEpicTitle }, { logger: opts.logger });
+    await ghIssueEdit(repo, epicNumber, { title: expectedEpicTitle }, { logger: log });
 
     const epicBody = formatEpicBody({
       slug: epic.slug,
@@ -572,7 +582,7 @@ export async function syncGitHub(
     const storedEpicHash = getSyncRef(syncRefs, epic.id)?.bodyHash;
 
     if (epicBodyHash !== storedEpicHash) {
-      const bodyUpdated = await ghIssueEdit(repo, epicNumber, { body: epicBody }, { logger: opts.logger });
+      const bodyUpdated = await ghIssueEdit(repo, epicNumber, { body: epicBody }, { logger: log });
       if (bodyUpdated) {
         result.mutations.push({ type: "setEpicBodyHash", entityId: epic.id, bodyHash: epicBodyHash });
         result.bodiesUpdated++;
@@ -591,7 +601,7 @@ export async function syncGitHub(
   // Blast-replace phase label on epic (skip if just created — labels already set)
   if (!epicJustCreated) {
     const targetPhaseLabel = `phase/${epic.phase}`;
-    const currentLabels = await ghIssueLabels(repo, epicNumber, { logger: opts.logger });
+    const currentLabels = await ghIssueLabels(repo, epicNumber, { logger: log });
     if (currentLabels) {
       const currentPhaseLabels = currentLabels.filter((l) =>
         l.startsWith("phase/"),
@@ -603,7 +613,7 @@ export async function syncGitHub(
         await ghIssueEdit(repo, epicNumber, {
           removeLabels: ALL_PHASE_LABELS.filter((l) => currentLabels.includes(l)),
           addLabels: [targetPhaseLabel],
-        }, { logger: opts.logger });
+        }, { logger: log });
         result.labelsUpdated++;
       }
     } else {
@@ -624,13 +634,13 @@ export async function syncGitHub(
     epicNumber,
     PHASE_TO_BOARD_STATUS[epic.phase] ?? "Backlog",
     result,
-    opts,
+    { ...opts, logger: log },
   );
 
   // --- Feature Sync ---
 
   for (const feature of epic.features) {
-    await syncFeature(repo, owner, epicNumber, epic.name, feature, syncRefs, resolved, result, opts);
+    await syncFeature(repo, owner, epicNumber, epic.name, feature, syncRefs, resolved, result, { ...opts, logger: log }, epic.phase);
   }
 
   // --- Epic Close (if done or cancelled) ---
@@ -643,7 +653,7 @@ export async function syncGitHub(
 
       if (releaseTag && mergeCommitSha) {
         // Duplicate check — scan existing comments for the version string
-        const existingComments = await ghIssueComments(repo, epicNumber, { logger: opts.logger });
+        const existingComments = await ghIssueComments(repo, epicNumber, { logger: log });
         const versionLabel = version ?? "unreleased";
         const alreadyPosted = existingComments?.some(
           (c) => c.body.includes(`Released: ${versionLabel}`),
@@ -656,7 +666,7 @@ export async function syncGitHub(
             mergeCommit: mergeCommitSha,
             repo,
           });
-          const commented = await ghIssueComment(repo, epicNumber, commentBody, { logger: opts.logger });
+          const commented = await ghIssueComment(repo, epicNumber, commentBody, { logger: log });
           if (commented) {
             result.commentsPosted++;
             result.releaseCommentPosted = true;
@@ -667,7 +677,7 @@ export async function syncGitHub(
       }
     }
 
-    const closed = await ghIssueClose(repo, epicNumber, { logger: opts.logger });
+    const closed = await ghIssueClose(repo, epicNumber, { logger: log });
     if (closed) {
       result.epicClosed = true;
     } else {
@@ -675,7 +685,7 @@ export async function syncGitHub(
     }
 
     // Set project board to Done
-    await syncProjectStatus(resolved, owner, repo, epicNumber, "Done", result, opts);
+    await syncProjectStatus(resolved, owner, repo, epicNumber, "Done", result, { ...opts, logger: log });
   }
 
   return result;
@@ -694,30 +704,36 @@ async function syncFeature(
   resolved: ResolvedGitHub,
   result: SyncResult,
   opts: { logger?: Logger; projectRoot?: string } = {},
+  epicPhase?: Phase,
 ): Promise<void> {
   // Read plan sections from feature plan (if projectRoot available)
   let userStory: string | undefined;
   let whatToBuild: string | undefined;
   let acceptanceCriteria: string | undefined;
   if (opts.projectRoot && feature.plan) {
-    const planPath = join(opts.projectRoot, ".beastmode", "artifacts", "plan", basename(feature.plan));
-    opts.logger?.debug("syncFeature: stored plan path", { path: feature.plan });
-    opts.logger?.debug("syncFeature: resolved plan path", { path: planPath });
-    try {
-      if (existsSync(planPath)) {
-        const planContent = readFileSync(planPath, "utf-8");
-        const section = extractSection(planContent, "User Stories");
-        if (section) userStory = section;
-        const wtb = extractSection(planContent, "What to Build");
-        if (wtb) whatToBuild = wtb;
-        const ac = extractSection(planContent, "Acceptance Criteria");
-        if (ac) acceptanceCriteria = ac;
-      } else {
-        opts.logger?.warn("syncFeature: plan file does not exist", { path: planPath });
+    // Phase gate: plan artifact exists from implement onward (written at plan checkpoint)
+    if (epicPhase && !isPhaseAtOrPast(epicPhase, "implement")) {
+      opts.logger?.debug("syncFeature: skipped plan read — phase not yet past plan", { phase: epicPhase });
+    } else {
+      const planPath = join(opts.projectRoot, ".beastmode", "artifacts", "plan", basename(feature.plan));
+      opts.logger?.debug("syncFeature: stored plan path", { path: feature.plan });
+      opts.logger?.debug("syncFeature: resolved plan path", { path: planPath });
+      try {
+        if (existsSync(planPath)) {
+          const planContent = readFileSync(planPath, "utf-8");
+          const section = extractSection(planContent, "User Stories");
+          if (section) userStory = section;
+          const wtb = extractSection(planContent, "What to Build");
+          if (wtb) whatToBuild = wtb;
+          const ac = extractSection(planContent, "Acceptance Criteria");
+          if (ac) acceptanceCriteria = ac;
+        } else {
+          opts.logger?.warn("syncFeature: plan file does not exist", { path: planPath });
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        opts.logger?.error(`syncFeature: failed to read plan file: ${message}`, { path: planPath });
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      opts.logger?.error(`syncFeature: failed to read plan file: ${message}`, { path: planPath });
     }
   }
 
