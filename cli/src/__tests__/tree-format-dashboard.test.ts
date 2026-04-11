@@ -14,19 +14,20 @@ describe("buildTreePrefix — new hierarchy", () => {
     expect(buildTreePrefix("feature")).toBe("├─○ ");
   });
 
-  test("leaf-epic has bar connector", () => {
-    expect(buildTreePrefix("leaf-epic")).toBe("│ ");
+  test("leaf-epic has padded bar connector", () => {
+    expect(buildTreePrefix("leaf-epic")).toBe("    │ ");
   });
 
-  test("leaf-feature has nested bar connector", () => {
-    expect(buildTreePrefix("leaf-feature")).toBe("│ │ ");
+  test("leaf-feature has padded nested bar connector", () => {
+    expect(buildTreePrefix("leaf-feature")).toBe("    │ │ ");
   });
 });
 
-describe("formatTreeLine — phase badge", () => {
-  test("leaf entry includes phase badge", () => {
+describe("formatTreeLine — leaf entries", () => {
+  test("leaf entry has indent instead of phase badge", () => {
     const line = formatTreeLine("leaf-feature", "info", "implement", "test msg", Date.now());
-    expect(line).toContain("implement");
+    expect(line).not.toContain("implement");
+    expect(line).toContain("test msg");
   });
 
   test("cli node label renders with prefix", () => {

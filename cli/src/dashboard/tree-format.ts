@@ -9,7 +9,7 @@
 
 import chalk from "chalk";
 import type { LogLevel } from "../logger.js";
-import { PHASE_COLOR, BADGE_WIDTH } from "./monokai-palette.js";
+import { BADGE_WIDTH } from "./monokai-palette.js";
 
 /** Depth level in the tree hierarchy. */
 export type TreeDepth =
@@ -37,15 +37,15 @@ export function buildTreePrefix(depth: TreeDepth): string {
     case "cli":
       return "● ";
     case "system":
-      return "│ ";
+      return "    │ ";
     case "epic":
       return "● ";
     case "feature":
       return "├─○ ";
     case "leaf-epic":
-      return "│ ";
+      return "    │ ";
     case "leaf-feature":
-      return "│ │ ";
+      return "    │ │ ";
   }
 }
 
@@ -68,22 +68,12 @@ function colorPrefix(prefix: string): string {
 }
 
 /**
- * Format a phase badge: [phase] in the phase's color.
- */
-function formatPhaseBadge(phase: string | undefined): string {
-  if (!phase) return "".padEnd(BADGE_WIDTH);
-  const color = PHASE_COLOR[phase];
-  const badge = `[${phase}]`.padEnd(BADGE_WIDTH);
-  return color ? chalk.hex(color)(badge) : badge;
-}
-
-/**
  * Format a single tree line.
  *
  * For the SYSTEM root label: renders │ + label (same prefix as epic).
  * For node labels (epic, feature): renders prefix + label.
- * For leaf entries: renders prefix + phase badge + HH:MM:SS + LEVEL + message.
- * For system entries: renders │ · prefix + HH:MM:SS + LEVEL + message (same as leaf-epic, no badge).
+ * For leaf entries: renders prefix + indent + HH:MM:SS + LEVEL + message.
+ * For system entries: renders │ · prefix + HH:MM:SS + LEVEL + message (same as leaf-epic, no indent).
  *
  * All leaf levels: dimmed prefix, dimmed timestamp, colored level label, default message.
  * Level label colors: green (info), blue (debug), yellow (warn), red (error).
@@ -108,19 +98,20 @@ export function formatTreeLine(
     return `${colorPrefix(prefix)}${message}`;
   }
 
-  // Leaf and system entries — phase badge + timestamp + level + message
+  // Leaf and system entries — indent + timestamp + level + message
   const time = formatTime(timestamp);
   const label = LEVEL_LABELS[level];
-  const badge = depth !== "system" ? `${formatPhaseBadge(phase)} ` : "";
+  const indent = depth !== "system" ? " ".repeat(BADGE_WIDTH + 1) : "";
 
   // Warn/error: segmented coloring (same structure as normal path)
   if (level === "warn") {
-    return `${colorPrefix(prefix)}${badge}${chalk.dim(time)} ${chalk.yellow(label)} ${message}`;
+    return `${colorPrefix(prefix)}${indent}${chalk.dim(time)} ${chalk.yellow(label)} ${message}`;
   }
   if (level === "error") {
-    return `${colorPrefix(prefix)}${badge}${chalk.dim(time)} ${chalk.red(label)} ${message}`;
+    return `${colorPrefix(prefix)}${indent}${chalk.dim(time)} ${chalk.red(label)} ${message}`;
   }
 
-  // Normal: phase-colored prefix, dim timestamp
-  return `${colorPrefix(prefix)}${badge}${chalk.dim(time)} ${chalk.green(label)} ${message}`;
+  // Normal: dim prefix, dim timestamp, colored level label
+  const coloredLabel = level === "info" ? chalk.green(label) : chalk.blue(label);
+  return `${colorPrefix(prefix)}${indent}${chalk.dim(time)} ${coloredLabel} ${message}`;
 }

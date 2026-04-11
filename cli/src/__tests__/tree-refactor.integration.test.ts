@@ -131,9 +131,9 @@ describe("Tree Refactor Integration", () => {
     expect(lines).toBe(5);
   });
 
-  test("tree-format produces phase badge on leaf entries", () => {
+  test("tree-format leaf entries use indent instead of phase badge", () => {
     const line = formatTreeLine("leaf-feature", "info", "implement", "test message", 1000);
-    expect(line).toContain("implement");
+    expect(line).not.toContain("implement");
     expect(line).toContain("test message");
   });
 });

@@ -164,8 +164,15 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   });
   filteredEpicsRef.current = filteredEpics;
 
+  // Build active feature set from tracker sessions
+  const activeFeatures = new Set(
+    trackerSessions
+      .filter((s) => s.featureSlug)
+      .map((s) => `${s.epicSlug}:${s.featureSlug}`),
+  );
+
   // Build flat rows (includes expanded feature rows)
-  const flatRows = buildFlatRows(filteredEpics, expandedEpicSlug);
+  const flatRows = buildFlatRows(filteredEpics, expandedEpicSlug, activeFeatures);
   flatRowsRef.current = flatRows;
 
   // Clamp nav when list changes
@@ -220,7 +227,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   // When a specific epic is selected, show all features regardless of view filter
   const effectiveViewFilter = selectedEpicSlug ? "all" : keyboard.viewFilter;
   const filteredTreeState = filterTreeByViewFilter(phaseFiltered, effectiveViewFilter, activeSessions);
-  const showSkeleton = !!selectedEpicSlug || keyboard.viewFilter === "all";
+  const showSkeleton = !!selectedEpicSlug || keyboard.viewFilter !== "running";
   // Count lines after the same filters LogPanel applies (verbosity + empty-node stripping)
   const verbFiltered = filterTreeByVerbosity(filteredTreeState, keyboard.verbosity);
   const logTreeForCount = showSkeleton ? verbFiltered : stripEmptyNodes(verbFiltered);

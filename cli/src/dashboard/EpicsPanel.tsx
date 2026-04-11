@@ -4,6 +4,8 @@ import type { EnrichedEpic } from "../store/index.js";
 import { PHASE_COLOR, FEATURE_STATUS_COLOR, CHROME, isDim, isFeatureDim, BADGE_WIDTH } from "./monokai-palette.js";
 import type { SelectableRow } from "./epics-tree-model.js";
 
+type InkColor = Parameters<typeof Text>[0]["color"];
+
 // --- Shared utilities ---
 
 const EPIC_SPINNER = ["○", "◔", "◑", "◕", "●", "◕", "◑", "◔"];
@@ -93,15 +95,15 @@ export default function EpicsPanel({
         <Box key={`e-${epic.slug}`}>
           <Text dimColor={dim} bold>
             {isActive && !isSelected ? (
-              <Text color={dotColor as Parameters<typeof Text>[0]["color"]}>{EPIC_SPINNER[tick % EPIC_SPINNER.length]}</Text>
+              <Text color={dotColor as InkColor}>{EPIC_SPINNER[tick % EPIC_SPINNER.length]}</Text>
             ) : (
-              <Text color={dotColor as Parameters<typeof Text>[0]["color"]}>{"●"}</Text>
+              <Text color={dotColor as InkColor}>{"●"}</Text>
             )}
             <Text>{" "}</Text>
             {isConfirming ? (
               <Text color="red" bold>{paddedBadge}</Text>
             ) : color ? (
-              <Text color={color as Parameters<typeof Text>[0]["color"]} dimColor={dim}>{paddedBadge}</Text>
+              <Text color={color as InkColor} dimColor={dim}>{paddedBadge}</Text>
             ) : (
               <Text dimColor>{paddedBadge}</Text>
             )}
@@ -124,14 +126,14 @@ export default function EpicsPanel({
         <Box key={`f-${row.epicSlug}-${row.slug}`}>
           <Text dimColor={dim}>
             <Text color={CHROME.muted}>{"├─"}</Text>
-            <Text color={isSelected ? CHROME.title : dotColor as Parameters<typeof Text>[0]["color"]}>
+            <Text color={isSelected ? CHROME.title : dotColor as InkColor}>
               {featureActive && !isSelected
                 ? FEATURE_SPINNER[tick % FEATURE_SPINNER.length]
                 : isSelected ? "●" : "○"}
             </Text>
             <Text>{" "}</Text>
             {color ? (
-              <Text color={color as Parameters<typeof Text>[0]["color"]} dimColor={dim}>{fPaddedBadge}</Text>
+              <Text color={color as InkColor} dimColor={dim}>{fPaddedBadge}</Text>
             ) : (
               <Text dimColor>{fPaddedBadge}</Text>
             )}

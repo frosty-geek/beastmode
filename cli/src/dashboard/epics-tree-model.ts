@@ -27,6 +27,7 @@ export type RowSelection = undefined | string | { epicSlug: string; featureSlug:
 export function buildFlatRows(
   epics: EnrichedEpic[],
   expandedEpicSlug: string | undefined,
+  activeFeatures?: Set<string>,
 ): SelectableRow[] {
   const rows: SelectableRow[] = [
     { type: "all", slug: undefined, epicSlug: undefined, featureStatus: undefined },
@@ -43,11 +44,15 @@ export function buildFlatRows(
 
     if (expandedEpicSlug === epic.slug) {
       for (const feature of epic.features) {
+        const key = `${epic.slug}:${feature.slug}`;
+        const status = feature.status === "pending" && activeFeatures?.has(key)
+          ? "in-progress"
+          : feature.status;
         rows.push({
           type: "feature",
           slug: feature.slug,
           epicSlug: epic.slug,
-          featureStatus: feature.status,
+          featureStatus: status,
         });
       }
     }

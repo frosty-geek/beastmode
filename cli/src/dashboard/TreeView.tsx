@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import type { TreeState, EpicNode, FeatureNode, TreeEntry } from "./tree-types.js";
 import { formatTreeLine } from "./tree-format.js";
-import { isDim, PHASE_COLOR, CHROME, BADGE_WIDTH } from "./monokai-palette.js";
+import { isDim, isFeatureDim, PHASE_COLOR, FEATURE_STATUS_COLOR, CHROME, BADGE_WIDTH } from "./monokai-palette.js";
 
 export interface TreeViewProps {
   /** Full tree state to render. */
@@ -53,9 +53,9 @@ interface FlatLine {
 }
 
 function flattenFeature(feat: FeatureNode, tick: number): FlatLine[] {
-  const dim = isDim(feat.status);
+  const dim = isFeatureDim(feat.status);
   const active = feat.status === "in-progress";
-  const color = PHASE_COLOR[feat.status];
+  const color = FEATURE_STATUS_COLOR[feat.status];
   const badge = `[${feat.status}]`.padEnd(BADGE_WIDTH);
   const dotColor = dim ? CHROME.muted : (color ?? CHROME.muted);
   const dot = active ? FEATURE_SPINNER[tick % FEATURE_SPINNER.length] : "○";
@@ -66,6 +66,7 @@ function flattenFeature(feat: FeatureNode, tick: number): FlatLine[] {
     key: `f-${feat.slug}`,
     node: (
       <Text dimColor={dim}>
+        <Text>{"  "}</Text>
         <Text color={CHROME.muted}>{"├─"}</Text>
         <Text color={dotColor}>{dot}</Text>
         <Text>{" "}</Text>
@@ -104,6 +105,7 @@ function flattenEpic(epic: EpicNode, tick: number): FlatLine[] {
     key: `e-${epic.slug}`,
     node: (
       <Text dimColor={dim} bold>
+        <Text>{"  "}</Text>
         <Text color={dotColor}>{dot}</Text>
         <Text>{" "}</Text>
         {color ? <Text color={color}>{badge}</Text> : <Text dimColor>{badge}</Text>}
@@ -139,6 +141,7 @@ function flattenTree(state: TreeState, tick: number): FlatLine[] {
       key: "sys-root",
       node: (
         <Text bold>
+          <Text>{"  "}</Text>
           <Text color={CHROME.muted}>{"● "}</Text>
           <Text color={CHROME.muted}>SYSTEM</Text>
         </Text>
