@@ -18,7 +18,7 @@ export interface PhaseResult {
 /** Phase-specific artifact shapes for output files */
 export interface DesignArtifacts {
   design: string; // path to PRD
-  slug?: string;  // real slug from PRD frontmatter (for post-dispatch rename)
+  slug?: string;  // entity identifier from frontmatter (fm.epic ?? fm.id)
   epic?: string;  // human-readable epic name from standardized frontmatter
   summary?: { problem: string; solution: string };
 }
@@ -52,7 +52,7 @@ export type PhaseArtifacts =
   | ReleaseArtifacts;
 
 /** Universal phase output contract.
- * Written by skill checkpoints to state/<phase>/YYYY-MM-DD-<slug>.output.json
+ * Written by skill checkpoints to state/<phase>/YYYY-MM-DD-<id>.output.json
  * Read by CLI to enrich manifests.
  */
 export interface PhaseOutput {

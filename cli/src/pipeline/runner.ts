@@ -172,7 +172,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       claudeDir,
       phase: config.phase,
       epic: config.epicSlug,
-      slug: config.epicSlug,
+      id: config.epicSlug,
       feature: config.featureSlug,
     });
   }
