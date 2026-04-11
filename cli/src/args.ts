@@ -1,7 +1,7 @@
 import { VALID_PHASES, type Command } from "./types";
 
 /** Utility commands (not phases) */
-const UTILITY_COMMANDS = new Set(["watch", "status", "cancel", "compact", "dashboard", "store", "hooks", "help"]);
+const UTILITY_COMMANDS = new Set(["cancel", "compact", "dashboard", "store", "hooks", "help"]);
 
 /** All recognized top-level commands: phases + utilities */
 const ALL_COMMANDS = new Set([...VALID_PHASES, ...UTILITY_COMMANDS]);
@@ -64,7 +64,7 @@ export function parseArgs(argv: string[]): ParsedCommand {
   if (!ALL_COMMANDS.has(command)) {
     process.stderr.write(`Unknown command: ${command}\n`);
     process.stderr.write(`Phases: ${VALID_PHASES.join(", ")}\n`);
-    process.stderr.write(`Other: watch, status, cancel, compact, dashboard, help\n`);
+    process.stderr.write(`Other: cancel, compact, dashboard, help\n`);
     process.exit(1);
   }
 

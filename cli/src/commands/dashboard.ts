@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
-import { existsSync } from "node:fs";
-import type { BeastmodeConfig } from "../config.js";
+import { findProjectRoot, type BeastmodeConfig } from "../config.js";
 import { WatchLoop } from "./watch-loop.js";
 import type { WatchDeps } from "./watch-loop.js";
 import { listEnrichedFromStore } from "../store/scan.js";
@@ -14,16 +13,6 @@ import { FallbackEntryStore } from "../dashboard/lifecycle-entries.js";
 import { createLogger } from "../logger.js";
 import { DashboardSink } from "../dashboard/dashboard-sink.js";
 import type { SystemEntryRef } from "../dashboard/dashboard-logger.js";
-
-/** Discover the project root (walks up to find .beastmode/). */
-function findProjectRoot(from: string = process.cwd()): string {
-  let dir = from;
-  while (dir !== "/") {
-    if (existsSync(resolve(dir, ".beastmode"))) return dir;
-    dir = resolve(dir, "..");
-  }
-  throw new Error("Not inside a beastmode project (no .beastmode/ found)");
-}
 
 export async function dashboardCommand(
   config: BeastmodeConfig,

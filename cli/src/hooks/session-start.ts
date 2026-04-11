@@ -62,7 +62,12 @@ export function assembleContext(input: SessionStartInput): string {
   sections.push(readFileSync(l1Path, "utf-8"));
 
   // Phase-specific artifact resolution
-  const artifactsDir = join(beastmodeDir, "artifacts");
+  // For implement/validate/release phases, plan artifacts live in the worktree
+  // (the session-start hook runs from the main repo root before CWD switches).
+  const worktreeDir = join(repoRoot, ".claude", "worktrees", epic, ".beastmode");
+  const artifactsDir = existsSync(join(worktreeDir, "artifacts"))
+    ? join(worktreeDir, "artifacts")
+    : join(beastmodeDir, "artifacts");
   const artifacts = resolveArtifacts(phase, epic, feature, artifactsDir);
   if (artifacts.length > 0) {
     sections.push(...artifacts);

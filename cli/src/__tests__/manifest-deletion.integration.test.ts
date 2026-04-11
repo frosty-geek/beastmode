@@ -114,7 +114,6 @@ describe("@manifest-absorption: Manifest module removed after migration", () => 
       expect(storeModule.JsonFileStore).toBeDefined();
       expect(storeModule.InMemoryTaskStore).toBeDefined();
       expect(storeModule.resolveIdentifier).toBeDefined();
-      expect(storeModule.slugify).toBeDefined();
     });
 
     it("pipeline/reconcile.ts exports reconciliation functions", async () => {

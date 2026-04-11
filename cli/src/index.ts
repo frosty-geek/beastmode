@@ -46,7 +46,6 @@ Store subcommands:
 
 Flags:
   -v, -vv, -vvv                    Increase output verbosity
-  --yes, -y                        Skip confirmation prompts (phase regression)
   --force                          Skip confirmation prompt (cancel)
 `);
 }

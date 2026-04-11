@@ -85,15 +85,15 @@ describe("parseForce", () => {
 
 describe("parseArgs verbosity integration", () => {
   test("parseArgs returns verbosity 0 with no flags", () => {
-    const result = parseArgs(["bun", "script.ts", "watch"]);
+    const result = parseArgs(["bun", "script.ts", "dashboard"]);
     expect(result.verbosity).toBe(0);
-    expect(result.command).toBe("watch");
+    expect(result.command).toBe("dashboard");
   });
 
   test("parseArgs returns verbosity from -v flag", () => {
-    const result = parseArgs(["bun", "script.ts", "watch", "-vv"]);
+    const result = parseArgs(["bun", "script.ts", "dashboard", "-vv"]);
     expect(result.verbosity).toBe(2);
-    expect(result.command).toBe("watch");
+    expect(result.command).toBe("dashboard");
     expect(result.args).toEqual([]);
   });
 
@@ -126,7 +126,7 @@ describe("parseArgs force integration", () => {
   });
 
   test("parseArgs returns force false for non-cancel commands", () => {
-    const result = parseArgs(["bun", "script.ts", "watch"]);
+    const result = parseArgs(["bun", "script.ts", "dashboard"]);
     expect(result.force).toBe(false);
   });
 
