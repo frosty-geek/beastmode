@@ -253,5 +253,6 @@ function buildEpicSyncInput(store: TaskStore, epic: Epic): EpicSyncInput {
       plan: f.plan,
     })),
     artifacts: Object.keys(artifacts).length > 0 ? artifacts : undefined,
+    worktreePath: epic.worktree?.path,
   };
 }

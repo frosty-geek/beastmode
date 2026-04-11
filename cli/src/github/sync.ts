@@ -38,7 +38,6 @@ import {
   ghIssueState,
   ghIssueLabels,
   ghProjectItemAdd,
-  ghProjectItemDelete,
   ghProjectSetField,
   ghSubIssueAdd,
 } from "./cli.js";
@@ -95,6 +94,8 @@ export interface EpicSyncInput {
   summary?: { problem: string; solution: string };
   features: FeatureSyncInput[];
   artifacts?: Record<string, string[]>;
+  /** Absolute path to active worktree — artifacts may only exist here during development. */
+  worktreePath?: string;
 }
 
 /** Store-derived feature input for sync. */
@@ -368,8 +369,16 @@ function readPrdSections(
   const storedPath = designPaths[0];
   logger?.debug("readPrdSections: stored artifact path", { path: storedPath });
 
-  const designPath = join(projectRoot, ".beastmode", "artifacts", "design", basename(storedPath));
+  let designPath = join(projectRoot, ".beastmode", "artifacts", "design", basename(storedPath));
   logger?.debug("readPrdSections: resolved absolute path", { path: designPath });
+
+  if (!existsSync(designPath) && epic.worktreePath) {
+    const worktreeFallback = join(epic.worktreePath, ".beastmode", "artifacts", "design", basename(storedPath));
+    logger?.debug("readPrdSections: trying worktree fallback", { path: worktreeFallback });
+    if (existsSync(worktreeFallback)) {
+      designPath = worktreeFallback;
+    }
+  }
 
   if (!existsSync(designPath)) {
     logger?.warn("readPrdSections: design artifact file does not exist", { path: designPath });
@@ -524,6 +533,16 @@ export async function syncGitHub(
 
   // --- Epic Sync ---
 
+  // Enrich features with issue refs from syncRefs for epic body formatting
+  const enrichedFeatures = epic.features.map(f => {
+    const ref = getSyncRef(syncRefs, f.id);
+    return {
+      slug: f.slug,
+      status: f.status,
+      github: ref?.issue ? { issue: ref.issue } : undefined,
+    };
+  });
+
   // Resolve or create the epic number — track locally, never mutate
   let epicNumber = getSyncRef(syncRefs, epic.id)?.issue;
   let epicJustCreated = false;
@@ -534,7 +553,7 @@ export async function syncGitHub(
       epic: epic.name,
       phase: epic.phase,
       summary: epic.summary,
-      features: epic.features,
+      features: enrichedFeatures,
       prdSections,
       artifactLinks,
       repo,
@@ -573,7 +592,7 @@ export async function syncGitHub(
       epic: epic.name,
       phase: epic.phase,
       summary: epic.summary,
-      features: epic.features,
+      features: enrichedFeatures,
       prdSections,
       artifactLinks,
       repo,
@@ -640,7 +659,7 @@ export async function syncGitHub(
   // --- Feature Sync ---
 
   for (const feature of epic.features) {
-    await syncFeature(repo, owner, epicNumber, epic.name, feature, syncRefs, resolved, result, { ...opts, logger: log }, epic.phase);
+    await syncFeature(repo, owner, epicNumber, epic.name, feature, syncRefs, resolved, result, { ...opts, logger: log, worktreePath: epic.worktreePath }, epic.phase);
   }
 
   // --- Epic Close (if done or cancelled) ---
@@ -703,7 +722,7 @@ async function syncFeature(
   syncRefs: SyncRefs,
   resolved: ResolvedGitHub,
   result: SyncResult,
-  opts: { logger?: Logger; projectRoot?: string } = {},
+  opts: { logger?: Logger; projectRoot?: string; worktreePath?: string } = {},
   epicPhase?: Phase,
 ): Promise<void> {
   // Read plan sections from feature plan (if projectRoot available)
@@ -715,9 +734,18 @@ async function syncFeature(
     if (epicPhase && !isPhaseAtOrPast(epicPhase, "implement")) {
       opts.logger?.debug("syncFeature: skipped plan read — phase not yet past plan", { phase: epicPhase });
     } else {
-      const planPath = join(opts.projectRoot, ".beastmode", "artifacts", "plan", basename(feature.plan));
+      let planPath = join(opts.projectRoot, ".beastmode", "artifacts", "plan", basename(feature.plan));
       opts.logger?.debug("syncFeature: stored plan path", { path: feature.plan });
       opts.logger?.debug("syncFeature: resolved plan path", { path: planPath });
+
+      if (!existsSync(planPath) && opts.worktreePath) {
+        const worktreeFallback = join(opts.worktreePath, ".beastmode", "artifacts", "plan", basename(feature.plan));
+        opts.logger?.debug("syncFeature: trying worktree fallback", { path: worktreeFallback });
+        if (existsSync(worktreeFallback)) {
+          planPath = worktreeFallback;
+        }
+      }
+
       try {
         if (existsSync(planPath)) {
           const planContent = readFileSync(planPath, "utf-8");
@@ -785,29 +813,7 @@ async function syncFeature(
     }
   }
 
-  // Handle completed features — close them
-  if (feature.status === "completed") {
-    const closed = await ghIssueClose(repo, featureNumber, { logger: opts.logger });
-    if (closed) {
-      result.featuresClosed++;
-    } else {
-      result.warnings.push(`Failed to close feature ${feature.slug}`);
-    }
-    return; // No label update needed for closed issues
-  }
-
-  // Reopen closed issues that should be open (e.g., after validate regression)
-  const issueState = await ghIssueState(repo, featureNumber, { logger: opts.logger });
-  if (issueState === "closed") {
-    const reopened = await ghIssueReopen(repo, featureNumber, { logger: opts.logger });
-    if (reopened) {
-      result.featuresReopened++;
-    } else {
-      result.warnings.push(`Failed to reopen feature ${feature.slug}`);
-    }
-  }
-
-  // --- Feature Body Update ---
+  // --- Feature Body Update (before status handling so completed features get enriched) ---
   if (!featureJustCreated) {
     // Update feature title with epic name prefix
     const expectedFeatureTitle = featureTitle(epicName, feature.slug);
@@ -841,6 +847,33 @@ async function syncFeature(
     }
   }
 
+  // --- Status Handling ---
+
+  // Handle completed features — close if not already closed
+  if (feature.status === "completed") {
+    const state = await ghIssueState(repo, featureNumber, { logger: opts.logger });
+    if (state !== "closed") {
+      const closed = await ghIssueClose(repo, featureNumber, { logger: opts.logger });
+      if (closed) {
+        result.featuresClosed++;
+      } else {
+        result.warnings.push(`Failed to close feature ${feature.slug}`);
+      }
+    }
+    return; // No label update needed for closed issues
+  }
+
+  // Reopen closed issues that should be open (e.g., after validate regression)
+  const issueState = await ghIssueState(repo, featureNumber, { logger: opts.logger });
+  if (issueState === "closed") {
+    const reopened = await ghIssueReopen(repo, featureNumber, { logger: opts.logger });
+    if (reopened) {
+      result.featuresReopened++;
+    } else {
+      result.warnings.push(`Failed to reopen feature ${feature.slug}`);
+    }
+  }
+
   // Blast-replace status label
   const targetStatusLabel = STATUS_TO_LABEL[feature.status];
   if (targetStatusLabel) {
@@ -869,35 +902,6 @@ async function syncFeature(
         context: { status: feature.status },
       });
     }
-  }
-
-  // Remove feature from project board — only epics belong there
-  await removeFromProject(resolved, owner, repo, featureNumber, result, opts);
-}
-
-/**
- * Remove an issue from the project board (if present).
- * Uses ghProjectItemAdd to get the item ID (idempotent), then deletes it.
- */
-async function removeFromProject(
-  resolved: ResolvedGitHub,
-  owner: string,
-  repo: string,
-  issueNumber: number,
-  result: SyncResult,
-  opts: { logger?: Logger } = {},
-): Promise<void> {
-  const projectNumber = resolved.projectNumber;
-  const projectId = resolved.projectId;
-  if (!projectNumber || !projectId) return;
-
-  const issueUrl = `https://github.com/${repo}/issues/${issueNumber}`;
-  const itemId = await ghProjectItemAdd(projectNumber, owner, issueUrl, { logger: opts.logger });
-  if (!itemId) return;
-
-  const deleted = await ghProjectItemDelete(projectId, itemId, { logger: opts.logger });
-  if (!deleted) {
-    result.warnings.push(`Failed to remove #${issueNumber} from project board`);
   }
 }
 
@@ -1014,6 +1018,7 @@ export async function syncGitHubForEpic(opts: {
         plan: f.plan,
       })),
       artifacts: buildArtifactsMap(epicEntity, opts.projectRoot, opts.logger),
+      worktreePath: epicEntity.worktree?.path,
     };
 
     const result = await syncGitHub(epicInput, syncRefs, config, resolved, {

@@ -415,7 +415,7 @@ describe("syncGitHub", () => {
     expect(result.labelsUpdated).toBeGreaterThanOrEqual(1);
   });
 
-  test("removes feature from project board", async () => {
+  test("does not add features to project board", async () => {
     const feature = makeTestFeatureInput({ slug: "board-feat", status: "in-progress" });
     const epic = makeTestEpicInput({ features: [feature] });
     const syncRefs = makeTestSyncRefs({ "bm-1234.1": { issue: 40 } });
@@ -425,10 +425,12 @@ describe("syncGitHub", () => {
 
     await syncGitHub(epic, syncRefs, config, resolved);
 
+    // Only the epic should be added to the project board, not features
     const addCalls = callsTo("ghProjectItemAdd");
-    expect(addCalls.length).toBeGreaterThanOrEqual(2);
+    expect(addCalls.length).toBe(1);
+    expect(addCalls[0].args[2]).toContain("/issues/10"); // epic issue URL
     const deleteCalls = callsTo("ghProjectItemDelete");
-    expect(deleteCalls.length).toBeGreaterThanOrEqual(1);
+    expect(deleteCalls.length).toBe(0);
   });
 
   test("includes correct phase in epic labels on creation", async () => {
@@ -543,6 +545,72 @@ describe("syncGitHub", () => {
       const enqueueMuts = result.mutations.filter((m) => m.type === "enqueuePendingOp");
       const labelMut = enqueueMuts.find((m) => m.type === "enqueuePendingOp" && (m as any).opType === "labelSync" && (m as any).entityId === "bm-1234.1");
       expect(labelMut).toBeDefined();
+    });
+  });
+
+  describe("feature issue links in epic body", () => {
+    test("epic body includes feature issue references from syncRefs", async () => {
+      const feature = makeTestFeatureInput({ slug: "linked-feat", status: "pending" });
+      const epic = makeTestEpicInput({
+        features: [feature],
+        phase: "implement",
+      });
+      const syncRefs = makeTestSyncRefs({
+        "bm-1234": { issue: 10 },
+        "bm-1234.1": { issue: 42 },
+      });
+      mockReturns.ghIssueLabels = ["phase/implement", "status/ready"];
+      const config = makeTestConfig();
+      const resolved = makeTestResolved();
+
+      await syncGitHub(epic, syncRefs, config, resolved);
+
+      // The epic body update should reference #42
+      const editCalls = callsTo("ghIssueEdit");
+      const bodyEdit = editCalls.find(
+        (c) => (c.args[2] as any)?.body?.includes("#42"),
+      );
+      expect(bodyEdit).toBeDefined();
+    });
+  });
+
+  describe("completed feature body enrichment", () => {
+    test("updates body for completed features before closing", async () => {
+      const feature = makeTestFeatureInput({ slug: "done-feat", status: "completed" });
+      const epic = makeTestEpicInput({ features: [feature] });
+      const syncRefs = makeTestSyncRefs({
+        "bm-1234": { issue: 10 },
+        "bm-1234.1": { issue: 50, bodyHash: "old-hash" },
+      });
+      mockReturns.ghIssueLabels = ["phase/design"];
+      const config = makeTestConfig();
+      const resolved = makeTestResolved();
+
+      const result = await syncGitHub(epic, syncRefs, config, resolved);
+
+      // Should update the body (hash changed) AND close the issue
+      expect(result.bodiesUpdated).toBeGreaterThanOrEqual(1);
+      const closeCalls = callsTo("ghIssueClose");
+      expect(closeCalls.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("skips close for already-closed completed features", async () => {
+      const feature = makeTestFeatureInput({ slug: "already-closed", status: "completed" });
+      const epic = makeTestEpicInput({ features: [feature] });
+      const syncRefs = makeTestSyncRefs({
+        "bm-1234": { issue: 10 },
+        "bm-1234.1": { issue: 50 },
+      });
+      mockReturns.ghIssueLabels = ["phase/design"];
+      mockReturns.ghIssueState = "closed";
+      const config = makeTestConfig();
+      const resolved = makeTestResolved();
+
+      await syncGitHub(epic, syncRefs, config, resolved);
+
+      // Should NOT call ghIssueClose since already closed
+      const closeCalls = callsTo("ghIssueClose");
+      expect(closeCalls.length).toBe(0);
     });
   });
 });
