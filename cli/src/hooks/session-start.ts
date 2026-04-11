@@ -223,6 +223,56 @@ export function formatOutput(context: string): string {
   });
 }
 
+/**
+ * Compute the artifact output target path for the current phase.
+ * Format: .beastmode/artifacts/<phase>/YYYY-MM-DD-<epicSlug>[-<featureSlug>].md
+ */
+export function computeOutputTarget(phase: string, epicSlug: string, featureSlug: string | undefined): string {
+  const today = new Date().toISOString().split("T")[0];
+  const suffix = featureSlug ? `${epicSlug}-${featureSlug}` : epicSlug;
+  return `.beastmode/artifacts/${phase}/${today}-${suffix}.md`;
+}
+
+export interface MetadataInput {
+  phase: string;
+  epicId?: string;
+  epicSlug: string;
+  featureId?: string;
+  featureSlug?: string;
+  parentArtifacts: string[];
+  outputTarget: string;
+}
+
+/**
+ * Build a YAML-fenced metadata section for prepending to additionalContext.
+ * Feature fields are omitted when not provided.
+ */
+export function buildMetadataSection(input: MetadataInput): string {
+  const lines: string[] = ["---"];
+  lines.push(`phase: ${input.phase}`);
+  if (input.epicId) {
+    lines.push(`epic-id: ${input.epicId}`);
+  }
+  lines.push(`epic-slug: ${input.epicSlug}`);
+  if (input.featureId) {
+    lines.push(`feature-id: ${input.featureId}`);
+  }
+  if (input.featureSlug) {
+    lines.push(`feature-slug: ${input.featureSlug}`);
+  }
+  if (input.parentArtifacts.length > 0) {
+    lines.push("parent-artifacts:");
+    for (const artifact of input.parentArtifacts) {
+      lines.push(`  - ${artifact}`);
+    }
+  } else {
+    lines.push("parent-artifacts: []");
+  }
+  lines.push(`output-target: ${input.outputTarget}`);
+  lines.push("---");
+  return lines.join("\n");
+}
+
 // --- CLI Entry Point ---
 
 /**

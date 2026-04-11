@@ -6,7 +6,8 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { assembleContext, formatOutput } from "../hooks/session-start";
+import { assembleContext, formatOutput, computeOutputTarget, buildMetadataSection } from "../hooks/session-start";
+import type { MetadataInput } from "../hooks/session-start";
 import {
   writeSessionStartHook,
   cleanSessionStartHook,
@@ -257,5 +258,104 @@ describe("session-start settings writer", () => {
     const command = settings.hooks.SessionStart[0].hooks[0].command;
     expect(command).toContain("BEASTMODE_FEATURE_ID=bm-f3a7.1");
     expect(command).toContain("BEASTMODE_FEATURE_SLUG=my-feat");
+  });
+});
+
+describe("computeOutputTarget", () => {
+  test("design phase returns design artifact path", () => {
+    const result = computeOutputTarget("design", "dashboard-redesign-f3a7", undefined);
+    const today = new Date().toISOString().split("T")[0];
+    expect(result).toBe(`.beastmode/artifacts/design/${today}-dashboard-redesign-f3a7.md`);
+  });
+
+  test("plan phase returns plan artifact path", () => {
+    const result = computeOutputTarget("plan", "dashboard-redesign-f3a7", undefined);
+    const today = new Date().toISOString().split("T")[0];
+    expect(result).toBe(`.beastmode/artifacts/plan/${today}-dashboard-redesign-f3a7.md`);
+  });
+
+  test("implement phase includes feature slug", () => {
+    const result = computeOutputTarget("implement", "dashboard-redesign-f3a7", "auth-flow-1");
+    const today = new Date().toISOString().split("T")[0];
+    expect(result).toBe(`.beastmode/artifacts/implement/${today}-dashboard-redesign-f3a7-auth-flow-1.md`);
+  });
+
+  test("validate phase returns validate artifact path", () => {
+    const result = computeOutputTarget("validate", "dashboard-redesign-f3a7", undefined);
+    const today = new Date().toISOString().split("T")[0];
+    expect(result).toBe(`.beastmode/artifacts/validate/${today}-dashboard-redesign-f3a7.md`);
+  });
+
+  test("release phase returns release artifact path", () => {
+    const result = computeOutputTarget("release", "dashboard-redesign-f3a7", undefined);
+    const today = new Date().toISOString().split("T")[0];
+    expect(result).toBe(`.beastmode/artifacts/release/${today}-dashboard-redesign-f3a7.md`);
+  });
+});
+
+describe("buildMetadataSection", () => {
+  test("includes phase and epic fields", () => {
+    const result = buildMetadataSection({
+      phase: "design",
+      epicId: "bm-f3a7",
+      epicSlug: "dashboard-redesign-f3a7",
+      parentArtifacts: [],
+      outputTarget: ".beastmode/artifacts/design/2026-04-11-dashboard-redesign-f3a7.md",
+    });
+    expect(result).toContain("phase: design");
+    expect(result).toContain("epic-id: bm-f3a7");
+    expect(result).toContain("epic-slug: dashboard-redesign-f3a7");
+    expect(result).toContain("output-target: .beastmode/artifacts/design/2026-04-11-dashboard-redesign-f3a7.md");
+  });
+
+  test("includes feature fields for implement phase", () => {
+    const result = buildMetadataSection({
+      phase: "implement",
+      epicId: "bm-f3a7",
+      epicSlug: "dashboard-redesign-f3a7",
+      featureId: "bm-f3a7.1",
+      featureSlug: "auth-flow-1",
+      parentArtifacts: ["2026-04-11-dashboard-redesign-f3a7-auth-flow-1.md"],
+      outputTarget: ".beastmode/artifacts/implement/2026-04-11-dashboard-redesign-f3a7-auth-flow-1.md",
+    });
+    expect(result).toContain("feature-id: bm-f3a7.1");
+    expect(result).toContain("feature-slug: auth-flow-1");
+  });
+
+  test("omits feature fields when not provided", () => {
+    const result = buildMetadataSection({
+      phase: "plan",
+      epicId: "bm-f3a7",
+      epicSlug: "dashboard-redesign-f3a7",
+      parentArtifacts: ["2026-04-11-dashboard-redesign-f3a7.md"],
+      outputTarget: ".beastmode/artifacts/plan/2026-04-11-dashboard-redesign-f3a7.md",
+    });
+    expect(result).not.toContain("feature-id:");
+    expect(result).not.toContain("feature-slug:");
+  });
+
+  test("lists parent artifact filenames", () => {
+    const result = buildMetadataSection({
+      phase: "validate",
+      epicId: "bm-f3a7",
+      epicSlug: "dashboard-redesign-f3a7",
+      parentArtifacts: ["2026-04-11-dashboard-redesign-f3a7-auth.md", "2026-04-11-dashboard-redesign-f3a7-billing.md"],
+      outputTarget: ".beastmode/artifacts/validate/2026-04-11-dashboard-redesign-f3a7.md",
+    });
+    expect(result).toContain("  - 2026-04-11-dashboard-redesign-f3a7-auth.md");
+    expect(result).toContain("  - 2026-04-11-dashboard-redesign-f3a7-billing.md");
+  });
+
+  test("is delimited with YAML fences", () => {
+    const result = buildMetadataSection({
+      phase: "design",
+      epicId: "bm-f3a7",
+      epicSlug: "dashboard-redesign-f3a7",
+      parentArtifacts: [],
+      outputTarget: ".beastmode/artifacts/design/2026-04-11-dashboard-redesign-f3a7.md",
+    });
+    const lines = result.split("\n");
+    expect(lines[0]).toBe("---");
+    expect(lines[lines.length - 1]).toBe("---");
   });
 });
