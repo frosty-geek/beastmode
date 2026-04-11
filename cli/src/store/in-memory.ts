@@ -49,19 +49,6 @@ export class InMemoryTaskStore implements TaskStore {
     return new Date().toISOString();
   }
 
-  /**
-   * Collect all existing slugs from entities
-   */
-  private collectSlugs(): Set<string> {
-    const slugs = new Set<string>();
-    for (const entity of this.entities.values()) {
-      if ("slug" in entity) {
-        slugs.add(entity.slug);
-      }
-    }
-    return slugs;
-  }
-
   // --- Epic CRUD ---
 
   getEpic(id: string): Epic | undefined {
@@ -144,9 +131,10 @@ export class InMemoryTaskStore implements TaskStore {
     if (!parentEpic) throw new Error(`Parent epic not found: ${opts.parent}`);
 
     const id = this.generateFeatureId(opts.parent);
-    // Extract ordinal from feature ID: "{parentId}.N" -> N
+    const rawSlug = opts.slug ?? opts.name;
+    const normalizedSlug = slugify(rawSlug);
     const ordinal = id.split(".").pop()!;
-    const finalSlug = slugify(opts.name) + "-" + ordinal;
+    const finalSlug = `${normalizedSlug}-${ordinal}`;
 
     const feature: Feature = {
       id,
