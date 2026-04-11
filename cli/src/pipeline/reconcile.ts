@@ -5,8 +5,8 @@
  * right XState events, and persists via store.save().
  */
 
-import type { Epic } from "../store/index.js";
-import { JsonFileStore } from "../store/index.js";
+import type { Epic, Feature } from "../store/index.js";
+import { JsonFileStore, resolveIdentifier } from "../store/index.js";
 import type { Phase } from "../types.js";
 import type { PhaseOutput } from "../types.js";
 import {
@@ -141,6 +141,21 @@ async function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Resolve an epicId (which may be an ID like "bm-xxxx" or a slug) to the
+ * actual Epic entity. Returns undefined if not found.
+ */
+function resolveEpic(store: JsonFileStore, epicId: string): Epic | undefined {
+  // Fast path: direct ID lookup
+  const byId = store.getEpic(epicId);
+  if (byId) return byId;
+  // Slow path: resolve by slug
+  const resolution = resolveIdentifier(store, epicId, { resolveToEpic: true });
+  return resolution.kind === "found" && resolution.entity.type === "epic"
+    ? resolution.entity as Epic
+    : undefined;
+}
+
 // --- Phase-specific reconcile functions ---
 
 /**
@@ -199,20 +214,24 @@ export async function reconcileDesign(
   epicId: string,
   wtPath: string,
 ): Promise<ReconcileResult | undefined> {
-  const output = loadWorktreePhaseOutput(wtPath, "design", epicId);
-  if (!output || output.status !== "completed") return undefined;
-
-  const artifacts = output.artifacts as unknown as Record<string, unknown> | undefined;
-  const realSlug = artifacts?.slug as string | undefined;
-  const summary = artifacts?.summary as { problem: string; solution: string } | undefined;
-  const designPath = artifacts?.design as string | undefined;
-
   return withLock(epicId, async () => {
     const storePath = resolve(projectRoot, ".beastmode", "state", "store.json");
     const store = new JsonFileStore(storePath);
     store.load();
 
-    let epic = store.getEpic(epicId);
+    let epic = resolveEpic(store, epicId);
+
+    // Try file lookup with both the passed identifier and the resolved slug
+    const output =
+      loadWorktreePhaseOutput(wtPath, "design", epicId) ??
+      (epic && epic.slug !== epicId ? loadWorktreePhaseOutput(wtPath, "design", epic.slug) : undefined);
+    if (!output || output.status !== "completed") return undefined;
+
+    const artifacts = output.artifacts as unknown as Record<string, unknown> | undefined;
+    const realSlug = artifacts?.slug as string | undefined;
+    const summary = artifacts?.summary as { problem: string; solution: string } | undefined;
+    const designPath = artifacts?.design as string | undefined;
+
     if (!epic) {
       // Create the epic entity during design reconciliation
       const newEpic = store.addEpic({
@@ -291,18 +310,22 @@ export async function reconcilePlan(
   epicId: string,
   wtPath: string,
 ): Promise<ReconcileResult | undefined> {
-  const output = loadWorktreePhaseOutput(wtPath, "plan", epicId);
-  if (!output || output.status !== "completed") return undefined;
-
-  const features = extractFeaturesFromOutput(output);
-
   return withLock(epicId, async () => {
     const storePath = resolve(projectRoot, ".beastmode", "state", "store.json");
     const store = new JsonFileStore(storePath);
     store.load();
 
-    const epic = store.getEpic(epicId);
+    // Resolve epicId which may be an ID (bm-xxxx) or a slug
+    const epic = resolveEpic(store, epicId);
     if (!epic) return undefined;
+
+    // Try file lookup with both the passed identifier and the resolved slug
+    const output =
+      loadWorktreePhaseOutput(wtPath, "plan", epicId) ??
+      (epic.slug !== epicId ? loadWorktreePhaseOutput(wtPath, "plan", epic.slug) : undefined);
+    if (!output || output.status !== "completed") return undefined;
+
+    const features = extractFeaturesFromOutput(output);
 
     const actor = hydrateActor(epic, store);
     const planPaths = features.map((f) => f.plan).filter(Boolean);
@@ -317,22 +340,51 @@ export async function reconcilePlan(
       updated_at: updated.updated_at,
     });
 
-    // Create feature entities
+    // Create or update feature entities
+    const waveGroups = new Map<number, Feature[]>();
+
     for (const f of features) {
       const existing = store.listFeatures(epic.id).find(
         (ef) => ef.slug === f.slug || ef.name === f.slug,
       );
+      let featureEntity: Feature;
       if (!existing) {
-        const newFeature = store.addFeature({
+        featureEntity = store.addFeature({
           parent: epic.id,
           name: f.slug,
           description: f.description,
         });
-        // Update plan path and wave if provided
-        store.updateFeature(newFeature.id, {
+        store.updateFeature(featureEntity.id, {
           ...(f.plan ? { plan: f.plan } : {}),
           ...(f.wave != null ? { wave: f.wave } : {}),
         });
+      } else {
+        // Update wave and plan on existing features
+        store.updateFeature(existing.id, {
+          ...(f.plan ? { plan: f.plan } : {}),
+          ...(f.wave != null ? { wave: f.wave } : {}),
+        });
+        featureEntity = store.getFeature(existing.id)!;
+      }
+
+      // Track wave grouping for dependency injection
+      const wave = f.wave ?? 1;
+      if (!waveGroups.has(wave)) waveGroups.set(wave, []);
+      waveGroups.get(wave)!.push(featureEntity);
+    }
+
+    // Wave-to-dependency conversion: wave N depends on all features in wave N-1
+    const waves = Array.from(waveGroups.keys()).sort((a, b) => a - b);
+    for (let i = 1; i < waves.length; i++) {
+      const prevIds = waveGroups.get(waves[i - 1])!.map((f) => f.id);
+      for (const feature of waveGroups.get(waves[i])!) {
+        const existingDeps = feature.depends_on ?? [];
+        const newDeps = prevIds.filter((id) => !existingDeps.includes(id));
+        if (newDeps.length > 0) {
+          store.updateFeature(feature.id, {
+            depends_on: [...existingDeps, ...newDeps],
+          });
+        }
       }
     }
 
@@ -356,16 +408,18 @@ export async function reconcileFeature(
   featureSlug: string,
   wtPath: string,
 ): Promise<ReconcileResult | undefined> {
-  const output = loadWorktreeFeatureOutput(wtPath, "implement", epicId, featureSlug);
-  if (!output || output.status !== "completed") return undefined;
-
   return withLock(epicId, async () => {
     const storePath = resolve(projectRoot, ".beastmode", "state", "store.json");
     const store = new JsonFileStore(storePath);
     store.load();
 
-    const epic = store.getEpic(epicId);
+    const epic = resolveEpic(store, epicId);
     if (!epic) return undefined;
+
+    const output =
+      loadWorktreeFeatureOutput(wtPath, "implement", epicId, featureSlug) ??
+      (epic.slug !== epicId ? loadWorktreeFeatureOutput(wtPath, "implement", epic.slug, featureSlug) : undefined);
+    if (!output || output.status !== "completed") return undefined;
 
     // Mark the feature as completed
     const features = store.listFeatures(epic.id);
@@ -407,7 +461,7 @@ export async function reconcileImplement(
     const store = new JsonFileStore(storePath);
     store.load();
 
-    const epic = store.getEpic(epicId);
+    const epic = resolveEpic(store, epicId);
     if (!epic) return undefined;
 
     const actor = hydrateActor(epic, store);
@@ -438,15 +492,17 @@ export async function reconcileValidate(
   epicId: string,
   wtPath: string,
 ): Promise<ReconcileResult | undefined> {
-  const output = loadWorktreePhaseOutput(wtPath, "validate", epicId);
-
   return withLock(epicId, async () => {
     const storePath = resolve(projectRoot, ".beastmode", "state", "store.json");
     const store = new JsonFileStore(storePath);
     store.load();
 
-    const epic = store.getEpic(epicId);
+    const epic = resolveEpic(store, epicId);
     if (!epic) return undefined;
+
+    const output =
+      loadWorktreePhaseOutput(wtPath, "validate", epicId) ??
+      (epic.slug !== epicId ? loadWorktreePhaseOutput(wtPath, "validate", epic.slug) : undefined);
 
     const actor = hydrateActor(epic, store);
     if (output?.status === "completed") {
@@ -505,16 +561,18 @@ export async function reconcileRelease(
   epicId: string,
   wtPath: string,
 ): Promise<ReconcileResult | undefined> {
-  const output = loadWorktreePhaseOutput(wtPath, "release", epicId);
-  if (!output || output.status !== "completed") return undefined;
-
   return withLock(epicId, async () => {
     const storePath = resolve(projectRoot, ".beastmode", "state", "store.json");
     const store = new JsonFileStore(storePath);
     store.load();
 
-    const epic = store.getEpic(epicId);
+    const epic = resolveEpic(store, epicId);
     if (!epic) return undefined;
+
+    const output =
+      loadWorktreePhaseOutput(wtPath, "release", epicId) ??
+      (epic.slug !== epicId ? loadWorktreePhaseOutput(wtPath, "release", epic.slug) : undefined);
+    if (!output || output.status !== "completed") return undefined;
 
     const actor = hydrateActor(epic, store);
     actor.send({ type: "RELEASE_COMPLETED" });

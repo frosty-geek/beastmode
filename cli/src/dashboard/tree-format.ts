@@ -38,17 +38,17 @@ export function buildTreePrefix(depth: TreeDepth): string {
     case "cli":
       return "● ";
     case "system":
-      return "    │ ";
+      return "  │ ";
     case "epic":
       return "● ";
     case "feature":
       return "├─○ ";
     case "leaf-epic":
-      return "    │ ";
+      return "  │ ";
     case "leaf-feature":
-      return "    │ │ ";
+      return "  │ │ ";
     case "leaf-feature-last":
-      return "      │ ";
+      return "    │ ";
   }
 }
 

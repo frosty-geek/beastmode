@@ -10,7 +10,7 @@ import EpicsPanel from "./EpicsPanel.js";
 import DetailsPanel from "./DetailsPanel.js";
 import type { DetailsPanelSelection } from "./details-panel.js";
 import type { GitStatus } from "./overview-panel.js";
-import LogPanel, { filterTreeByPhase, filterTreeByVerbosity, stripEmptyNodes, countTreeLines } from "./LogPanel.js";
+import LogPanel, { filterTreeByPhase, filterTreeByViewFilter, filterTreeByVerbosity, stripEmptyNodes, countTreeLines } from "./LogPanel.js";
 import { useDashboardTreeState } from "./hooks/use-dashboard-tree-state.js";
 import { useDashboardKeyboard } from "./hooks/use-dashboard-keyboard.js";
 import { useTerminalSize } from "./hooks/use-terminal-size.js";
@@ -224,9 +224,10 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
 
   // --- Filter pipeline for log tree ---
   const phaseFiltered = filterTreeByPhase(treeState, keyboard.phaseFilter);
+  const viewFiltered = filterTreeByViewFilter(phaseFiltered, keyboard.viewFilter, activeSessions);
   const showSkeleton = !!selectedEpicSlug || keyboard.viewFilter !== "running";
   // Count lines after the same filters LogPanel applies (verbosity + empty-node stripping)
-  const verbFiltered = filterTreeByVerbosity(phaseFiltered, keyboard.verbosity);
+  const verbFiltered = filterTreeByVerbosity(viewFiltered, keyboard.verbosity);
   const logTreeForCount = showSkeleton ? verbFiltered : stripEmptyNodes(verbFiltered);
   const logTotalLines = countTreeLines(logTreeForCount);
   logTotalLinesRef.current = logTotalLines;
@@ -569,7 +570,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
       }
       logSlot={
         <LogPanel
-          state={phaseFiltered}
+          state={viewFiltered}
           verbosity={keyboard.verbosity}
           scrollOffset={keyboard.logScrollOffset}
           autoFollow={keyboard.logAutoFollow}

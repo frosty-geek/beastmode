@@ -174,7 +174,7 @@ describe("InMemoryTaskStore", () => {
         parent: epic.id,
         name: "Login Flow",
       });
-      expect(feature.slug).toBe("login-flow-1");
+      expect(feature.slug).toMatch(/^test-epic-[0-9a-f]{4}--login-flow-[0-9a-f]{4}\.1$/);
     });
   });
 

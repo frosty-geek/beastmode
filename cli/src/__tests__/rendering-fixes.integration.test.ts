@@ -16,7 +16,7 @@ describe("@dashboard-log-fixes: System-level entries as SYSTEM node", () => {
     expect(state.cli.entries).toHaveLength(3);
     // SYSTEM node uses hierarchical tree formatting — system entries get system prefix
     const prefix = buildTreePrefix("system");
-    expect(prefix).toBe("│ ");
+    expect(prefix).toBe("  │ ");
   });
 
   test("scan result renders under SYSTEM node indented as child", () => {

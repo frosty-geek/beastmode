@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, mkdtempSync } from "fs";
 import { resolve, join } from "path";
+import { tmpdir } from "os";
 import {
   parseFrontmatter,
   buildOutput,
@@ -9,18 +10,19 @@ import {
   generateAll,
 } from "../hooks/generate-output";
 
-const TEST_ROOT = resolve(import.meta.dirname, "../../.test-generate-output");
-const ARTIFACTS_DIR = join(TEST_ROOT, ".beastmode", "artifacts");
+let TEST_ROOT = "";
+let ARTIFACTS_DIR = "/tmp/generate-output-test/.beastmode/artifacts";
 
 function setup(): void {
-  if (existsSync(TEST_ROOT)) rmSync(TEST_ROOT, { recursive: true });
+  TEST_ROOT = mkdtempSync(join(tmpdir(), "generate-output-test-"));
+  ARTIFACTS_DIR = join(TEST_ROOT, ".beastmode", "artifacts");
   for (const phase of ["design", "plan", "implement", "validate", "release"]) {
     mkdirSync(join(ARTIFACTS_DIR, phase), { recursive: true });
   }
 }
 
 function teardown(): void {
-  if (existsSync(TEST_ROOT)) rmSync(TEST_ROOT, { recursive: true });
+  if (existsSync(TEST_ROOT)) rmSync(TEST_ROOT, { recursive: true, force: true });
 }
 
 function writeArtifact(phase: string, filename: string, content: string): string {

@@ -3,7 +3,7 @@ import { buildTreePrefix, formatTreeLine } from "../dashboard/tree-format.js";
 
 describe("SYSTEM node rendering", () => {
   test("system depth uses bar prefix (│ )", () => {
-    expect(buildTreePrefix("system")).toBe("│ ");
+    expect(buildTreePrefix("system")).toBe("  │ ");
   });
 
   test("cli depth uses bullet prefix (● )", () => {
