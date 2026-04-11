@@ -102,7 +102,7 @@ export async function phaseCommand(
     // SessionStart hook
     cleanSessionStartHook(claudeDir);
     const featureSlug = phase === "implement" ? args[1] : undefined;
-    writeSessionStartHook({ claudeDir, phase, epic: epicSlug, slug: epicSlug, feature: featureSlug });
+    writeSessionStartHook({ claudeDir, phase, epic: epicSlug, id: epicSlug, feature: featureSlug });
 
     const result = await runInteractive({ phase, args, cwd });
     logger.info("phase complete", { phase, status: result.exit_status, duration: formatDuration(result.duration_ms) });
