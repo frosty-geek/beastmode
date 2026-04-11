@@ -85,7 +85,7 @@ describe("syncFeature plan reader logging", () => {
       id: "bm-1",
       slug: "s",
       name: "N",
-      phase: "plan",
+      phase: "implement",
       features: [{ id: "bm-1.1", slug: "feat-a", status: "pending", plan: "nonexistent.md" }],
     };
 
@@ -106,7 +106,7 @@ describe("syncFeature plan reader logging", () => {
       id: "bm-1",
       slug: "s",
       name: "N",
-      phase: "plan",
+      phase: "implement",
       features: [{ id: "bm-1.1", slug: "feat-a", status: "pending", plan: "feat-plan.md" }],
     };
 

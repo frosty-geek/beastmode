@@ -89,12 +89,12 @@ describe("readPrdSections logging", () => {
       id: "bm-1",
       slug: "s",
       name: "N",
-      phase: "design",
+      phase: "implement",
       features: [],
       artifacts: { design: ["2026-04-06-abc.md"] },
     };
 
-    await syncGitHub(epic, {}, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
+    await syncGitHub(epic, { "bm-1": { issue: 10 } }, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
 
     const debugCalls = logger.calls.filter(c => c.level === "debug");
     const storedLog = debugCalls.find(c => c.msg.includes("stored") && c.data?.path === "2026-04-06-abc.md");
@@ -111,12 +111,12 @@ describe("readPrdSections logging", () => {
       id: "bm-1",
       slug: "s",
       name: "N",
-      phase: "design",
+      phase: "implement",
       features: [],
       artifacts: { design: ["2026-04-06-abc.md"] },
     };
 
-    await syncGitHub(epic, {}, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
+    await syncGitHub(epic, { "bm-1": { issue: 10 } }, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
 
     const debugCalls = logger.calls.filter(c => c.level === "debug");
     const resolvedLog = debugCalls.find(c => c.msg.includes("resolved") && c.data?.path?.toString().includes(tmpDir));
@@ -129,12 +129,12 @@ describe("readPrdSections logging", () => {
       id: "bm-1",
       slug: "s",
       name: "N",
-      phase: "design",
+      phase: "implement",
       features: [],
       artifacts: { design: ["missing.md"] },
     };
 
-    await syncGitHub(epic, {}, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
+    await syncGitHub(epic, { "bm-1": { issue: 10 } }, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
 
     const warns = logger.calls.filter(c => c.level === "warn");
     const missingWarn = warns.find(c => c.data?.path !== undefined && (c.msg.includes("not found") || c.msg.includes("does not exist")));
@@ -154,19 +154,19 @@ describe("readPrdSections logging", () => {
       id: "bm-1",
       slug: "s",
       name: "N",
-      phase: "design",
+      phase: "implement",
       features: [],
       artifacts: { design: ["2026-04-06-abc.md"] },
     };
 
-    await syncGitHub(epic, {}, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
+    await syncGitHub(epic, { "bm-1": { issue: 10 } }, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
 
     const debugCalls = logger.calls.filter(c => c.level === "debug");
     const sectionLog = debugCalls.find(c => c.msg.includes("extracted") || c.msg.includes("sections"));
     expect(sectionLog).toBeDefined();
   });
 
-  test("logs error with path context when file read throws", async () => {
+  test("logs warn with path context when file read throws", async () => {
     const designDir = join(tmpDir, ".beastmode", "artifacts", "design");
     mkdirSync(designDir, { recursive: true });
     // Create a subdirectory where a file is expected — readFileSync throws on directories
@@ -177,16 +177,16 @@ describe("readPrdSections logging", () => {
       id: "bm-1",
       slug: "s",
       name: "N",
-      phase: "design",
+      phase: "implement",
       features: [],
       artifacts: { design: ["2026-04-06-abc.md"] },
     };
 
-    await syncGitHub(epic, {}, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
+    await syncGitHub(epic, { "bm-1": { issue: 10 } }, makeConfig(), makeResolved(), { logger, projectRoot: tmpDir });
 
-    const errorCalls = logger.calls.filter(c => c.level === "error");
-    const readError = errorCalls.find(c => c.data?.path !== undefined);
-    expect(readError).toBeDefined();
+    const warnCalls = logger.calls.filter(c => c.level === "warn");
+    const readWarn = warnCalls.find(c => c.data?.path !== undefined);
+    expect(readWarn).toBeDefined();
   });
 });
 
