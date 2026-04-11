@@ -63,8 +63,9 @@ describe("Feature slug field", () => {
     const feature = await store.transact(s =>
       s.addFeature({ parent: epic.id, name: "Login Flow" })
     );
-    // Slug is auto-generated from name + ordinal, ignoring the slug param
-    expect(feature.slug).toMatch(/^login-flow-\d+$/);
+    // Slug is auto-generated: {epicSlug}--{name}-{4hex}.{ordinal}
+    expect(feature.slug).toContain("--login-flow-");
+    expect(feature.slug).toMatch(/\.\d+$/);
   });
 
   it("addFeature auto-generates slug from name when not provided", async () => {
@@ -72,8 +73,9 @@ describe("Feature slug field", () => {
     const feature = await store.transact(s =>
       s.addFeature({ parent: epic.id, name: "Token Cache" })
     );
-    // Slug is derived from name + ordinal
-    expect(feature.slug).toMatch(/^token-cache-\d+$/);
+    // Slug is derived: {epicSlug}--{name}-{4hex}.{ordinal}
+    expect(feature.slug).toContain("--token-cache-");
+    expect(feature.slug).toMatch(/\.\d+$/);
   });
 
   it("slug persists through save/load cycle", async () => {
@@ -148,8 +150,9 @@ describe("importTestable", () => {
     const result = await importTestable(store, projectRoot);
 
     expect(result.features).toHaveLength(1);
-    // Feature slug is derived from name + ordinal, not from the manifest slug
-    expect(result.features[0].slug).toMatch(/^login-flow-\d+$/);
+    // Feature slug is derived: {epicSlug}--{name}-{4hex}.{ordinal}
+    expect(result.features[0].slug).toContain("--login-flow-");
+    expect(result.features[0].slug).toMatch(/\.\d+$/);
     expect(result.features[0].plan).toBe("plan/login.md");
     expect(result.features[0].status).toBe("pending");
   });
@@ -166,10 +169,10 @@ describe("importTestable", () => {
     const { importTestable } = await import("../commands/store-import.js");
     const result = await importTestable(store, projectRoot);
 
-    // Find features by name prefix since slugs now have ordinal suffixes
-    const featureA = result.features.find((f: any) => f.slug.startsWith("a-"));
-    const featureB = result.features.find((f: any) => f.slug.startsWith("b-"));
-    const featureC = result.features.find((f: any) => f.slug.startsWith("c-"));
+    // Find features by name prefix since slugs now embed epic slug with -- separator
+    const featureA = result.features.find((f: any) => f.slug.includes("--a-"));
+    const featureB = result.features.find((f: any) => f.slug.includes("--b-"));
+    const featureC = result.features.find((f: any) => f.slug.includes("--c-"));
 
     expect(featureC!.depends_on).toContain(featureA!.id);
     expect(featureC!.depends_on).toContain(featureB!.id);
