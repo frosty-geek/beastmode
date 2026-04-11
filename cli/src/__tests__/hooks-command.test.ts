@@ -168,4 +168,45 @@ describe("hooksCommand", () => {
     const stderrCalls = stderrSpy.mock.calls.map((c: unknown[]) => c[0]);
     expect(stderrCalls.some((c: unknown) => typeof c === "string" && c.includes("Unknown hook"))).toBe(false);
   });
+
+  test("hitl-auto uses BEASTMODE_PHASE env var over positional arg", async () => {
+    process.env.BEASTMODE_PHASE = "design";
+
+    try {
+      await hooksCommand(["hitl-auto", "implement"]);
+    } catch { /* exit mock */ }
+
+    // decideResponse should have been called — the env var takes precedence
+    expect(decideResponse).toHaveBeenCalled();
+  });
+
+  test("hitl-auto falls back to positional arg when env var absent", async () => {
+    delete process.env.BEASTMODE_PHASE;
+
+    try {
+      await hooksCommand(["hitl-auto", "plan"]);
+    } catch { /* exit mock */ }
+
+    expect(decideResponse).toHaveBeenCalled();
+  });
+
+  test("hitl-log uses BEASTMODE_PHASE env var over positional arg", async () => {
+    process.env.BEASTMODE_PHASE = "validate";
+
+    try {
+      await hooksCommand(["hitl-log", "implement"]);
+    } catch { /* exit mock */ }
+
+    expect(routeAndFormat).toHaveBeenCalled();
+  });
+
+  test("hitl-log falls back to positional arg when env var absent", async () => {
+    delete process.env.BEASTMODE_PHASE;
+
+    try {
+      await hooksCommand(["hitl-log", "design"]);
+    } catch { /* exit mock */ }
+
+    expect(routeAndFormat).toHaveBeenCalled();
+  });
 });
