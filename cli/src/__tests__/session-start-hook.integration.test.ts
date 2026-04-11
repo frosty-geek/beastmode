@@ -46,7 +46,7 @@ describe("SessionStart hook integration", () => {
       const result = assembleContext({
         phase: "design",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       });
       expect(result).toContain("L0 context content");
@@ -62,7 +62,7 @@ describe("SessionStart hook integration", () => {
       const result = assembleContext({
         phase: "plan",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       });
       expect(result).toContain("L0 context content");
@@ -79,7 +79,7 @@ describe("SessionStart hook integration", () => {
       const result = assembleContext({
         phase: "implement",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         feature: "my-feature",
         repoRoot: tempDir,
       });
@@ -101,7 +101,7 @@ describe("SessionStart hook integration", () => {
       const result = assembleContext({
         phase: "validate",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       });
       expect(result).toContain("L0 context content");
@@ -124,7 +124,7 @@ describe("SessionStart hook integration", () => {
       const result = assembleContext({
         phase: "release",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       });
       expect(result).toContain("L0 context content");
@@ -140,7 +140,7 @@ describe("SessionStart hook integration", () => {
       expect(() => assembleContext({
         phase: "" as any,
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       })).toThrow();
     });
@@ -150,7 +150,7 @@ describe("SessionStart hook integration", () => {
       expect(() => assembleContext({
         phase: "design",
         epic: "",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       })).toThrow();
     });
@@ -161,7 +161,7 @@ describe("SessionStart hook integration", () => {
       expect(() => assembleContext({
         phase: "design",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       })).toThrow();
     });
@@ -171,7 +171,7 @@ describe("SessionStart hook integration", () => {
       expect(() => assembleContext({
         phase: "plan",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       })).toThrow();
     });
@@ -187,7 +187,7 @@ describe("SessionStart hook integration", () => {
       const result = assembleContext({
         phase: "validate",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       });
       expect(result).toContain("Gate Status");
@@ -208,7 +208,7 @@ describe("SessionStart hook integration", () => {
       const result = assembleContext({
         phase: "validate",
         epic: "test-epic",
-        slug: "abc123",
+        id: "abc123",
         repoRoot: tempDir,
       });
       expect(result).toContain("Gate Status");
