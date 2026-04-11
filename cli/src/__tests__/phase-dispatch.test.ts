@@ -90,21 +90,14 @@ describe("SDK runner removed", () => {
 });
 
 describe("backwards compatibility", () => {
-  test("slugify is still exported", async () => {
-    const mod = await import("../commands/phase");
-    expect(typeof mod.slugify).toBe("function");
-  });
-
   test("phaseCommand is still exported", async () => {
     const mod = await import("../commands/phase");
     expect(typeof mod.phaseCommand).toBe("function");
   });
 
-  test("slugify produces correct output", async () => {
-    const { slugify } = await import("../commands/phase");
-    expect(slugify("My Cool Topic")).toBe("my-cool-topic");
-    expect(slugify("TypeScript's Pipeline!")).toBe("typescripts-pipeline");
-    expect(slugify("foo  --  bar")).toBe("foo-bar");
+  test("slugify is NOT exported (moved to store/slug.ts)", async () => {
+    const mod = await import("../commands/phase");
+    expect((mod as any).slugify).toBeUndefined();
   });
 });
 
