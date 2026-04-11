@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export async function getVersion() {
-  const pluginJsonPath = join(__dirname, '..', '..', '.claude-plugin', 'plugin.json');
+  const pluginJsonPath = join(__dirname, '..', '..', 'plugin', 'plugin.json');
   const content = await readFile(pluginJsonPath, 'utf8');
   const plugin = JSON.parse(content);
   return plugin.version;

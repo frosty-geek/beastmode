@@ -34,7 +34,7 @@ switch (command) {
   case '--version':
   case '-v': {
     const pluginJson = JSON.parse(
-      await readFile(join(__dirname, '..', '..', '.claude-plugin', 'plugin.json'), 'utf8')
+      await readFile(join(__dirname, '..', '..', 'plugin', 'plugin.json'), 'utf8')
     );
     console.log(pluginJson.version);
     break;

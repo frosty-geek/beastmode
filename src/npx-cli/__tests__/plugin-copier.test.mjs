@@ -19,11 +19,11 @@ describe('copyPlugin', () => {
     await writeFile(join(sourceDir, 'plugin', 'skills', 'design', 'SKILL.md'), '# Design');
     await mkdir(join(sourceDir, 'plugin', 'agents'), { recursive: true });
     await writeFile(join(sourceDir, 'plugin', 'agents', 'dev.md'), '# Dev');
-    await mkdir(join(sourceDir, '.claude-plugin'), { recursive: true });
     await writeFile(
-      join(sourceDir, '.claude-plugin', 'plugin.json'),
+      join(sourceDir, 'plugin', 'plugin.json'),
       JSON.stringify({ name: 'beastmode', version: '0.99.0' })
     );
+    await mkdir(join(sourceDir, '.claude-plugin'), { recursive: true });
     await writeFile(
       join(sourceDir, '.claude-plugin', 'marketplace.json'),
       JSON.stringify({

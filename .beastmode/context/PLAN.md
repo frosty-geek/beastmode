@@ -13,9 +13,9 @@ Naming patterns (UPPERCASE.md for invariant, lowercase.md for variant), skill ma
 context/plan/conventions.md
 
 ## Structure
-- ALWAYS colocate skill interface (SKILL.md) with implementation in `/skills/{verb}/`
+- ALWAYS colocate skill interface (SKILL.md) with implementation in `plugin/skills/{verb}/`
 - NEVER store context outside `.beastmode/` — it's the single source of truth
-- Agent prompts live in `/agents/`, shared utilities in `skills/`
+- Agent prompts live in `plugin/agents/`, shared utilities in `plugin/skills/`
 - Worktrees live at `.beastmode/worktrees/<feature>`, gitignored
 - ALWAYS use `.beastmode/artifacts/` for committed skill outputs (PRDs, plans, reports) and `.beastmode/state/` for gitignored pipeline manifests -- directory names match contents
 

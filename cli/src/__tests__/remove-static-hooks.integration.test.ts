@@ -8,13 +8,13 @@ describe("Plugin Stop hook removal for non-beastmode projects", () => {
   const repoRoot = resolve(__dirname, "../../..");
 
   it("Plugin has no Stop hook declaration", () => {
-    const hooksPath = resolve(repoRoot, "hooks/hooks.json");
+    const hooksPath = resolve(repoRoot, "plugin/hooks/hooks.json");
     const hooks = JSON.parse(readFileSync(hooksPath, "utf-8"));
     expect(hooks.hooks.Stop).toBeUndefined();
   });
 
   it("Plugin has no static PreToolUse hook declaration for HITL", () => {
-    const hooksPath = resolve(repoRoot, "hooks/hooks.json");
+    const hooksPath = resolve(repoRoot, "plugin/hooks/hooks.json");
     const hooks = JSON.parse(readFileSync(hooksPath, "utf-8"));
     if (hooks.hooks.PreToolUse) {
       const askUserHooks = hooks.hooks.PreToolUse.filter(
@@ -36,7 +36,7 @@ describe("Plugin Stop hook removal for non-beastmode projects", () => {
   });
 
   it("hooks/hooks.json is valid JSON", () => {
-    const hooksPath = resolve(repoRoot, "hooks/hooks.json");
+    const hooksPath = resolve(repoRoot, "plugin/hooks/hooks.json");
     expect(() => JSON.parse(readFileSync(hooksPath, "utf-8"))).not.toThrow();
   });
 

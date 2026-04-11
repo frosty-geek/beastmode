@@ -1,7 +1,7 @@
 # Versioning
 
 ## Version Detection
-- ALWAYS read version from `.claude-plugin/plugin.json` — source of truth
+- ALWAYS read version from `plugin/plugin.json` — source of truth
 - ALWAYS follow semantic versioning for bumps — major.minor.patch
 - Minor bump = new feature or capability; patch bump = docs, polish, or targeted fix — clear criteria
 - Changelog generated from categorized commits (Highlights, Features, Fixes, Docs, Chores, Full Changelog) — structured output

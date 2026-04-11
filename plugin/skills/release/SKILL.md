@@ -198,7 +198,7 @@ If the squash merge produces conflicts after rebase, resolve as follows:
 Read the **current version from main** (not from the worktree):
 
 ```bash
-current_version=$(grep -o '"version": "[^"]*"' .claude-plugin/plugin.json | head -1 | cut -d'"' -f4)
+current_version=$(grep -o '"version": "[^"]*"' plugin/plugin.json | head -1 | cut -d'"' -f4)
 echo "Current version on main: $current_version"
 ```
 
@@ -225,7 +225,7 @@ Prepend the new release section to CHANGELOG.md **on main** using the computed v
 ### 6. Bump Version Files
 
 Update version in all files **on main**:
-- `.claude-plugin/plugin.json` → `"version": "X.Y.Z"`
+- `plugin/plugin.json` → `"version": "X.Y.Z"`
 - `.claude-plugin/marketplace.json` → version in plugins array
 
 ### 7. Update Release Artifacts

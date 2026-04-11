@@ -31,14 +31,8 @@ export async function copyPlugin({ homeDir, packageDir, version }) {
   await rm(cacheDir, { recursive: true, force: true });
   await mkdir(cacheDir, { recursive: true });
 
-  // Copy plugin tree to cache dir
+  // Copy plugin tree to cache dir (includes plugin.json, skills/, agents/, hooks/)
   await cp(pluginSourceDir, cacheDir, { recursive: true });
-
-  // Also copy plugin.json into cache dir
-  await cp(
-    join(pluginMetaDir, 'plugin.json'),
-    join(cacheDir, 'plugin.json')
-  );
 
   console.log(`Plugin files copied to ${marketplaceDir}`);
   console.log(`Plugin cache written to ${cacheDir}`);

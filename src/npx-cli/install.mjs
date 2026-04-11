@@ -43,7 +43,7 @@ export async function install(opts) {
   // Read version from plugin.json
   let version;
   try {
-    const pluginJsonPath = join(packageDir, '.claude-plugin', 'plugin.json');
+    const pluginJsonPath = join(packageDir, 'plugin', 'plugin.json');
     const content = await readFile(pluginJsonPath, 'utf8');
     version = JSON.parse(content).version;
   } catch (err) {

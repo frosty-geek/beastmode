@@ -35,7 +35,7 @@ context/design/architecture/single-source-api-boundary.md
 - 3-checkpoint commits work and hands off to next phase — retro runs only at release
 
 ## Component Architecture
-- Skills (workflow verbs) in `/skills/`, context walker agent and utility agents (compaction) in `/agents/` — separation of concerns
+- Skills (workflow verbs) in `plugin/skills/`, context walker agent and utility agents (compaction) in `plugin/agents/` — separation of concerns
 - ALWAYS colocate interface (SKILL.md) with implementation — discoverability
 - NEVER put shared logic in individual skills — extract to shared agents or CLI modules
 - Context walker agent receives all phase artifacts at release — single-pass review across the full cycle

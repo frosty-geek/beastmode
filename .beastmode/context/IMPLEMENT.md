@@ -5,7 +5,7 @@
 - ALWAYS verify worktree context before modifying files
 - NEVER guess file paths — verify they exist first
 - Agents commit per task on the impl branch (`impl/<slug>--<feature-name>`) — never on the worktree branch
-- Agent roles: implementer (TDD execution), spec-reviewer (trust-nothing verification), quality-reviewer (self-contained quality checklist), plan-integration-tester (BDD specialist, spawned by plan skill) — all peers in `.claude/agents/`, all use four-status protocol
+- Agent roles: implementer (TDD execution), spec-reviewer (trust-nothing verification), quality-reviewer (self-contained quality checklist), plan-integration-tester (BDD specialist, spawned by plan skill) — all peers in `plugin/agents/`, all use four-status protocol
 - ALWAYS add new worktree functions to all mock objects in tests — mock gaps cause test failures discovered only after implementation is complete
 - NEVER use Bun `mock.module()` for modules shared across test files — it pollutes the module registry globally within a test run; use dependency injection or per-file mock objects instead
 - ALWAYS grep for all mock sites of a module when adding new exports — mocks in unrelated test files break silently until the full suite runs

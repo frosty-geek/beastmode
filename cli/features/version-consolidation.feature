@@ -2,7 +2,7 @@
 Feature: Version resolution from plugin.json
 
   All version displays across the CLI and dashboard resolve from
-  .claude-plugin/plugin.json as the single source of truth. The shared
+  plugin/plugin.json as the single source of truth. The shared
   version module discovers plugin.json relative to its own file location
   and formats the result as "v{semver}". When plugin.json is unreadable,
   the module returns "unknown" instead of crashing.

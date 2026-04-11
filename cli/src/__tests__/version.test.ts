@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 describe("resolveVersion", () => {
   const fixtureRoot = resolve(import.meta.dirname, "__fixtures__/version-test");
-  const pluginDir = resolve(fixtureRoot, ".claude-plugin");
+  const pluginDir = resolve(fixtureRoot, "plugin");
   const pluginJsonPath = resolve(pluginDir, "plugin.json");
 
   beforeEach(() => {
@@ -50,6 +50,6 @@ describe("resolveVersion", () => {
     const result = resolveVersion();
     expect(typeof result).toBe("string");
     // Should resolve to the actual plugin.json version or "unknown"
-    expect(["v0.102.0", "unknown"]).toContain(result);
+    expect(["v0.109.0", "unknown"]).toContain(result);
   });
 });
