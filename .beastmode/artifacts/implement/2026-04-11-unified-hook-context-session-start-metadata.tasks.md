@@ -38,7 +38,7 @@ Add a structured metadata section at the top of the `additionalContext` string p
 - Modify: `src/hooks/session-start.ts:33-78` (assembleContext — update resolveArtifacts call site)
 - Test: `src/__tests__/session-start.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `src/__tests__/session-start.test.ts`, inside a new `describe("metadata section")` block:
 
@@ -64,12 +64,12 @@ describe("metadata section", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun --bun vitest run src/__tests__/session-start.test.ts --reporter=verbose`
 Expected: FAIL — `epicId` is not assignable to type `SessionStartInput`
 
-- [ ] **Step 3: Extend SessionStartInput interface**
+- [x] **Step 3: Extend SessionStartInput interface**
 
 In `src/hooks/session-start.ts`, update the interface:
 
@@ -85,7 +85,7 @@ export interface SessionStartInput {
 }
 ```
 
-- [ ] **Step 4: Refactor resolveArtifacts to return paths alongside contents**
+- [x] **Step 4: Refactor resolveArtifacts to return paths alongside contents**
 
 Change the return type and internal logic of `resolveArtifacts` in `src/hooks/session-start.ts`:
 
@@ -166,7 +166,7 @@ function findAllArtifactsWithPaths(dir: string, epic: string): ResolvedArtifacts
 
 Remove the old `findAllArtifacts` function since it's replaced.
 
-- [ ] **Step 5: Update assembleContext to use new resolveArtifacts return type**
+- [x] **Step 5: Update assembleContext to use new resolveArtifacts return type**
 
 In `assembleContext`, update the call site:
 
@@ -179,12 +179,12 @@ In `assembleContext`, update the call site:
   }
 ```
 
-- [ ] **Step 6: Run tests to verify all existing tests still pass**
+- [x] **Step 6: Run tests to verify all existing tests still pass**
 
 Run: `bun --bun vitest run src/__tests__/session-start.test.ts --reporter=verbose`
 Expected: ALL PASS — interface extension is backward-compatible, resolveArtifacts refactor preserves behavior
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/hooks/session-start.ts src/__tests__/session-start.test.ts
@@ -202,7 +202,7 @@ git commit -m "feat(session-start-metadata): extend SessionStartInput and refact
 - Modify: `src/hooks/session-start.ts` (add two new exported functions)
 - Test: `src/__tests__/session-start.test.ts`
 
-- [ ] **Step 1: Write failing tests for computeOutputTarget**
+- [x] **Step 1: Write failing tests for computeOutputTarget**
 
 Add to `src/__tests__/session-start.test.ts`:
 
@@ -246,7 +246,7 @@ describe("computeOutputTarget", () => {
 });
 ```
 
-- [ ] **Step 2: Write failing tests for buildMetadataSection**
+- [x] **Step 2: Write failing tests for buildMetadataSection**
 
 Add to `src/__tests__/session-start.test.ts`:
 
@@ -319,12 +319,12 @@ describe("buildMetadataSection", () => {
 });
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `bun --bun vitest run src/__tests__/session-start.test.ts --reporter=verbose`
 Expected: FAIL — `computeOutputTarget` and `buildMetadataSection` not exported from session-start
 
-- [ ] **Step 4: Implement computeOutputTarget**
+- [x] **Step 4: Implement computeOutputTarget**
 
 Add to `src/hooks/session-start.ts`:
 
@@ -340,7 +340,7 @@ export function computeOutputTarget(phase: string, epicSlug: string, featureSlug
 }
 ```
 
-- [ ] **Step 5: Implement buildMetadataSection**
+- [x] **Step 5: Implement buildMetadataSection**
 
 Add to `src/hooks/session-start.ts`:
 
@@ -386,12 +386,12 @@ export function buildMetadataSection(input: MetadataInput): string {
 }
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `bun --bun vitest run src/__tests__/session-start.test.ts --reporter=verbose`
 Expected: ALL PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/hooks/session-start.ts src/__tests__/session-start.test.ts
@@ -410,7 +410,7 @@ git commit -m "feat(session-start-metadata): add computeOutputTarget and buildMe
 - Modify: `src/hooks/session-start.ts:219-231` (runSessionStart)
 - Test: `src/__tests__/session-start.test.ts`
 
-- [ ] **Step 1: Write failing tests for metadata in assembleContext output**
+- [x] **Step 1: Write failing tests for metadata in assembleContext output**
 
 Add to the `describe("metadata section")` block in `src/__tests__/session-start.test.ts`:
 
@@ -531,12 +531,12 @@ Add to the `describe("metadata section")` block in `src/__tests__/session-start.
   });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun --bun vitest run src/__tests__/session-start.test.ts --reporter=verbose`
 Expected: FAIL — metadata section not present in assembleContext output
 
-- [ ] **Step 3: Update assembleContext to prepend metadata section**
+- [x] **Step 3: Update assembleContext to prepend metadata section**
 
 Replace the body of `assembleContext` in `src/hooks/session-start.ts`:
 
@@ -608,7 +608,7 @@ export function assembleContext(input: SessionStartInput): string {
 }
 ```
 
-- [ ] **Step 4: Update runSessionStart to read new env vars**
+- [x] **Step 4: Update runSessionStart to read new env vars**
 
 In `src/hooks/session-start.ts`, update `runSessionStart`:
 
@@ -630,12 +630,12 @@ export function runSessionStart(repoRoot: string): void {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `bun --bun vitest run src/__tests__/session-start.test.ts --reporter=verbose`
 Expected: ALL PASS — new metadata tests pass, existing tests still pass (metadata is prepended, existing content unchanged)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/hooks/session-start.ts src/__tests__/session-start.test.ts
@@ -654,7 +654,7 @@ git commit -m "feat(session-start-metadata): wire metadata section into assemble
 - Modify: `src/pipeline/runner.ts:169-177` (writeSessionStartHook call site)
 - Test: `src/__tests__/session-start.test.ts`
 
-- [ ] **Step 1: Write failing test for epicId in SessionStart hook**
+- [x] **Step 1: Write failing test for epicId in SessionStart hook**
 
 Add to the `describe("session-start settings writer")` block in `src/__tests__/session-start.test.ts`:
 
@@ -713,12 +713,12 @@ Add to the `describe("session-start settings writer")` block in `src/__tests__/s
   });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun --bun vitest run src/__tests__/session-start.test.ts --reporter=verbose`
 Expected: FAIL — `epicId` not accepted by `writeSessionStartHook`
 
-- [ ] **Step 3: Extend WriteSessionStartHookOptions and buildSessionStartHook**
+- [x] **Step 3: Extend WriteSessionStartHookOptions and buildSessionStartHook**
 
 In `src/hooks/hitl-settings.ts`, update the interface and function:
 
@@ -797,7 +797,7 @@ export function writeSessionStartHook(options: WriteSessionStartHookOptions): vo
 }
 ```
 
-- [ ] **Step 4: Update pipeline runner to pass epicId**
+- [x] **Step 4: Update pipeline runner to pass epicId**
 
 In `src/pipeline/runner.ts`, update the `writeSessionStartHook` call at lines 169-177:
 
@@ -816,12 +816,12 @@ In `src/pipeline/runner.ts`, update the `writeSessionStartHook` call at lines 16
 
 Note: `featureId` is not yet available in PipelineConfig — it will be added when the pipeline runner gains feature entity resolution (future wave). For now, only epicId is passed.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `bun --bun vitest run src/__tests__/session-start.test.ts --reporter=verbose`
 Expected: ALL PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/hooks/hitl-settings.ts src/pipeline/runner.ts src/__tests__/session-start.test.ts
@@ -841,12 +841,12 @@ git commit -m "feat(session-start-metadata): extend hook options with epicId/fea
 - Read: `src/pipeline/runner.ts`
 - Test: `src/__tests__/session-start.test.ts`
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `bun --bun vitest run --reporter=verbose`
 Expected: All session-start tests pass. Pre-existing failures (globalThis.Bun mock issues in 4 unrelated files) are unchanged.
 
-- [ ] **Step 2: Verify acceptance criteria**
+- [x] **Step 2: Verify acceptance criteria**
 
 Check each criterion against the implementation:
 1. Metadata section appears at top of additionalContext output — verified by test
@@ -862,7 +862,7 @@ Check each criterion against the implementation:
 11. Unit tests for output target — all present
 12. Unit tests for metadata alongside existing context — verified
 
-- [ ] **Step 3: Commit verification**
+- [x] **Step 3: Commit verification**
 
 ```bash
 git log --oneline -5
