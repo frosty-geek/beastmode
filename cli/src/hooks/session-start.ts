@@ -10,7 +10,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { parseFrontmatter } from "./generate-output.js";
+import { parseFrontmatter } from "./session-stop.js";
 
 // --- Types ---
 

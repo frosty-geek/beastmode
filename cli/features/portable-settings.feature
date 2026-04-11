@@ -16,7 +16,7 @@ Feature: Settings generation uses portable CLI-based hook commands
 
   Scenario: Generated Stop hook uses CLI-based command
     Given HITL settings are generated for phase "implement"
-    Then the Stop hook command should be "bunx beastmode hooks generate-output"
+    Then the Stop hook command should be "bunx beastmode hooks session-stop"
 
   Scenario: Generated settings contain no absolute paths to hook scripts
     Given a complete settings.local.json is generated for phase "design"

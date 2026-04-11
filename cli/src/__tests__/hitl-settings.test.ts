@@ -99,7 +99,7 @@ describe("writeHitlSettings", () => {
     const hooks = settings.hooks as Record<string, Array<{matcher: string; hooks: Array<{command?: string}>}>>;
     expect(hooks.Stop).toHaveLength(1);
     expect(hooks.Stop[0].matcher).toBe("");
-    expect(hooks.Stop[0].hooks[0].command).toBe("bunx beastmode hooks generate-output");
+    expect(hooks.Stop[0].hooks[0].command).toBe("bunx beastmode hooks session-stop");
   });
 
   test("replaces existing HITL hooks on re-write", () => {
@@ -192,7 +192,7 @@ describe("writeHitlSettings", () => {
 
     // Stop
     const stopCmd = hooks.Stop[0].hooks[0].command!;
-    expect(stopCmd).toBe("bunx beastmode hooks generate-output");
+    expect(stopCmd).toBe("bunx beastmode hooks session-stop");
   });
 });
 
@@ -211,7 +211,7 @@ describe("cleanHitlSettings", () => {
             { matcher: "AskUserQuestion", hooks: [{ type: "command", command: "test" }] },
           ],
           Stop: [
-            { matcher: "", hooks: [{ type: "command", command: "bunx beastmode hooks generate-output" }] },
+            { matcher: "", hooks: [{ type: "command", command: "bunx beastmode hooks session-stop" }] },
           ],
         },
       }),

@@ -152,7 +152,7 @@ export function cleanHitlSettings(claudeDir: string): void {
   // Remove Stop hook for output.json generation
   if (settings.hooks.Stop) {
     settings.hooks.Stop = settings.hooks.Stop.filter(
-      (h) => !h.hooks?.some((hk) => hk.command?.includes("generate-output")),
+      (h) => !h.hooks?.some((hk) => hk.command?.includes("session-stop")),
     );
     if (settings.hooks.Stop.length === 0) {
       delete settings.hooks.Stop;
@@ -199,7 +199,7 @@ function buildPostToolUseHook(phase: string): HookEntry {
 
 /**
  * Build the Stop hook for output.json generation.
- * Calls generate-output via portable CLI after Claude finishes responding.
+ * Calls session-stop via portable CLI after Claude finishes responding.
  */
 function buildStopHook(): HookEntry {
   return {
@@ -207,7 +207,7 @@ function buildStopHook(): HookEntry {
     hooks: [
       {
         type: "command",
-        command: `bunx beastmode hooks generate-output`,
+        command: `bunx beastmode hooks session-stop`,
       },
     ],
   };
