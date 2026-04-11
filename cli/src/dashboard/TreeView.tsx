@@ -52,13 +52,14 @@ interface FlatLine {
   node: React.ReactNode;
 }
 
-function flattenFeature(feat: FeatureNode, tick: number): FlatLine[] {
+function flattenFeature(feat: FeatureNode, tick: number, isLast: boolean): FlatLine[] {
   const dim = isFeatureDim(feat.status);
   const active = feat.status === "in-progress";
   const color = FEATURE_STATUS_COLOR[feat.status];
   const badge = `[${feat.status}]`.padEnd(BADGE_WIDTH);
   const dotColor = dim ? CHROME.muted : (color ?? CHROME.muted);
   const dot = active ? FEATURE_SPINNER[tick % FEATURE_SPINNER.length] : "○";
+  const connector = isLast ? "└─" : "├─";
 
   const lines: FlatLine[] = [];
 
@@ -67,7 +68,7 @@ function flattenFeature(feat: FeatureNode, tick: number): FlatLine[] {
     node: (
       <Text dimColor={dim}>
         <Text>{"  "}</Text>
-        <Text color={CHROME.muted}>{"├─"}</Text>
+        <Text color={CHROME.muted}>{connector}</Text>
         <Text color={dotColor}>{dot}</Text>
         <Text>{" "}</Text>
         {color ? <Text color={color}>{badge}</Text> : <Text dimColor>{badge}</Text>}
@@ -77,12 +78,13 @@ function flattenFeature(feat: FeatureNode, tick: number): FlatLine[] {
     ),
   });
 
+  const leafDepth = isLast ? "leaf-feature-last" as const : "leaf-feature" as const;
   for (const entry of feat.entries) {
     lines.push({
       key: `fe-${feat.slug}-${entry.seq}`,
       node: (
         <Text>
-          {formatTreeLine("leaf-feature", entry.level, entry.phase, entry.message, entry.timestamp)}
+          {formatTreeLine(leafDepth, entry.level, entry.phase, entry.message, entry.timestamp)}
         </Text>
       ),
     });
@@ -126,8 +128,9 @@ function flattenEpic(epic: EpicNode, tick: number): FlatLine[] {
     });
   }
 
-  for (const feat of epic.features) {
-    lines.push(...flattenFeature(feat, tick));
+  for (let fi = 0; fi < epic.features.length; fi++) {
+    const isLastFeature = fi === epic.features.length - 1;
+    lines.push(...flattenFeature(epic.features[fi], tick, isLastFeature));
   }
 
   return lines;

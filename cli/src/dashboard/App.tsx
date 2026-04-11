@@ -10,7 +10,7 @@ import EpicsPanel from "./EpicsPanel.js";
 import DetailsPanel from "./DetailsPanel.js";
 import type { DetailsPanelSelection } from "./details-panel.js";
 import type { GitStatus } from "./overview-panel.js";
-import LogPanel, { filterTreeByPhase, filterTreeByViewFilter, filterTreeByVerbosity, stripEmptyNodes, countTreeLines } from "./LogPanel.js";
+import LogPanel, { filterTreeByPhase, filterTreeByVerbosity, stripEmptyNodes, countTreeLines } from "./LogPanel.js";
 import { useDashboardTreeState } from "./hooks/use-dashboard-tree-state.js";
 import { useDashboardKeyboard } from "./hooks/use-dashboard-keyboard.js";
 import { useTerminalSize } from "./hooks/use-terminal-size.js";
@@ -57,19 +57,19 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   // Use shared stores from dashboard command if provided, otherwise create local ones
   const fallbackStoreRef = useRef(fallbackStore ?? new FallbackEntryStore());
   const systemEntriesRef = useRef(systemRef?.entries ?? []);
-  const systemSeqRef = useRef(0);
   const [sessionStats, setSessionStats] = useState<ReturnType<SessionStatsAccumulator["getStats"]> | undefined>(undefined);
   const statsAccRef = useRef<SessionStatsAccumulator | null>(null);
   const [allTimeStats, setAllTimeStats] = useState<PersistedStats | undefined>(undefined);
 
   // Dashboard logger for cancel actions (uses shared stores)
+  const localSeqRef = useRef(0);
   const dashboardLoggerRef = useRef(
     createLogger(
       new DashboardSink({
         fallbackStore: fallbackStoreRef.current,
         systemRef: systemRef ?? {
           entries: systemEntriesRef.current,
-          nextSeq: () => systemSeqRef.current++,
+          nextSeq: () => localSeqRef.current++,
         },
       }),
     ),
@@ -224,12 +224,9 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
 
   // --- Filter pipeline for log tree ---
   const phaseFiltered = filterTreeByPhase(treeState, keyboard.phaseFilter);
-  // When a specific epic is selected, show all features regardless of view filter
-  const effectiveViewFilter = selectedEpicSlug ? "all" : keyboard.viewFilter;
-  const filteredTreeState = filterTreeByViewFilter(phaseFiltered, effectiveViewFilter, activeSessions);
   const showSkeleton = !!selectedEpicSlug || keyboard.viewFilter !== "running";
   // Count lines after the same filters LogPanel applies (verbosity + empty-node stripping)
-  const verbFiltered = filterTreeByVerbosity(filteredTreeState, keyboard.verbosity);
+  const verbFiltered = filterTreeByVerbosity(phaseFiltered, keyboard.verbosity);
   const logTreeForCount = showSkeleton ? verbFiltered : stripEmptyNodes(verbFiltered);
   const logTotalLines = countTreeLines(logTreeForCount);
   logTotalLinesRef.current = logTotalLines;
@@ -300,11 +297,12 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
     };
 
     const pushSystemEntry = (message: string, level: LogLevel = "info") => {
+      const seq = systemRef ? systemRef.nextSeq() : localSeqRef.current++;
       systemEntriesRef.current.push({
         timestamp: Date.now(),
         level,
         message,
-        seq: systemSeqRef.current++,
+        seq,
       });
     };
 
@@ -571,7 +569,7 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
       }
       logSlot={
         <LogPanel
-          state={filteredTreeState}
+          state={phaseFiltered}
           verbosity={keyboard.verbosity}
           scrollOffset={keyboard.logScrollOffset}
           autoFollow={keyboard.logAutoFollow}

@@ -122,10 +122,15 @@ export default function EpicsPanel({
       const fBadgeText = `[${row.featureStatus}]`;
       const fPaddedBadge = fBadgeText.padEnd(BADGE_WIDTH);
 
+      // Check if this is the last feature under its parent epic
+      const nextRow = flatRows[i + 1];
+      const isLastFeature = !nextRow || nextRow.type !== "feature";
+      const connector = isLastFeature ? "└─" : "├─";
+
       rows.push(
         <Box key={`f-${row.epicSlug}-${row.slug}`}>
           <Text dimColor={dim}>
-            <Text color={CHROME.muted}>{"├─"}</Text>
+            <Text color={CHROME.muted}>{connector}</Text>
             <Text color={isSelected ? CHROME.title : dotColor as InkColor}>
               {featureActive && !isSelected
                 ? FEATURE_SPINNER[tick % FEATURE_SPINNER.length]

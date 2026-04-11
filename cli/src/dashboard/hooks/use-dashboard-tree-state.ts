@@ -122,7 +122,7 @@ export function buildTreeState(
   }
 
   return {
-    cli: { entries: systemEntries ?? [] },
+    cli: { entries: systemEntries ? [...systemEntries] : [] },
     epics: Array.from(epicMap.values()),
   };
 }

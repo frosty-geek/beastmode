@@ -18,6 +18,7 @@ export type TreeDepth =
   | "feature"        // │ │
   | "leaf-epic"      // │ ·        (entry directly under epic)
   | "leaf-feature"   // │ │ ·      (entry under feature)
+  | "leaf-feature-last" // │   ·   (entry under last feature — no parent vertical)
   | "system";        // │ · (same as leaf-epic)
 
 /** Level labels — fixed 5-char width (matches logger.ts). */
@@ -46,6 +47,8 @@ export function buildTreePrefix(depth: TreeDepth): string {
       return "    │ ";
     case "leaf-feature":
       return "    │ │ ";
+    case "leaf-feature-last":
+      return "      │ ";
   }
 }
 
