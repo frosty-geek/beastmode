@@ -339,5 +339,16 @@
     ],
     "format": ["progress-bar"],
     "publishQuiet": true
+  },
+  "slug-foundation": {
+    "paths": ["features/store/slug-foundation.feature"],
+    "import": [
+      "features/store/step_definitions/slug-foundation.steps.ts",
+      "features/store/step_definitions/store-ready.steps.ts",
+      "features/store/support/store-world.ts",
+      "features/store/support/store-hooks.ts"
+    ],
+    "format": ["progress-bar"],
+    "publishQuiet": true
   }
 }
