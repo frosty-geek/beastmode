@@ -172,7 +172,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       claudeDir,
       phase: config.phase,
       epic: config.epicSlug,
-      slug: config.epicSlug,
+      id: config.epicSlug,
       feature: config.featureSlug,
     });
   }
@@ -184,9 +184,16 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     try {
       const taskStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
       taskStore.load();
-      // Find epic by slug
-      const epicEntity = taskStore.find(epicSlug);
-      if (epicEntity && epicEntity.type === "epic") {
+      // Find epic by ID if available, otherwise resolve via slug
+      let epicEntity = config.epicId ? taskStore.getEpic(config.epicId) : undefined;
+      if (!epicEntity) {
+        // Fallback for design phase: resolve by slug first
+        const allEpics = taskStore.listEpics().filter((e) => e.slug === epicSlug);
+        if (allEpics.length > 0) {
+          epicEntity = allEpics[0];
+        }
+      }
+      if (epicEntity) {
         await ensureEarlyIssues({
           phase: config.phase,
           epicId: epicEntity.id,
@@ -230,20 +237,20 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
         reconcileResult = await reconcileDesign(config.projectRoot, epicSlug, worktreePath);
         break;
       case "plan":
-        reconcileResult = await reconcilePlan(config.projectRoot, epicSlug, worktreePath);
+        reconcileResult = await reconcilePlan(config.projectRoot, config.epicId ?? epicSlug, worktreePath);
         break;
       case "implement":
         if (config.featureSlug) {
-          reconcileResult = await reconcileFeature(config.projectRoot, epicSlug, config.featureSlug, worktreePath);
+          reconcileResult = await reconcileFeature(config.projectRoot, config.epicId ?? epicSlug, config.featureSlug, worktreePath);
         } else {
-          reconcileResult = await reconcileImplement(config.projectRoot, epicSlug);
+          reconcileResult = await reconcileImplement(config.projectRoot, config.epicId ?? epicSlug);
         }
         break;
       case "validate":
-        reconcileResult = await reconcileValidate(config.projectRoot, epicSlug, worktreePath);
+        reconcileResult = await reconcileValidate(config.projectRoot, config.epicId ?? epicSlug, worktreePath);
         break;
       case "release":
-        reconcileResult = await reconcileRelease(config.projectRoot, epicSlug, worktreePath);
+        reconcileResult = await reconcileRelease(config.projectRoot, config.epicId ?? epicSlug, worktreePath);
         break;
     }
 
@@ -300,8 +307,8 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
           // Update the store's worktree path
           const renameStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
           renameStore.load();
-          const renamedEntity = renameStore.find(finalEpic.slug);
-          if (renamedEntity && renamedEntity.type === "epic") {
+          const renamedEntity = renameStore.getEpic(finalEpic.id);
+          if (renamedEntity) {
             renameStore.updateEpic(renamedEntity.id, {
               worktree: { branch: newBranch, path: newWtPath },
             });
@@ -322,8 +329,16 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   try {
     const taskStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
     taskStore.load();
-    const epicEntity = taskStore.find(epicSlug);
-    if (epicEntity && epicEntity.type === "epic") {
+    // Find epic by ID if available, otherwise resolve via slug
+    let epicEntity = config.epicId ? taskStore.getEpic(config.epicId) : undefined;
+    if (!epicEntity) {
+      // Fallback: resolve by slug
+      const allEpics = taskStore.listEpics().filter((e) => e.slug === epicSlug);
+      if (allEpics.length > 0) {
+        epicEntity = allEpics[0];
+      }
+    }
+    if (epicEntity) {
       const resolved = config.resolved ?? (config.config.github.enabled
         ? await discoverGitHub(config.projectRoot, config.config.github["project-name"])
         : undefined);
@@ -354,8 +369,16 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     const syncRefs = loadSyncRefs(config.projectRoot);
     const taskStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
     taskStore.load();
-    const epicEntity = taskStore.find(epicSlug);
-    if (epicEntity && epicEntity.type === "epic") {
+    // Find epic by ID if available, otherwise resolve via slug
+    let epicEntity = config.epicId ? taskStore.getEpic(config.epicId) : undefined;
+    if (!epicEntity) {
+      // Fallback: resolve by slug
+      const allEpics = taskStore.listEpics().filter((e) => e.slug === epicSlug);
+      if (allEpics.length > 0) {
+        epicEntity = allEpics[0];
+      }
+    }
+    if (epicEntity) {
       const features = taskStore.listFeatures(epicEntity.id).map((f) => ({ id: f.id, slug: f.slug }));
       const rangeResult = await amendCommitsInRange(syncRefs, epicEntity.id, features, epicSlug, config.phase, { cwd: worktreePath });
       if (rangeResult.amended > 0) {
@@ -397,8 +420,16 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       const syncRefs = loadSyncRefs(config.projectRoot);
       const taskStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
       taskStore.load();
-      const epicEntity = taskStore.find(epicSlug);
-      if (epicEntity && epicEntity.type === "epic") {
+      // Find epic by ID if available, otherwise resolve via slug
+      let epicEntity = config.epicId ? taskStore.getEpic(config.epicId) : undefined;
+      if (!epicEntity) {
+        // Fallback: resolve by slug
+        const allEpics = taskStore.listEpics().filter((e) => e.slug === epicSlug);
+        if (allEpics.length > 0) {
+          epicEntity = allEpics[0];
+        }
+      }
+      if (epicEntity) {
         const epicRef = getSyncRef(syncRefs, epicEntity.id);
         if (epicRef) {
           let featureIssueNumber: number | undefined;
@@ -443,8 +474,16 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       // Mark store entity as done so scanner skips it
       const doneStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
       doneStore.load();
-      const doneEntity = doneStore.find(epicSlug);
-      if (doneEntity && doneEntity.type === "epic") {
+      // Find epic by ID if available, otherwise resolve via slug
+      let doneEntity = config.epicId ? doneStore.getEpic(config.epicId) : undefined;
+      if (!doneEntity) {
+        // Fallback: resolve by slug
+        const allEpics = doneStore.listEpics().filter((e) => e.slug === epicSlug);
+        if (allEpics.length > 0) {
+          doneEntity = allEpics[0];
+        }
+      }
+      if (doneEntity) {
         doneStore.updateEpic(doneEntity.id, { status: "done", updated_at: new Date().toISOString() });
         doneStore.save();
       }

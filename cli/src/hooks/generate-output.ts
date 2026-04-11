@@ -22,7 +22,7 @@ const WORKFLOW_PHASES: readonly string[] = ["design", "plan", "implement", "vali
 /** Frontmatter extracted from a markdown artifact. */
 export interface ArtifactFrontmatter {
   phase?: string;
-  slug?: string;
+  id?: string;
   epic?: string;
   feature?: string;
   status?: string;
@@ -80,12 +80,12 @@ export function buildOutput(
         : undefined;
       return {
         status: (fm.status as PhaseOutput["status"]) ?? "completed",
-        artifacts: { design: basename(artifactPath), slug: fm.epic ?? fm.slug, epic: fm.epic, summary },
+        artifacts: { design: basename(artifactPath), slug: fm.epic ?? fm.id, epic: fm.epic, summary },
       };
     }
 
     case "plan": {
-      const epic = fm.epic ?? fm.slug;
+      const epic = fm.epic ?? fm.id;
       const features = scanPlanFeatures(artifactsDir, epic);
       return {
         status: (fm.status as PhaseOutput["status"]) ?? "completed",
@@ -161,8 +161,8 @@ export function scanPlanFeatures(
 
     const fm = parseFrontmatter(content);
     if (!fm.feature) continue;
-    // Match on epic field (human name) or slug field (hex) for standardized frontmatter
-    if (fm.epic !== epic && fm.slug !== epic) continue;
+    // Match on epic field only — slug fallback removed per env-frontmatter-contract
+    if (fm.epic !== epic) continue;
 
     const entry: { slug: string; plan: string; description?: string; wave?: number } = {
       slug: fm.feature,

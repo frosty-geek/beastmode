@@ -88,12 +88,15 @@ vi.mock("../github/early-issues.js", () => ({
 // Mock store/json-file-store
 const mockJsonFileStore = vi.hoisted(() => {
   const storeState = {
-    find: vi.fn((idOrSlug: string) => {
-      if (idOrSlug === "test-epic") {
+    getEpic: vi.fn((id: string) => {
+      if (id === "epic-123" || id === "test-epic") {
         return { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" };
       }
       return undefined;
     }),
+    listEpics: vi.fn(() => [
+      { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" }
+    ]),
     listFeatures: vi.fn((_epicId?: string) => []),
   };
 
@@ -102,7 +105,8 @@ const mockJsonFileStore = vi.hoisted(() => {
     constructor(_path: string) {}
     load() {}
     save() {}
-    find(idOrSlug: string) { return this.state.find(idOrSlug); }
+    getEpic(id: string) { return this.state.getEpic(id); }
+    listEpics() { return this.state.listEpics(); }
     listFeatures(epicId: string) { return this.state.listFeatures(epicId); }
     updateEpic(_id: string, _patch: any) {}
   }
@@ -269,12 +273,15 @@ function resetAllMocks() {
 
   // Reset store/sync-refs mocks to defaults
   const storeState = (mockJsonFileStore as any).__storeState;
-  storeState.find = vi.fn((idOrSlug: string) => {
-    if (idOrSlug === "test-epic") {
+  storeState.getEpic = vi.fn((id: string) => {
+    if (id === "epic-123") {
       return { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" };
     }
     return undefined;
   });
+  storeState.listEpics = vi.fn(() => [
+    { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" },
+  ]);
   storeState.listFeatures = vi.fn(() => []);
 
   mockLoadSyncRefs.mockImplementation(() => ({}));
@@ -518,8 +525,8 @@ describe("pipeline/runner", () => {
 
       // Configure store mocks
       const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.find = vi.fn((idOrSlug: string) => {
-        if (idOrSlug === "test-epic") {
+      storeState.getEpic = vi.fn((id: string) => {
+        if (id === "epic-123") {
           return { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" };
         }
         return undefined;
@@ -581,18 +588,16 @@ describe("pipeline/runner", () => {
     });
 
     it("passes correct arguments to ensureEarlyIssues", async () => {
-      // Configure store mocks
+      // Configure store mocks — design phase has no epicId, so slug fallback via listEpics
       const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.find = vi.fn((idOrSlug: string) => {
-        if (idOrSlug === "my-epic") {
-          return { id: "epic-123", slug: "my-epic", name: "My Epic", type: "epic" };
-        }
-        return undefined;
-      });
+      storeState.listEpics = vi.fn(() => [
+        { id: "epic-123", slug: "my-epic", name: "My Epic", type: "epic" },
+      ]);
 
       await run(makeConfig({
         phase: "design",
         epicSlug: "my-epic",
+        epicId: undefined,
         config: {
           hitl: { model: "claude-sonnet-4-5-20250514", timeout: 30, design: "", plan: "", implement: "", validate: "", release: "" },
           "file-permissions": { timeout: 60, "claude-settings": "test" },
@@ -796,8 +801,8 @@ describe("pipeline/runner", () => {
 
       // Configure store mocks for the new code path
       const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.find = vi.fn((idOrSlug: string) => {
-        if (idOrSlug === "test-epic") {
+      storeState.getEpic = vi.fn((id: string) => {
+        if (id === "epic-123") {
           return { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" };
         }
         return undefined;
@@ -868,8 +873,8 @@ describe("pipeline/runner", () => {
 
       // Configure store mocks - getSyncRef should return undefined (no issue)
       const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.find = vi.fn((idOrSlug: string) => {
-        if (idOrSlug === "test-epic") {
+      storeState.getEpic = vi.fn((id: string) => {
+        if (id === "epic-123") {
           return { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" };
         }
         return undefined;
@@ -904,8 +909,8 @@ describe("pipeline/runner", () => {
 
       // Configure store mocks
       const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.find = vi.fn((idOrSlug: string) => {
-        if (idOrSlug === "test-epic") {
+      storeState.getEpic = vi.fn((id: string) => {
+        if (id === "epic-123") {
           return { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" };
         }
         return undefined;
@@ -947,8 +952,8 @@ describe("pipeline/runner", () => {
 
       // Configure store mocks for the new code path
       const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.find = vi.fn((idOrSlug: string) => {
-        if (idOrSlug === "test-epic") {
+      storeState.getEpic = vi.fn((id: string) => {
+        if (id === "epic-123") {
           return { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" };
         }
         return undefined;

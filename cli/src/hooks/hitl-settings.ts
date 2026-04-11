@@ -68,7 +68,7 @@ export interface PromptHookEntry {
  * only the HITL-related hook entries.
  */
 export function writeHitlSettings(options: WriteSettingsOptions): void {
-  const { claudeDir, preToolUseHook, phase, feature } = options;
+  const { claudeDir, preToolUseHook, phase } = options;
   const settingsPath = resolve(claudeDir, "settings.local.json");
 
   // Read existing settings or start fresh
@@ -103,7 +103,7 @@ export function writeHitlSettings(options: WriteSettingsOptions): void {
   );
 
   // Add Stop hook for output.json generation
-  const stopHook = buildStopHook(feature);
+  const stopHook = buildStopHook();
   settings.hooks.Stop = replaceHitlHook(
     settings.hooks.Stop,
     "",
@@ -254,7 +254,7 @@ export interface WriteSessionStartHookOptions {
   claudeDir: string;
   phase: string;
   epic: string;
-  slug: string;
+  id: string;
   feature?: string;
 }
 
@@ -262,11 +262,11 @@ export interface WriteSessionStartHookOptions {
  * Build the SessionStart command hook entry.
  * Sets BEASTMODE_* env vars inline and calls the session-start subcommand.
  */
-export function buildSessionStartHook(opts: { phase: string; epic: string; slug: string; feature?: string }): HookEntry {
+export function buildSessionStartHook(opts: { phase: string; epic: string; id: string; feature?: string }): HookEntry {
   const envParts = [
     `BEASTMODE_PHASE=${opts.phase}`,
     `BEASTMODE_EPIC=${opts.epic}`,
-    `BEASTMODE_SLUG=${opts.slug}`,
+    `BEASTMODE_ID=${opts.id}`,
   ];
   if (opts.feature) {
     envParts.push(`BEASTMODE_FEATURE=${opts.feature}`);
@@ -287,7 +287,7 @@ export function buildSessionStartHook(opts: { phase: string; epic: string; slug:
  * Preserves all existing keys and replaces only the SessionStart hook.
  */
 export function writeSessionStartHook(options: WriteSessionStartHookOptions): void {
-  const { claudeDir, phase, epic, slug, feature } = options;
+  const { claudeDir, phase, epic, id, feature } = options;
   const settingsPath = resolve(claudeDir, "settings.local.json");
 
   let settings: SettingsLocal = {};
@@ -303,7 +303,7 @@ export function writeSessionStartHook(options: WriteSessionStartHookOptions): vo
     settings.hooks = {};
   }
 
-  const hook = buildSessionStartHook({ phase, epic, slug, feature });
+  const hook = buildSessionStartHook({ phase, epic, id, feature });
   settings.hooks.SessionStart = [hook];
 
   mkdirSync(claudeDir, { recursive: true });

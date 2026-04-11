@@ -4,6 +4,36 @@ All notable changes to beastmode.
 
 ---
 
+## v0.115.0 — Slug/ID Consistency (2026-04-11)
+
+Eliminates slug/ID ambiguity across the entire pipeline. Environment variables, frontmatter, reconcile functions, store lookups, and mutex keys now use entity IDs exclusively.
+
+### Features
+
+- Replace `BEASTMODE_SLUG` with `BEASTMODE_ID` in hook environment variables
+- Replace `fm.slug` with `fm.id` in frontmatter contract
+- Update all call sites for the id parameter contract change
+- Embed parent epic name in feature slugs with `--` separator
+- Deduplicate slugify, replace randomHex with placeholder names
+- Add placeholder name generator for human-readable feature slugs
+- Accept dots in slug validation
+
+### Fixes
+
+- Fix remaining `store.find()` references missed by agent dispatch
+- Fix BDD step definition parameter binding for slug-foundation tests
+- Replace `toEndWith` with `toMatch` for type safety in slug-foundation tests
+- Update tests for new feature slug format and slugify dedup
+
+### Chores
+
+- Replace slug params with epicId in all 6 reconcile functions
+- Replace `store.find(slug)` with epicId lookup in pipeline runner
+- Remove `find()` method from TaskStore interface and implementations
+- Use `resolveIdentifier` instead of `store.find()` in store commands
+
+---
+
 ## v0.114.0 — Dashboard Stats Persistence (2026-04-11)
 
 ### Highlights

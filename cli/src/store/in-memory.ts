@@ -49,6 +49,18 @@ export class InMemoryTaskStore implements TaskStore {
     return new Date().toISOString();
   }
 
+  /**
+   * Derive a 4-char hex string from an arbitrary string ID.
+   * Uses a simple hash to produce a deterministic, short hex value.
+   */
+  private shortHex(input: string): string {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+    }
+    return (hash >>> 0).toString(16).padStart(4, "0").slice(-4);
+  }
+
   // --- Epic CRUD ---
 
   getEpic(id: string): Epic | undefined {
@@ -131,9 +143,10 @@ export class InMemoryTaskStore implements TaskStore {
     if (!parentEpic) throw new Error(`Parent epic not found: ${opts.parent}`);
 
     const id = this.generateFeatureId(opts.parent);
-    const normalizedSlug = slugify(opts.name);
+    const featureSlugBase = slugify(opts.name);
     const ordinal = id.split(".").pop()!;
-    const finalSlug = `${normalizedSlug}-${ordinal}`;
+    const featureHex = this.shortHex(id);
+    const finalSlug = `${parentEpic.slug}--${featureSlugBase}-${featureHex}.${ordinal}`;
 
     const feature: Feature = {
       id,
@@ -263,28 +276,6 @@ export class InMemoryTaskStore implements TaskStore {
       entity: epic,
       children,
     };
-  }
-
-  find(idOrSlug: string): Entity | undefined {
-    // Try lookup by ID first
-    const byId = this.entities.get(idOrSlug);
-    if (byId) return byId;
-
-    // Try epic slug match first (epic slugs take priority)
-    for (const entity of this.entities.values()) {
-      if (entity.type === "epic" && entity.slug === idOrSlug) {
-        return entity;
-      }
-    }
-
-    // Try feature slug match
-    for (const entity of this.entities.values()) {
-      if (entity.type === "feature" && entity.slug === idOrSlug) {
-        return entity;
-      }
-    }
-
-    return undefined;
   }
 
   // --- Dependency graph ---

@@ -158,7 +158,6 @@ function makeStore(epics: Epic[], features: Record<string, Feature[]> = {}): Tas
     ready: () => [],
     blocked: () => [],
     tree: () => [],
-    find: () => undefined,
     dependencyChain: () => [],
     computeWave: () => 0,
     detectCycles: () => [],

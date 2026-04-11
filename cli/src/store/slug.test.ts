@@ -57,4 +57,40 @@ describe("isValidSlug", () => {
   it("should reject empty string", () => {
     expect(isValidSlug("")).toBe(false);
   });
+
+  it("should accept dots for feature ID suffixes", () => {
+    expect(isValidSlug("auth-flow.2")).toBe(true);
+    expect(isValidSlug("auth-flow-a3f2.2")).toBe(true);
+  });
+
+  it("should reject leading dot", () => {
+    expect(isValidSlug(".auth")).toBe(false);
+  });
+
+  it("should reject trailing dot", () => {
+    expect(isValidSlug("auth.")).toBe(false);
+  });
+
+  it("should accept dot in the middle", () => {
+    expect(isValidSlug("a.b")).toBe(true);
+  });
+});
+
+describe("slugify -- separator safety", () => {
+  it("collapses double hyphens, making -- impossible in slugified output", () => {
+    expect(slugify("foo--bar")).toBe("foo-bar");
+  });
+
+  it("collapses triple hyphens", () => {
+    expect(slugify("a---b")).toBe("a-b");
+  });
+
+  it("makes -- safe as a separator between two slugified strings", () => {
+    const epicSlug = slugify("my epic");
+    const featureSlug = slugify("my feature");
+    const combined = `${epicSlug}--${featureSlug}`;
+    // The -- is unambiguous because neither half can contain --
+    expect(combined).toBe("my-epic--my-feature");
+    expect(combined.split("--")).toHaveLength(2);
+  });
 });
