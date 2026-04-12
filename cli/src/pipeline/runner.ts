@@ -163,7 +163,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       const wt = await worktree.create(epicSlug, { cwd: config.projectRoot });
       worktreePath = wt.path;
     }
-    logger.info(`worktree: ${worktreePath}`);
+    logger.debug?.(`worktree: ${worktreePath}`);
 
     // -- Step 0b: update store entity with worktree metadata -------------------
     // After worktree is created, update the store entity with the worktree path
@@ -285,7 +285,25 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
         break;
       case "implement":
         if (config.featureSlug) {
-          reconcileResult = await reconcileFeature(config.projectRoot, config.epicId ?? epicSlug, config.featureSlug, worktreePath);
+          // Resolve short feature name to store slug if needed.
+          // The CLI arg / watch-loop may pass a short name (e.g. "remove-topic-arg")
+          // but reconcileFeature matches on feature.slug from the store.
+          let resolvedFeatureSlug = config.featureSlug;
+          const epicIdForLookup = config.epicId ?? epicSlug;
+          try {
+            const _store = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
+            _store.load();
+            const epic = _store.listEpics().find((e) => e.id === epicIdForLookup || e.slug === epicIdForLookup);
+            if (epic) {
+              const feat = _store.listFeatures(epic.id).find(
+                (f) => f.slug === config.featureSlug || f.name === config.featureSlug,
+              );
+              if (feat) resolvedFeatureSlug = feat.slug;
+            }
+          } catch {
+            // Fall through with original slug
+          }
+          reconcileResult = await reconcileFeature(config.projectRoot, epicIdForLookup, resolvedFeatureSlug, worktreePath);
         } else {
           reconcileResult = await reconcileImplement(config.projectRoot, config.epicId ?? epicSlug);
         }
@@ -299,7 +317,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     }
 
     if (reconcileResult) {
-      logger.info(`reconciled -> ${reconcileResult.phase}`);
+      logger.debug?.(`reconciled -> ${reconcileResult.phase}`);
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -365,7 +383,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
           await worktree.git(["worktree", "repair"], { cwd: config.projectRoot, allowFailure: true });
 
           worktreePath = newWtPath;
-          logger.info(`worktree renamed -> ${newSlug}`);
+          logger.debug?.(`worktree renamed -> ${newSlug}`);
 
           const renameStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
           renameStore.load();
@@ -380,7 +398,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       }
 
       epicSlug = newSlug;
-      logger.info(`slug updated -> ${newSlug}`);
+      logger.debug?.(`slug updated -> ${newSlug}`);
     }
   }
 
@@ -410,7 +428,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
           resolved,
           logger,
         });
-        logger.info("GitHub sync complete");
+        logger.debug?.("GitHub sync complete");
       } else {
         logger.debug?.("GitHub discovery failed -- skipping sync");
       }
@@ -494,7 +512,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
           let featureIssueNumber: number | undefined;
           if (config.featureSlug) {
             const features = taskStore.listFeatures(epicEntity.id);
-            const feat = features.find((f) => f.slug === config.featureSlug);
+            const feat = features.find((f) => f.slug === config.featureSlug || f.name === config.featureSlug);
             if (feat) featureIssueNumber = getSyncRef(syncRefs, feat.id)?.issue;
           }
           // Discover repo from sync ref or discovery
@@ -523,12 +541,12 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   // -- Step 9: git.worktree.cleanup -------------------------------------------
   if (config.phase === "release" && dispatchResult.success) {
     try {
-      logger.info("release teardown -- archiving branch...");
+      logger.debug?.("release teardown -- archiving branch...");
       const tagName = await worktree.archive(epicSlug, { cwd: config.projectRoot });
-      logger.info(`archived as ${tagName}`);
+      logger.debug?.(`archived as ${tagName}`);
 
       await worktree.remove(epicSlug, { cwd: config.projectRoot });
-      logger.info("worktree removed");
+      logger.debug?.("worktree removed");
 
       // Mark store entity as done so scanner skips it
       const doneStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
@@ -546,7 +564,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
         doneStore.updateEpic(doneEntity.id, { status: "done", updated_at: new Date().toISOString() });
         doneStore.save();
       }
-      logger.info("store entity marked done");
+      logger.debug?.("store entity marked done");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`release teardown failed: ${message}`);

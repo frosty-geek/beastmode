@@ -352,8 +352,10 @@ describe("rebase", () => {
 
     const logs: string[] = [];
     const warns: string[] = [];
+    const debugs: string[] = [];
     const logger = {
       info: (msg: string) => logs.push(msg),
+      debug: (msg: string) => debugs.push(msg),
       warn: (msg: string) => warns.push(msg),
     };
 
@@ -361,7 +363,7 @@ describe("rebase", () => {
 
     expect(result.outcome).toBe("success");
     expect(result.message).toContain("merged");
-    expect(logs.length).toBe(1);
+    expect(debugs.length).toBe(1);
     expect(warns.length).toBe(0);
 
     // Verify main's file is now available in the worktree
@@ -390,6 +392,7 @@ describe("rebase", () => {
     const warns: string[] = [];
     const logger = {
       info: (msg: string) => logs.push(msg),
+      debug: (msg: string) => logs.push(msg),
       warn: (msg: string) => warns.push(msg),
     };
 
@@ -414,8 +417,10 @@ describe("rebase", () => {
   test("design: skips rebase", async () => {
     const logs: string[] = [];
     const warns: string[] = [];
+    const debugs: string[] = [];
     const logger = {
       info: (msg: string) => logs.push(msg),
+      debug: (msg: string) => debugs.push(msg),
       warn: (msg: string) => warns.push(msg),
     };
 
@@ -424,7 +429,7 @@ describe("rebase", () => {
 
     expect(result.outcome).toBe("skipped");
     expect(result.message).toContain("design phase");
-    expect(logs.length).toBe(1);
+    expect(debugs.length).toBe(1);
     expect(warns.length).toBe(0);
   });
 });

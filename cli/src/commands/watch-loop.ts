@@ -180,7 +180,7 @@ export class WatchLoop extends EventEmitter {
           }
 
           if (reconcileResult.opsAttempted > 0) {
-            this.logger.info("reconcile: processed operations", {
+            this.logger.debug("reconcile: processed operations", {
               attempted: String(reconcileResult.opsAttempted),
               succeeded: String(reconcileResult.opsSucceeded),
               failed: String(reconcileResult.opsFailed),

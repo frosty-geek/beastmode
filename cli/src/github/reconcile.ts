@@ -72,7 +72,7 @@ export async function reconcileGitHub(opts: ReconcileOpts): Promise<ReconcileRes
 
   if (!hasAnyRefs && epics.length > 0) {
     result.bootstrapped = true;
-    logger?.info("reconcile: bootstrapping sync-refs from epic store");
+    logger?.debug("reconcile: bootstrapping sync-refs from epic store");
 
     for (const epic of epics) {
       if (getSyncRef(refs, epic.id)?.issue) continue;
