@@ -232,7 +232,7 @@ export async function reconcileDesign(
     if (!output || output.status !== "completed") return undefined;
 
     const artifacts = output.artifacts as unknown as Record<string, unknown> | undefined;
-    const realSlug = artifacts?.["epic-slug"] as string | undefined;
+    const realSlug = artifacts?.["epic-slug-renamed"] as string | undefined;
     const designPath = artifacts?.design as string | undefined;
 
     let summary: { problem: string; solution: string } | undefined;

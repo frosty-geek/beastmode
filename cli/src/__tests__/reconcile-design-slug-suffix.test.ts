@@ -61,7 +61,7 @@ describe("reconcileDesign preserves collision-proof hex suffix", () => {
     mockDesignOutput = {
       status: "completed",
       artifacts: {
-        "epic-slug": "dashboard-stats-persistence",
+        "epic-slug-renamed": "dashboard-stats-persistence",
         design: "2026-04-11-dashboard-stats-persistence.md",
       },
     };
@@ -96,7 +96,7 @@ describe("reconcileDesign preserves collision-proof hex suffix", () => {
     mockDesignOutput = {
       status: "completed",
       artifacts: {
-        "epic-slug": "auth-redesign",
+        "epic-slug-renamed": "auth-redesign",
       },
     };
 
@@ -113,7 +113,7 @@ describe("reconcileDesign preserves collision-proof hex suffix", () => {
     mockDesignOutput = {
       status: "completed",
       artifacts: {
-        "epic-slug": "my-cool-feature",
+        "epic-slug-renamed": "my-cool-feature",
       },
     };
 

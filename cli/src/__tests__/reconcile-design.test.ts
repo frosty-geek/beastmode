@@ -80,7 +80,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug": "test-slug",
+        "epic-slug-renamed": "test-slug",
         design: "/path/to/design.md",
       },
     } as any);
@@ -98,7 +98,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug": "test-slug",
+        "epic-slug-renamed": "test-slug",
         design: "/path/to/design.md",
       },
     } as any);
@@ -141,7 +141,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug": "test-slug",
+        "epic-slug-renamed": "test-slug",
         design: "/path/to/design.md",
       },
     } as any);
@@ -204,7 +204,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug": "better-slug",
+        "epic-slug-renamed": "better-slug",
         design: "/path/to/design.md",
       },
     } as any);
@@ -275,7 +275,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug": "test-slug",
+        "epic-slug-renamed": "test-slug",
         design: "/path/to/design.md",
       },
     } as any);

@@ -150,20 +150,22 @@ Wait for user response before continuing.
 
 ## Phase 3: Checkpoint
 
-### 0. Resolve Epic Name
+### 0. Derive Epic Slug
 
-The epic name is either provided as the skill argument or, when the design was started with only an epic-id (e.g. `d7f3a1`), it must be derived here.
+The skill argument is the current epic-slug assigned by the CLI (e.g. `rabbit-running-4efa`).
 
-If the skill argument is an epic-id (6-character lowercase hex string like `d7f3a1`):
-- Synthesize a short, hyphenated epic name from the problem statement and solution. Use it directly without prompting.
-- Log: "Auto-derived epic: `<epic-name>`"
+Derive a NEW human-readable slug from the problem statement and solution discussed during the interview. This becomes the `epic-slug-renamed` value in the PRD frontmatter — the CLI uses it to rename everything post-session.
 
-If the skill argument is already a meaningful epic name:
-- Use it directly
+- Log: "Derived slug: `<derived-slug>`"
 
 ### 1. Write PRD
 
-Save to `.beastmode/artifacts/design/YYYY-MM-DD-<epic-id>.md` where `<epic-id>` is the original hex identifier (the skill argument). Do NOT use the resolved epic name in the filename — the rename happens later in post-dispatch.
+Save to `.beastmode/artifacts/design/YYYY-MM-DD-<epic-slug>.md` where `<epic-slug>` is the skill argument (the passed-in slug).
+
+In the PRD frontmatter:
+- `epic-id`: the hex suffix extracted from the passed-in slug (e.g. `4efa` from `rabbit-running-4efa`)
+- `epic-slug`: the passed-in slug (unchanged)
+- `epic-slug-renamed`: the derived slug from step 0
 
 Use the PRD template from the Reference section below.
 
@@ -173,13 +175,13 @@ Commit all work to the feature branch:
 
 ```bash
 git add -A
-git commit -m "design(<epic-name>): checkpoint"
+git commit -m "design(<epic-slug>): checkpoint"
 ```
 
 Print:
 
 ```
-Next: beastmode plan <epic-name>
+Next: beastmode plan <epic-slug>
 ```
 
 STOP. No additional output.
@@ -211,7 +213,8 @@ There is no "skip design" path.
 ---
 phase: design
 epic-id: <epic-id>
-epic-slug: <epic-name>
+epic-slug: <epic-slug>
+epic-slug-renamed: <derived-slug>
 ---
 
 ## Problem Statement

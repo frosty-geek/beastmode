@@ -88,10 +88,10 @@ describe("parseFrontmatter", () => {
 
 describe("buildOutput", () => {
   test("design phase output", () => {
-    const output = buildOutput("path/to/design.md", { phase: "design", "epic-slug": "my-epic" } as ArtifactFrontmatter, ARTIFACTS_DIR);
+    const output = buildOutput("path/to/design.md", { phase: "design", "epic-slug": "my-epic", "epic-slug-renamed": "better-epic" } as ArtifactFrontmatter, ARTIFACTS_DIR);
     expect(output).toEqual({
       status: "completed",
-      artifacts: { design: "design.md", "epic-slug": "my-epic" },
+      artifacts: { design: "design.md", "epic-slug": "my-epic", "epic-slug-renamed": "better-epic" },
     });
   });
 
@@ -100,11 +100,11 @@ describe("buildOutput", () => {
     expect(output?.status).toBe("error");
   });
 
-  test("design phase output without epic-slug field", () => {
+  test("design phase output without epic-slug-renamed field", () => {
     const output = buildOutput("path/to/design.md", { phase: "design" }, ARTIFACTS_DIR);
     expect(output).toEqual({
       status: "completed",
-      artifacts: { design: "design.md", "epic-slug": undefined },
+      artifacts: { design: "design.md", "epic-slug": undefined, "epic-slug-renamed": undefined },
     });
   });
 

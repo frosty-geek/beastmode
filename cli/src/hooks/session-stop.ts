@@ -24,6 +24,7 @@ export interface ArtifactFrontmatter {
   phase?: string;
   "epic-id"?: string;
   "epic-slug"?: string;
+  "epic-slug-renamed"?: string;
   "feature-id"?: string;
   "feature-slug"?: string;
   status?: string;
@@ -75,7 +76,7 @@ export function buildOutput(
     case "design": {
       return {
         status: (fm.status as PhaseOutput["status"]) ?? "completed",
-        artifacts: { design: basename(artifactPath), "epic-slug": fm["epic-slug"] },
+        artifacts: { design: basename(artifactPath), "epic-slug": fm["epic-slug"], "epic-slug-renamed": fm["epic-slug-renamed"] },
       };
     }
 
