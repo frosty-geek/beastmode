@@ -84,7 +84,7 @@ export async function ensureEarlyIssues(opts: EarlyIssueOpts): Promise<void> {
 
       refs = setSyncRef(refs, epicId, { issue: epicNumber });
       saveSyncRefs(projectRoot, refs);
-      logger?.info("early issues: epic stub created", { issue: epicNumber });
+      logger?.debug("early issues: epic stub created", { issue: epicNumber });
     } else if (phase === "implement") {
       const epicRef = getSyncRef(refs, epicId);
       if (!epicRef?.issue) {
@@ -113,7 +113,7 @@ export async function ensureEarlyIssues(opts: EarlyIssueOpts): Promise<void> {
 
         if (issueNumber) {
           refs = setSyncRef(refs, feature.id, { issue: issueNumber });
-          logger?.info("early issues: feature stub created", { feature: feature.slug, issue: issueNumber });
+          logger?.debug("early issues: feature stub created", { feature: feature.slug, issue: issueNumber });
         } else {
           logger?.warn(`early issues: feature stub creation failed for ${feature.slug} — sync will retry at post-dispatch`);
         }
