@@ -21,7 +21,7 @@ This works for quick fixes. It falls apart for anything that spans sessions.
 | macOS | Only supported platform |
 | [Node.js](https://nodejs.org/) >= 18 | Runtime for npx |
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | AI coding assistant |
-| [Git](https://git-scm.com/) | Worktree operations |
+| [Git](https://git-scm.com/) | Branch and commit operations |
 | [iTerm2](https://iterm2.com/) | Pipeline orchestration |
 | [GitHub CLI](https://cli.github.com/) *(optional)* | Issue and project board sync |
 
