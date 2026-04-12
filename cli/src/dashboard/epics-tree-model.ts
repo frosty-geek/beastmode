@@ -11,7 +11,7 @@ import type { EnrichedEpic } from "../store/types.js";
 export type SelectableRow =
   | { type: "all"; slug: undefined; epicSlug: undefined; featureStatus: undefined }
   | { type: "epic"; slug: string; epicSlug: undefined; featureStatus: undefined; epic: EnrichedEpic }
-  | { type: "feature"; slug: string; epicSlug: string; featureStatus: string };
+  | { type: "feature"; slug: string; name?: string; epicSlug: string; featureStatus: string };
 
 /** Selection result from rowSlugAtIndex. */
 export type RowSelection = undefined | string | { epicSlug: string; featureSlug: string };
@@ -51,6 +51,7 @@ export function buildFlatRows(
         rows.push({
           type: "feature",
           slug: feature.slug,
+          name: feature.name || undefined,
           epicSlug: epic.slug,
           featureStatus: status,
         });

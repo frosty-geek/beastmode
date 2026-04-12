@@ -355,10 +355,8 @@ export async function reconcileFeature(
     if (!output || output.status !== "completed") return undefined;
 
     // Mark the feature as completed
-    // featureSlug may be the full derived slug (from reconcileAll) or the short
-    // name (from the runner/dispatcher). Match on both slug and name.
     const features = store.listFeatures(epic.id);
-    const feature = features.find((f) => f.slug === featureSlug || f.name === featureSlug);
+    const feature = features.find((f) => f.slug === featureSlug);
     if (feature) {
       store.updateFeature(feature.id, { status: "completed" });
     }
