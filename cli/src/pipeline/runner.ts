@@ -204,7 +204,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     // -- Step 3: settings.create ----------------------------------------------
     const claudeDir = resolve(worktreePath, ".claude");
     cleanHitlSettings(claudeDir);
-    const envContext = { phase: config.phase, epicId: config.epicId ?? config.epicSlug, epicSlug: config.epicSlug, featureSlug: config.featureSlug };
+    const envContext = { phase: config.phase, epicId: config.epicId ?? epicSlug, epicSlug, featureSlug: config.featureSlug };
     const preToolUseHook = buildPreToolUseHook(envContext);
     writeHitlSettings({ claudeDir, preToolUseHook, envContext });
 
@@ -221,8 +221,8 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     writeSessionStartHook({
       claudeDir,
       phase: config.phase,
-      epicId: config.epicId ?? config.epicSlug,
-      epicSlug: config.epicSlug,
+      epicId: config.epicId ?? epicSlug,
+      epicSlug,
       featureSlug: config.featureSlug,
     });
   }
@@ -275,8 +275,8 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
 
   // Design abandon guard: if design produced no output, skip everything
   if (config.phase === "design" && !phaseOutput) {
-    logger.info("no output -- skipping post-dispatch");
-    return { success: dispatchResult.success, worktreePath, epicSlug };
+    logger.debug?.("no output -- skipping post-dispatch");
+    return { success: false, worktreePath, epicSlug };
   }
 
   // -- Step 6 & 7: manifest.reconcile + manifest.advance ----------------------

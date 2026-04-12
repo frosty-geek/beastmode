@@ -138,13 +138,16 @@ export async function phaseCommand(
   });
 
   // Design abandon guard: if design phase produced no output, clean up everything
+  // Use pipelineResult.epicSlug — the runner may have created a placeholder and
+  // adopted a new slug that the local epicSlug variable doesn't reflect.
   if (phase === "design" && !pipelineResult.success) {
-    const designOutput = loadWorktreePhaseOutput(pipelineResult.worktreePath, "design", epicSlug);
+    const finalSlug = pipelineResult.epicSlug || epicSlug;
+    const designOutput = loadWorktreePhaseOutput(pipelineResult.worktreePath, "design", finalSlug);
     if (!designOutput) {
       logger.info("Design abandoned — cleaning up");
       const config = loadConfig(projectRoot);
       await cancelEpic({
-        identifier: epicSlug,
+        identifier: finalSlug,
         projectRoot,
         githubEnabled: config.github.enabled,
         force: true,
