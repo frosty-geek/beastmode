@@ -1,4 +1,4 @@
-# Write Plan
+# Write Tasks
 
 ## Document Structure
 - Artifact path: `.beastmode/artifacts/implement/YYYY-MM-DD-<epic>-<feature>.tasks.md`
@@ -37,8 +37,8 @@
 
 ## Convention-Based Test Discovery
 - Integration tests are identified by convention, not configuration
-- File naming: `<feature-name>.integration.test.ts` or `<feature-name>.feature`
-- Tags: `@<epic-name>` on Gherkin features
+- File naming: `<feature-slug>.integration.test.ts` or `<feature-slug>.feature`
+- Tags: `@<epic-slug>` on Gherkin features
 - Describe blocks: feature name in the describe/feature block
 - The implement skill uses these conventions to locate and run the correct integration test after all tasks complete
 - No separate configuration file for test-to-feature mapping

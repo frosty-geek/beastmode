@@ -4,6 +4,23 @@ All notable changes to beastmode.
 
 ---
 
+## v0.121.0 — Heartbeat Countdown Timer (2026-04-12)
+
+Replaces the static "watch: running/stopped" label with a live countdown timer that ticks every second, shows "scanning..." during active scans, and displays the configured interval when stopped.
+
+### Features
+
+- Add countdown state machine with pure transition functions for counting/scanning/stopped states
+- Add `scan-started` event to WatchLoop and `trigger: "poll" | "event"` field to `scan-complete` event
+- Wire countdown display into dashboard header, replacing static watch status indicator
+
+### Chores
+
+- Remove dead `watchRunning` state and fix unused param in ThreePanelLayout
+- Add BDD integration test scaffolding for heartbeat countdown scenarios
+
+---
+
 ## v0.118.0 — Frontmatter Contract Alignment (2026-04-12)
 
 Defines an explicit frontmatter contract across all five phases, aligning field names between env vars, metadata-in, frontmatter, and output.json. Content fields move from frontmatter to artifact markdown body sections, making output.json a pure decisions-and-status signal.

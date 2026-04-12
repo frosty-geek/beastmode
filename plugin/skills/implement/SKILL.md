@@ -54,7 +54,7 @@ The controller also maintains a separate BDD verification escalation state, used
 
 The BDD verification escalation resets to tier 0 (haiku) when a new BDD retry loop begins. It does NOT carry over from per-task escalation.
 
-### 0. Write Plan
+### 0. Write Tasks
 
 Before dispatching, produce a detailed `.tasks.md` document from the feature plan. This is the inspection point between "plan says what to build" and "agent writes code."
 
@@ -66,7 +66,7 @@ Before dispatching, produce a detailed `.tasks.md` document from the feature pla
    - If the section exists, create Task 0 as the first task:
      - Task 0 creates a runnable integration test file from the Gherkin scenarios
      - The test must be runnable in isolation (feature-scoped, no cross-feature dependencies)
-     - The test uses the project's existing test runner with naming convention for identification (e.g., `<feature-name>.integration.test.ts` or `<feature-name>.feature`)
+     - The test uses the project's existing test runner with naming convention for identification (e.g., `<feature-slug>.integration.test.ts` or `<feature-slug>.feature`)
      - The test is expected to FAIL after Task 0 (RED state) — the feature isn't implemented yet
      - Task 0 is always Wave 0 with no dependencies
    - If the section does not exist, skip Task 0 — proceed with tasks starting at Task 1
@@ -223,7 +223,7 @@ After all waves complete (and before reporting completion), run the feature's in
 
 Find the integration test created by Task 0 using convention-based discovery:
 
-1. **File naming:** Look for `<feature-name>.integration.test.ts` or `<feature-name>.feature` in the project's test directories
+1. **File naming:** Look for `<feature-slug>.integration.test.ts` or `<feature-slug>.feature` in the project's test directories
 2. **Tags:** Look for `@<epic-slug>` tag on Gherkin features
 3. **Describe blocks:** Look for the feature name in describe/feature blocks
 
@@ -500,7 +500,7 @@ If no concerns or blocks: "All tasks completed cleanly — no concerns or blocke
 
 ### Task Format
 
-> Used by /implement's Write Plan step to create the `.tasks.md` document from feature plans.
+> Used by /implement's Write Tasks step to create the `.tasks.md` document from feature plans.
 
 ### Bite-Sized Granularity
 
@@ -563,7 +563,7 @@ git commit -m "feat(<feature>): [specific message]"
 - `Depends on` creates ordering within a wave
 - Default wave is 1 if omitted
 
-**Parallel-Safe Flag** — After all tasks are written, /implement's Write Plan step analyzes file overlap per wave and may add:
+**Parallel-Safe Flag** — After all tasks are written, /implement's Write Tasks step analyzes file overlap per wave and may add:
 
 ```
 **Parallel-safe:** true
@@ -571,7 +571,7 @@ git commit -m "feat(<feature>): [specific message]"
 
 to the first task in a wave. This flag means no two tasks in the wave share a file, so dispatch can run agents in parallel.
 
-- Written by the Write Plan step — not by the human planner
+- Written by the Write Tasks step — not by the human planner
 - If two tasks in a wave share a file, auto-resequence the later task to Wave N+1
 - Single-task waves are not flagged (nothing to parallelize)
 - Verify the flag at runtime before parallel dispatch

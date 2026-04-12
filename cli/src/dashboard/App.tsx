@@ -25,6 +25,7 @@ import type { SelectableRow } from "./epics-tree-model.js";
 import { SessionStatsAccumulator } from "./session-stats.js";
 import { loadStats, saveStats, mergeSessionCompleted, toSessionStats, type PersistedStats } from "./stats-persistence.js";
 import { join } from "node:path";
+import { useCountdown } from "./use-countdown.js";
 
 export interface AppProps {
   config: BeastmodeConfig;
@@ -40,7 +41,7 @@ export interface AppProps {
 export default function App({ config, verbosity, loop, projectRoot, fallbackStore, systemRef }: AppProps) {
   const { exit } = useApp();
   const [epics, setEpics] = useState<EnrichedEpic[]>([]);
-  const [watchRunning, setWatchRunning] = useState(false);
+
   const [version, setVersion] = useState<string | null>(null);
   const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set());
   const [trackerSessions, setTrackerSessions] = useState<DispatchedSession[]>([]);
@@ -59,6 +60,8 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
   const [sessionStats, setSessionStats] = useState<ReturnType<SessionStatsAccumulator["getStats"]> | undefined>(undefined);
   const statsAccRef = useRef<SessionStatsAccumulator | null>(null);
   const [allTimeStats, setAllTimeStats] = useState<PersistedStats | undefined>(undefined);
+
+  const countdown = useCountdown(loop, config.cli.interval ?? 60);
 
   // Dashboard logger for cancel actions (uses shared stores)
   const localSeqRef = useRef(0);
@@ -308,11 +311,11 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
 
     const onStarted = (ev: WatchLoopEventMap["started"][0]) => {
       setVersion(ev.version);
-      setWatchRunning(true);
+
       pushSystemEntry("watch loop started", "debug");
     };
     const onStopped = () => {
-      setWatchRunning(false);
+
       pushSystemEntry("watch loop stopped", "debug");
     };
 
@@ -537,7 +540,8 @@ export default function App({ config, verbosity, loop, projectRoot, fallbackStor
 
   return (
     <ThreePanelLayout
-      watchRunning={watchRunning}
+      countdownDisplay={countdown.display}
+      countdownRunning={countdown.isRunning}
       version={version ?? undefined}
       rows={rows}
       focusedPanel={keyboard.focusedPanel}
