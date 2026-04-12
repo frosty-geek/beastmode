@@ -4,10 +4,10 @@
 Parallel task dispatch within a wave requires guaranteeing no file conflicts between agents.
 
 ## Decision
-/plan's validate phase runs file isolation analysis: collects all file paths per wave, builds file-to-task map. If any file appears in 2+ tasks, the later task moves to a new wave. Safe waves get `Parallel-safe: true` flag. /implement verifies the flag at runtime, falling back to sequential dispatch if verification fails.
+/implement's Write Tasks step runs a dependency analysis algorithm: builds file-to-task map, detects import-chain and type-flow dependencies, resolves file conflicts by resequencing tasks to later waves, computes wave numbers via topological sort (longest-path from root), and marks conflict-free waves with `Parallel-safe: true`. A Wave Isolation Table in `.tasks.md` makes per-wave file assignments and conflict status visible. At runtime, /implement verifies the flag and dispatches parallel-safe waves by spawning all agents simultaneously in one message. Non-parallel-safe waves fall back to sequential dispatch.
 
 ## Rationale
-Two-layer safety (plan-time analysis + runtime verification) prevents file conflicts. The flag is machine-written by /plan validation, never human-authored.
+Three-layer safety (dependency analysis + Wave Isolation Table + runtime verification) prevents file conflicts. The flag is machine-written by the dependency analysis algorithm in Write Tasks, never human-authored. Reviews run sequentially after all parallel implementations complete to ensure reviewers see the final file state.
 
 ## Feature-Level Isolation
 File isolation analysis applies at feature level in multi-feature epics, not just

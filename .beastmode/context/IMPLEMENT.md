@@ -4,14 +4,14 @@
 - NEVER stash, switch branches, or modify worktrees without explicit user request
 - ALWAYS verify worktree context before modifying files
 - NEVER guess file paths — verify they exist first
-- Agents commit per task on the feature branch using `git add <files>` + `git commit` -- wave file isolation ensures disjoint file sets
-- Agent roles: implementer (TDD execution), spec-reviewer (trust-nothing verification), quality-reviewer (self-contained quality checklist), plan-integration-tester (BDD specialist, spawned by plan skill) — all peers in `plugin/agents/`, all use four-status protocol
+- Agent roles: taskplanner (task decomposition from feature plan), implementer (TDD execution), spec-reviewer (trust-nothing verification), quality-reviewer (self-contained quality checklist), plan-integration-tester (BDD specialist, spawned by plan skill) — all peers in `plugin/agents/`, all use four-status protocol
 - ALWAYS add new worktree functions to all mock objects in tests — mock gaps cause test failures discovered only after implementation is complete
 - NEVER use Bun `mock.module()` for modules shared across test files — it pollutes the module registry globally within a test run; use dependency injection or per-file mock objects instead
 - ALWAYS grep for all mock sites of a module when adding new exports — mocks in unrelated test files break silently until the full suite runs
 - ALWAYS include Cucumber step definition files (`*.steps.ts`) in migration scope analysis — they import module paths at runtime (e.g., `require('../manifest/store.js')`) that differ from TypeScript source import paths, making them invisible to TypeScript-import grep patterns
 - Four-status model: DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, BLOCKED — replaces three-tier deviation system
 - ALWAYS enforce per-task dispatch for implementation agents — agents that batch all tasks into a single dispatch bypass the spec-review and quality-review pipeline, even if the resulting code passes tests; the review pipeline is a quality gate, not optional optimization
+- Parallel-safe waves dispatch all tasks simultaneously via parallel Agent tool calls — reviews run sequentially after all implementations complete; non-parallel-safe waves dispatch one task at a time
 
 ## Testing
 - ALWAYS verify L2 files contain project-specific content, not placeholder patterns
@@ -64,7 +64,7 @@
 - ALWAYS use snapshot-diff pattern (capture IDs before, compare after) when detecting side effects of a black-box call on a mutable collection
 
 ## BDD Loop
-- Write Plan generates Task 0 (integration test from Gherkin) as first task — RED state before implementation
+- Write Tasks generates Task 0 (integration test from Gherkin) as first task — RED state before implementation
 - After all tasks complete, integration test is re-run — expects GREEN
 - On failure: analyze output, identify responsible task, re-dispatch with failure context
 - BDD verification escalation: independent from per-task escalation, same model ladder (haiku→sonnet→opus), 6 total retries
@@ -72,25 +72,16 @@
 - ALWAYS skip BDD verification if no Integration Test Scenarios section in feature plan
 - ALWAYS skip BDD verification when the target system is a markdown instruction file with no executable step definitions — the `.feature` file documents the behavioral contract declaratively but there is nothing runnable; record the skip reason explicitly in the implement report so it is not confused with missing coverage
 
-context/implement/write-plan.md
-
-## Write Plan
-- Write Plan replaces the implicit Decompose step — produces `.tasks.md` with header, file structure, and TDD task definitions before dispatch begins
-- `.tasks.md` uses checkbox tracking (`- [ ]`/`- [x]`) for cross-session resume — no separate .tasks.json
+## Write Tasks
+- Write Tasks is dispatched as `beastmode:implement-taskplanner` agent — self-contained, receives only feature plan and output path
+- Agent produces `.tasks.md` with header, file structure, Wave Isolation Table, and TDD task definitions
+- `.tasks.md` uses checkbox tracking (`- [ ]`/`- [x]`) for cross-session resume
 - No YAML frontmatter in .tasks.md — prevents the stop hook from generating a spurious output.json
-- Self-review pass after writing: spec coverage against feature plan, placeholder scan (TBD/TODO/ellipsis), type/name consistency check
-- ALWAYS include env var name migration in Write Plan consumer enumeration — when renaming env vars (e.g., BEASTMODE_EPIC to BEASTMODE_EPIC_ID), grep for old env var names in all source, test, and BDD files; env var references are string literals invisible to import-based dependency analysis
-- ALWAYS produce complete code in every step — no placeholders, no "add appropriate handling", no "similar to Task N"
-- ALWAYS duplicate context from feature plan into .tasks.md header — makes the document self-contained for agents
-- ALWAYS author wiring task implementations from current source on the worktree branch — plan artifact descriptions become stale as parallel waves complete; source is the ground truth for type signatures, import paths, and component props
-- ALWAYS match the test runner to the target runtime in Write Plan tasks — `node:test` for plain Node.js modules (`*.mjs`), vitest for Bun/TypeScript modules (`*.ts`) — mixing runners with incompatible module systems causes silent import failures
-
-context/implement/write-plan.md
+- Controller post-checks: file exists, no frontmatter, has task headers, has wave isolation table
 
 ## Agent Review Pipeline
 - Three dedicated agent files: implementer.md (TDD), spec-reviewer.md (trust-nothing verification), quality-reviewer.md (self-contained checklist)
 - Four-status model replaces three-tier deviations: DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, BLOCKED
-- Two-stage ordered review: spec compliance must pass before quality review runs
 - Review retry loop: max 2 attempts before marking task as blocked and escalating to user
 - NEVER trust the implementer's report — spec reviewer reads actual code independently
 
@@ -107,11 +98,8 @@ context/implement/agent-review-pipeline.md
 context/implement/agent-review-pipeline.md
 
 ## Branch Isolation
-- All agents commit directly to the feature branch (feature/<slug>) -- no separate impl branches
-- Wave file isolation is the concurrency mechanism -- plan phase assigns disjoint file sets per wave
 - Checkpoint commits artifact report directly on the feature branch -- no rebase or merge step
 - Resume model: first unchecked task in .tasks.md; prior tasks have commits on the feature branch
-- Subagent Safety: agents commit only their task's files using git add <files> + git commit -- never switch branches
 - ALWAYS verify wave file isolation is maintained in the plan before parallel dispatch -- without branch isolation, file conflicts are unrecoverable
 
 context/implement/branch-isolation.md

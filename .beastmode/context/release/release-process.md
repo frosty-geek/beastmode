@@ -2,12 +2,8 @@
 
 ## Merge Strategy
 - ALWAYS use `git merge --squash` to collapse feature branch into one commit on main — clean history
-- NEVER rebase feature branch onto main before merging — per-commit replay causes constant conflicts
-- Merge resolves conflicts once instead of per-commit replay — simpler resolution
 
 ## Retro Timing
-- ALWAYS run retro before the release commit in execute phase — ensures context updates included in squash merge
-- NEVER run retro in checkpoint for release — already executed in execute phase
 - ALWAYS pass all phase artifacts (design, plan, implement, validate, release) to the context walker in a single session — one coherent pass per release
 - Retro runs at step 8, commit at step 9 — ordered sequence prevents untracked context files
 

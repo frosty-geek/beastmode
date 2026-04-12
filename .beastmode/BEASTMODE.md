@@ -47,12 +47,12 @@
 ## Plan Process
 
 - ALWAYS deduplicate features during plan decomposition — two features touching the same files with overlapping scope cause rebase conflicts during implementation; merge overlapping user stories into a single feature; verify by checking that no user story number appears in more than one feature plan
-- ALWAYS merge functionally coupled features during plan decomposition — when feature B's acceptance criteria are satisfied as a byproduct of implementing feature A, separating them produces a dead impl branch, an orphaned Write Plan, and stub cleanup at checkpoint; the signal is that implementing one feature requires importing or registering the other
+- ALWAYS merge functionally coupled features during plan decomposition — when feature B's acceptance criteria are satisfied as a byproduct of implementing feature A, separating them produces a dead impl branch, an orphaned Write Tasks artifact, and stub cleanup at checkpoint; the signal is that implementing one feature requires importing or registering the other
 - ALWAYS decompose features to single-concern scope during plan decomposition — composite features that bundle unrelated fixes into one plan produce tasks that are harder to review, test, and re-dispatch on failure; one user story per feature is the target granularity
 - ALWAYS produce detailed design documents with component breakdowns — enables direct 1:1 mapping to plan tasks
 - ALWAYS use design locked decisions as cross-cutting constraints applied uniformly across all plan tasks
 - ALWAYS derive wave ordering from the component dependency graph — foundation before consumers before integration
-- ALWAYS group independent tasks into waves for parallel execution
+- ALWAYS group independent tasks into waves for parallel execution — parallel-safe waves dispatch all agents simultaneously; non-parallel-safe waves dispatch sequentially
 - NEVER put tasks with shared file targets in the same wave
 - NEVER put features with shared file targets in the same wave — file isolation analysis applies across features, not just across tasks within a single feature
 - ALWAYS include a final verification task that checks the full output tree
@@ -71,8 +71,8 @@
 - ALWAYS adapt heading depth to structural context when nesting changes
 - Cross-cutting features spanning all 5 phases need per-phase feature decomposition to maintain file isolation
 - Sequential tasks with API-level dependencies fail under worktree isolation — orchestrator must merge intermediate results
-- ALWAYS produce a Write Plan (.tasks.md) before dispatch — visible, inspectable task breakdown with complete code, TDD cycles, and no-placeholder rule
-- ALWAYS run two-stage review per task: spec compliance first, then code quality — ordered pipeline, not optional
+- ALWAYS produce a Write Tasks (.tasks.md) before dispatch — visible, inspectable task breakdown with complete code, TDD cycles, dependency analysis, Wave Isolation Table, and no-placeholder rule
+- ALWAYS run two-stage review per task: spec compliance first, then code quality — ordered pipeline, not optional; reviews run sequentially even in parallel-safe waves
 - ALWAYS commit per task directly to the feature branch using git add <files> + git commit — wave file isolation guarantees disjoint file sets across parallel agents
 - Wave file isolation is the sole concurrency mechanism for parallel implementation — no branch-level isolation needed when file sets are disjoint
 
@@ -80,7 +80,6 @@
 
 - ALWAYS verify task state from .tasks.md checkboxes rather than trusting in-memory state in long sessions — context compaction drops incremental state
 - ALWAYS design parallel dispatch for post-hoc reconciliation, not real-time status updates
-- ALWAYS read skill files from worktree path when the feature modifies skill files — plugin cache serves main-branch files
 - Edit/Write tools may refuse certain file modifications — use Bash heredoc as fallback
 
 ## Release Process

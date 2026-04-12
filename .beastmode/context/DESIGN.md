@@ -20,11 +20,9 @@
 - Context walker ALWAYS applies value-add gate before creating L3 — skip records that add no rationale, constraints, provenance, or dissenting context beyond the L2 summary
 
 ## Release Workflow
-- ALWAYS run retro from release checkpoint before merge — retro runs only at release, not per-phase
 - Compaction is manual-only via `beastmode compact` — decoupled from the release pipeline
 - ALWAYS commit per phase on the feature branch — each phase persists work at checkpoint for cross-session durability
 - ALWAYS squash-merge feature branch at release — per-phase commits collapse to one clean commit on main
-- ALWAYS archive branch tip before squash merge
 
 ## Phase Transitions
 TypeScript CLI (`beastmode`) drives phase transitions via `beastmode <phase> <slug>`. Each phase is a separate Claude Agent SDK session. Skills are pure content processors with no worktree or transition logic. Checkpoint prints the `beastmode` command for the next phase. Only the checkpoint may produce next-step commands; retro agents are banned from transition guidance. The dashboard embeds a WatchLoop for automated advancement: event-driven re-scan on session completion drives epics through plan -> release. Phase regression is supported: `beastmode <phase> <slug>` detects when the requested phase is at or behind the current phase, resets the git branch to the predecessor phase's tag, and reruns via a generic REGRESS event. CLI-managed git tags (`beastmode/<slug>/<phase>`) provide deterministic reset targets. Justfile is deleted — CLI is the sole orchestration entry point.

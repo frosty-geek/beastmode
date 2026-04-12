@@ -9,7 +9,7 @@ Features are functionally coupled when the acceptance criteria of one cannot be 
 Merge functionally coupled features at decomposition time. The test: "Can feature B's acceptance criteria be satisfied without writing any of feature A's code?" If no, they are one feature.
 
 ## Rationale
-Separated coupled features produce: an empty feature with zero net commits, an orphaned Write Plan with 7+ tasks that produce no net code, and a stub implementation left in the router that must be manually removed at checkpoint. The cost is not a conflict — it is invisible waste and post-rebase cleanup.
+Separated coupled features produce: an empty feature with zero net commits, an orphaned Write Tasks artifact with 7+ tasks that produce no net code, and a stub implementation left in the router that must be manually removed at checkpoint. The cost is not a conflict — it is invisible waste and post-rebase cleanup.
 
 ## Source
 session-start-hook epic (2026-04-11): hook-implementation and cli-integration were planned as parallel wave-1 features. hook-implementation absorbed cli-integration entirely. cli-integration produced zero net code since hook-implementation had already implemented everything. Dead inline stub (runSessionStart in hooks.ts) required manual cleanup at checkpoint.

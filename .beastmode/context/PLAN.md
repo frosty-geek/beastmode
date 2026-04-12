@@ -33,7 +33,6 @@ context/plan/task-format.md
 Phase lifecycle (design -> plan -> implement -> validate -> release), session tracking, context reports (state-only, no transition commands), parallel execution, retro agents, release git workflow, persona system, and autonomous chaining with standardized transition output. Only checkpoints may print next-step commands — all other components are banned from producing transition guidance.
 
 - ALWAYS follow phase lifecycle: design -> plan -> implement -> validate -> release
-- NEVER commit during individual phases — unified commit at /release
 - ALWAYS update status file on phase completion with session paths
 - ONLY checkpoints may print next-step commands
 

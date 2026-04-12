@@ -14,7 +14,6 @@ Five-phase core workflow: design -> plan -> implement -> validate -> release. Ea
 
 ## Parallel Execution
 - ALWAYS batch independent tasks for parallel execution in /implement — throughput
-- NEVER commit during /implement execute phase — defer to /release
 - Up to 3 independent tasks per batch — concurrency limit
 - Batch selection filters pending tasks with no unmet dependencies — dependency-aware
 

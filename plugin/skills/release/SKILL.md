@@ -13,11 +13,8 @@ No release without passing validation.
 
 ## Guiding Principles
 
-- **Version computed from main, not worktree** — the worktree's plugin.json is stale; read current version post-merge from main
-- **Squash merge preserves archive tag** — always tag the feature branch before squash merge so detailed commit history survives
 - **Bump type auto-detected, not user-prompted** — commit message conventions determine major/minor/patch automatically
 - **Warn-and-continue for non-blocking failures** — report problems, attempt fixes, only hard-stop on critical validation failures
-- **All user input via `AskUserQuestion`** — freeform print-and-wait is invisible to HITL hooks; every question the user must answer goes through `AskUserQuestion`
 
 ## Phase 1: Execute
 
@@ -261,12 +258,7 @@ claude plugin update beastmode@beastmode-marketplace --scope user
 
 ## Constraints
 
-- Do NOT read `plugin.json` for version from the worktree — the worktree's copy is stale
 - Do NOT proceed to checkpoint if validation fails
-- The squash merge stages changes but does NOT commit — these are separate steps
-- NEVER skip the archive tag before squash merge — it preserves detailed commit history
-- ALWAYS rebase the feature branch onto main before squash merge — prevents stale fork point from overwriting intermediate main commits
-- After rebase, code file conflicts during squash merge are genuine divergence — do NOT auto-resolve with `--theirs`
 
 ## Reference
 

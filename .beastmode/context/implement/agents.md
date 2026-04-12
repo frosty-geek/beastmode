@@ -9,18 +9,19 @@
 ## Git Workflow
 - ALWAYS commit naturally during implementation — don't batch
 - NEVER push to main directly — release handles the squash merge
-- ALWAYS use `feature/<slug>` for the worktree branch -- all agents commit directly to this branch
-- Worktree discovery: check `.beastmode/worktrees/` for active worktrees — cross-session continuity
 
 ## Parallel Dispatch
 - ALWAYS verify file isolation before parallel dispatch — prevents conflicts
 - NEVER let two agents modify the same file simultaneously — race condition
 - Report results per-agent after completion — never merge silently
-- Same-wave tasks can run simultaneously if no shared files — wave-based parallelism
+- Same-wave tasks dispatch simultaneously when wave is marked parallel-safe — controller spawns all agents in one message via parallel tool calls
 - ALWAYS verify current file state before implementing a wave task — a parallel task may have already implemented shared prerequisites, reducing the remaining scope
+- Reviews run sequentially after all parallel implementations complete — reviewers need to see the final file state
+- Non-parallel-safe waves fall back to sequential dispatch — one task at a time
+- Wave Isolation Table in .tasks.md makes file-to-task assignments visible — inspect before dispatch
 
 ## Sweep Migrations
-- ALWAYS pre-enumerate target files in Write Plan tasks for sweep migrations (migrate all X, replace all Y) — agent grep at dispatch time misses files in atypical paths; spec reviewer verifies list completeness with second grep
+- ALWAYS pre-enumerate target files in Write Tasks tasks for sweep migrations (migrate all X, replace all Y) — agent grep at dispatch time misses files in atypical paths; spec reviewer verifies list completeness with second grep
 
 context/implement/agents/sweep-migration-coverage.md
 
@@ -28,3 +29,4 @@ context/implement/agents/sweep-migration-coverage.md
 - ALWAYS use `<phase>-<role>` naming for agent files — no stuttering (implement-dev not implement-implementer)
 - ALWAYS dispatch agents via `subagent_type="beastmode:<agent-name>"` — not manual prompt assembly with general-purpose
 - ALWAYS put agent role/persona in the agent definition file — prompts passed at dispatch contain only task context (requirements, file contents, conventions)
+- Agent roles: taskplanner (task decomposition from feature plan), implementer (TDD execution), spec-reviewer (trust-nothing verification), quality-reviewer (self-contained quality checklist), plan-integration-tester (BDD specialist, spawned by plan skill) — all peers in `plugin/agents/`, all use four-status protocol
