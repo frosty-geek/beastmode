@@ -75,11 +75,13 @@ export function buildTreeState(
     for (const ee of enrichedEpics) {
       const featureNodes: FeatureNode[] = ee.features.map((f) => ({
         slug: f.slug,
+        name: f.name || undefined,
         status: f.status,
         entries: [],
       }));
       epicMap.set(ee.slug, {
         slug: ee.slug,
+        name: ee.name || undefined,
         status: ee.status,
         features: featureNodes,
         entries: [],

@@ -108,7 +108,7 @@ export default function EpicsPanel({
               <Text dimColor>{paddedBadge}</Text>
             )}
             <Text>{" "}</Text>
-            <Text inverse={isSelected} dimColor={dim}>{epic.slug}</Text>
+            <Text inverse={isSelected} dimColor={dim}>{epic.name || epic.slug}</Text>
           </Text>
         </Box>,
       );
@@ -143,7 +143,7 @@ export default function EpicsPanel({
               <Text dimColor>{fPaddedBadge}</Text>
             )}
             <Text>{" "}</Text>
-            <Text inverse={isSelected} dimColor={dim}>{row.slug}</Text>
+            <Text inverse={isSelected} dimColor={dim}>{row.name ?? row.slug}</Text>
           </Text>
         </Box>,
       );

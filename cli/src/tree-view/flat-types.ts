@@ -25,6 +25,8 @@ export interface TreeEntry {
 export interface FeatureNode {
   /** Feature slug. */
   slug: string;
+  /** Human-readable feature name. */
+  name?: string;
   /** Feature status (pending, in-progress, completed, blocked). */
   status: string;
   /** Leaf entries under this feature. */
@@ -35,6 +37,8 @@ export interface FeatureNode {
 export interface EpicNode {
   /** Epic slug. */
   slug: string;
+  /** Human-readable epic name. */
+  name?: string;
   /** Epic status (design, plan, implement, validate, release, done, cancelled). */
   status: string;
   /** Feature nodes under this epic. */

@@ -73,7 +73,7 @@ function flattenFeature(feat: FeatureNode, tick: number, isLast: boolean): FlatL
         <Text>{" "}</Text>
         {color ? <Text color={color}>{badge}</Text> : <Text dimColor>{badge}</Text>}
         <Text>{" "}</Text>
-        <Text dimColor={dim}>{feat.slug}</Text>
+        <Text dimColor={dim}>{feat.name ?? feat.slug}</Text>
       </Text>
     ),
   });
@@ -112,7 +112,7 @@ function flattenEpic(epic: EpicNode, tick: number): FlatLine[] {
         <Text>{" "}</Text>
         {color ? <Text color={color}>{badge}</Text> : <Text dimColor>{badge}</Text>}
         <Text>{" "}</Text>
-        <Text dimColor={dim}>{epic.slug}</Text>
+        <Text dimColor={dim}>{epic.name ?? epic.slug}</Text>
       </Text>
     ),
   });
