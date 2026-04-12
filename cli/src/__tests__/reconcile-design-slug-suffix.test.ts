@@ -61,7 +61,7 @@ describe("reconcileDesign preserves collision-proof hex suffix", () => {
     mockDesignOutput = {
       status: "completed",
       artifacts: {
-        "epic-slug-renamed": "dashboard-stats-persistence",
+        "epic-name": "dashboard-stats-persistence",
         design: "2026-04-11-dashboard-stats-persistence.md",
       },
     };
@@ -89,22 +89,19 @@ describe("reconcileDesign preserves collision-proof hex suffix", () => {
     expect(result!.epic.slug).toBe(originalSlug);
   });
 
-  it("should rename git tags to the suffixed slug", async () => {
-    const { epicId, originalSlug } = seedEpic("beef");
-    const shortId = epicId.replace("bm-", "");
+  it("should not rename git tags (runner handles that)", async () => {
+    seedEpic("beef");
 
     mockDesignOutput = {
       status: "completed",
       artifacts: {
-        "epic-slug-renamed": "auth-redesign",
+        "epic-name": "auth-redesign",
       },
     };
 
-    await reconcileDesign(projectRoot, epicId, "/tmp/fake-wt");
+    await reconcileDesign(projectRoot, "beef", "/tmp/fake-wt");
 
-    expect(renamedTags).toHaveLength(1);
-    expect(renamedTags[0].from).toBe(originalSlug);
-    expect(renamedTags[0].to).toBe(`auth-redesign-${shortId}`);
+    expect(renamedTags).toHaveLength(0);
   });
 
   it("should produce slug matching pattern {realSlug}-{4-hex}", async () => {
@@ -113,7 +110,7 @@ describe("reconcileDesign preserves collision-proof hex suffix", () => {
     mockDesignOutput = {
       status: "completed",
       artifacts: {
-        "epic-slug-renamed": "my-cool-feature",
+        "epic-name": "my-cool-feature",
       },
     };
 

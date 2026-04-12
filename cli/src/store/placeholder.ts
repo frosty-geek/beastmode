@@ -6,7 +6,7 @@
  * Deterministic: same hex input always produces the same name.
  */
 
-export const ADJECTIVES: readonly string[] = [
+const ADJECTIVES: readonly string[] = [
   "async", "binary", "bogon", "borked", "brute",
   "cached", "chmod", "cloned", "cooked", "cracked",
   "crypto", "cyber", "daemon", "dead", "deep",
@@ -29,7 +29,7 @@ export const ADJECTIVES: readonly string[] = [
   "virtual", "void", "warp", "wired", "zombie",
 ] as const;
 
-export const NOUNS: readonly string[] = [
+const NOUNS: readonly string[] = [
   "abort", "ack", "bacon", "banshee", "bitmap",
   "blob", "botnet", "buffer", "byte", "cache",
   "chroot", "cobol", "cookie", "crontab", "daemon",
@@ -55,24 +55,14 @@ export const NOUNS: readonly string[] = [
  * Generate a deterministic placeholder name from a 4-char hex string.
  *
  * The hex value is parsed as an integer and used to select an adjective
- * and noun from the curated word lists. The hex suffix is appended as-is.
+ * and noun from the curated word lists.
  *
  * @param shortHex - A 4-character hex string (e.g., "a1b2")
- * @returns A placeholder name like "sudo-kernel-a1b2"
+ * @returns A placeholder name like "sudo-kernel"
  */
 export function generatePlaceholderName(shortHex: string): string {
   const value = parseInt(shortHex, 16);
   const adjIndex = value % ADJECTIVES.length;
   const nounIndex = Math.floor(value / ADJECTIVES.length) % NOUNS.length;
-  return `${ADJECTIVES[adjIndex]}-${NOUNS[nounIndex]}-${shortHex}`;
-}
-
-/**
- * Strip the trailing 4-hex suffix from a placeholder name.
- *
- * "quick-quartz-f284" → "quick-quartz"
- * "my-custom-slug"    → "my-custom-slug"  (no match, returned as-is)
- */
-export function stripPlaceholderHex(name: string): string {
-  return name.replace(/-[0-9a-f]{4}$/, "");
+  return `${ADJECTIVES[adjIndex]}-${NOUNS[nounIndex]}`;
 }

@@ -78,19 +78,20 @@ describe("InMemoryTaskStore", () => {
       expect(() => store.deleteEpic("bm-0000")).toThrow();
     });
 
-    it("should allow slug mutation via updateEpic", () => {
+    it("should derive new slug when name changes via updateEpic", () => {
       const epic = store.addEpic({ name: "Test Epic" });
-      const updated = store.updateEpic(epic.id, { slug: "new-slug" });
-      expect(updated.slug).toBe("new-slug");
-      expect(store.getEpic(epic.id)!.slug).toBe("new-slug");
+      const updated = store.updateEpic(epic.id, { name: "New Name" });
+      expect(updated.slug).toMatch(/^new-name-[0-9a-f]{4}$/);
+      expect(store.getEpic(epic.id)!.slug).toBe(updated.slug);
     });
 
-    it("should update epic slug after slug mutation", () => {
+    it("should preserve slug when name is unchanged", () => {
       const epic = store.addEpic({ name: "Test Epic" });
-      store.updateEpic(epic.id, { slug: "new-slug" });
+      const originalSlug = epic.slug;
+      store.updateEpic(epic.id, { status: "plan" });
       const updated = store.getEpic(epic.id);
       expect(updated).toBeDefined();
-      expect(updated!.slug).toBe("new-slug");
+      expect(updated!.slug).toBe(originalSlug);
     });
   });
 

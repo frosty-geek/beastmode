@@ -80,7 +80,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug-renamed": "test-slug",
+        "epic-name": "test-slug",
         design: "/path/to/design.md",
       },
     } as any);
@@ -98,7 +98,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug-renamed": "test-slug",
+        "epic-name": "test-slug",
         design: "/path/to/design.md",
       },
     } as any);
@@ -141,7 +141,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug-renamed": "test-slug",
+        "epic-name": "test-slug",
         design: "/path/to/design.md",
       },
     } as any);
@@ -204,7 +204,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug-renamed": "better-slug",
+        "epic-name": "better-slug",
         design: "/path/to/design.md",
       },
     } as any);
@@ -234,19 +234,17 @@ describe("reconcileDesign", () => {
       return undefined;
     });
     sharedMockStore.listFeatures.mockReturnValue([]);
-    vi.mocked(renameTags).mockResolvedValue(undefined);
 
     const result = await reconcileDesign("/project/root", "temp-hex-slug", "/wt/path");
 
     expect(result).toBeDefined();
     expect(result?.epic.slug).toBe("better-slug-1");
-    expect(vi.mocked(renameTags)).toHaveBeenCalledWith("temp-hex-slug", "better-slug-1", {
-      cwd: "/project/root",
-    });
+    // Tag rename is now handled by the runner, not reconcile
+    expect(vi.mocked(renameTags)).not.toHaveBeenCalled();
     expect(sharedMockStore.updateEpic).toHaveBeenCalledWith(
       "bm-1",
       expect.objectContaining({
-        slug: "better-slug-1",
+        name: "better-slug",
       })
     );
   });
@@ -275,7 +273,7 @@ describe("reconcileDesign", () => {
       phase: "design",
       status: "completed",
       artifacts: {
-        "epic-slug-renamed": "test-slug",
+        "epic-name": "test-slug",
         design: "/path/to/design.md",
       },
     } as any);

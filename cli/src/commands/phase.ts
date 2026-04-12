@@ -17,7 +17,6 @@ import type { Phase } from "../types";
 import { resolve, join } from "node:path";
 import { runInteractive } from "../dispatch/factory";
 import {
-  enter as enterWorktree,
   isInsideWorktree,
   resolveMainCheckoutRoot,
 } from "../git/worktree";
@@ -27,7 +26,6 @@ import { createLogger, createStdioSink } from "../logger";
 import { loadWorktreePhaseOutput } from "../artifacts/reader";
 import { loadConfig, getCategoryProse } from "../config";
 import { cancelEpic } from "./cancel-logic.js";
-import { generatePlaceholderName } from "../store/placeholder.js";
 import { writeHitlSettings, cleanHitlSettings, buildPreToolUseHook, writeSessionStartHook, cleanSessionStartHook } from "../hooks/hitl-settings";
 import {
   writeFilePermissionSettings,
@@ -51,31 +49,36 @@ export async function phaseCommand(
   const projectRoot = inWorktree
     ? await resolveMainCheckoutRoot()
     : process.cwd();
-  let worktreeSlug = deriveWorktreeSlug(phase, args);
+  const storePath = join(projectRoot, ".beastmode", "state", "store.json");
+  const taskStore = new JsonFileStore(storePath);
+  taskStore.load();
 
-  // Fail-fast: non-design phases require the epic to exist.
-  // Resolution priority: store ID → store slug
-  if (phase !== "design") {
-    const storePath = join(projectRoot, ".beastmode", "state", "store.json");
-    const taskStore = new JsonFileStore(storePath);
-    taskStore.load();
+  let worktreeSlug: string;
 
-    const resolution = resolveIdentifier(taskStore, worktreeSlug, { resolveToEpic: true, allowPrefix: true });
+  if (phase === "design") {
+    // If an existing slug was passed (re-dispatch), reuse it.
+    // Otherwise pass empty — the runner creates the placeholder epic at Step 0.
+    worktreeSlug = args[0] ?? "";
+  } else {
+    // Non-design phases require the epic to exist.
+    // Resolution priority: store ID → store slug
+    const rawSlug = args[0] || "default";
+    const resolution = resolveIdentifier(taskStore, rawSlug, { resolveToEpic: true, allowPrefix: true });
 
     if (resolution.kind === "ambiguous") {
       const ids = resolution.matches.map(e => e.id).join(", ");
-      logger.error("ambiguous identifier", { identifier: worktreeSlug, matches: ids });
+      logger.error("ambiguous identifier", { identifier: rawSlug, matches: ids });
       process.exit(1);
     }
 
     if (resolution.kind === "not-found") {
-      logger.error("epic not found", { slug: worktreeSlug });
+      logger.error("epic not found", { slug: rawSlug });
       process.exit(1);
     }
 
-    if (resolution.kind === "found" && resolution.entity.type === "epic") {
-      worktreeSlug = resolution.entity.slug;
-    }
+    worktreeSlug = resolution.kind === "found" && resolution.entity.type === "epic"
+      ? resolution.entity.slug
+      : rawSlug;
   }
 
   const epicSlug = worktreeSlug;
@@ -116,11 +119,6 @@ export async function phaseCommand(
   // ── Manual path ───────────────────────────────────────────────────────
   // Full pipeline via runner: worktree + rebase + HITL + dispatch +
   // reconcile + GitHub sync + cleanup.
-
-  // Seed worktree for design phase so the pipeline runner can create the epic during reconciliation
-  if (phase === "design") {
-    enterWorktree(epicSlug, { cwd: projectRoot });
-  }
 
   // Interactive dispatch wrapper matching the runner's dispatch signature
   const dispatch = async (opts: { phase: Phase; args: string[]; cwd: string }) => {
@@ -163,18 +161,6 @@ export async function phaseCommand(
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-
-function deriveWorktreeSlug(phase: Phase, args: string[]): string {
-  if (phase === "design") {
-    // If an existing slug was passed (watch loop re-dispatch), reuse it
-    if (args[0]) return args[0];
-    // Generate a placeholder name using a random 4-hex ID
-    const hex = Math.floor(Math.random() * 0x10000).toString(16).padStart(4, "0");
-    return generatePlaceholderName(hex);
-  }
-  // All non-design phases use the epic slug directly
-  return args[0] || "default";
-}
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;

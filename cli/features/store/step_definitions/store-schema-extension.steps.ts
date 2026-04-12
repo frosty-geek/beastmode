@@ -227,9 +227,9 @@ Then("the epic slug should be immutable after creation", function (this: StoreWo
   const epic = this.lastOutput as Epic;
   const originalSlug = epic.slug;
 
-  // Try to update with a different slug
-  const updated = this.store.updateEpic(epic.id, { slug: "different-slug" });
+  // Updating without changing name should preserve slug
+  const updated = this.store.updateEpic(epic.id, { status: "plan" });
 
-  // Slug should remain unchanged (immutable)
+  // Slug should remain unchanged
   assert.strictEqual(updated.slug, originalSlug);
 });

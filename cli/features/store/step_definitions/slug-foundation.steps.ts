@@ -2,7 +2,6 @@ import { Given, When, Then } from "@cucumber/cucumber";
 import assert from "node:assert/strict";
 import type { StoreWorld } from "../support/store-world.js";
 import { slugify, isValidSlug } from "../../../src/store/slug.js";
-import { generatePlaceholderName } from "../../../src/store/placeholder.js";
 
 // --- Slug-ID bijection ---
 
@@ -75,8 +74,9 @@ Then("no two epics should share the same suffix", function (this: StoreWorld) {
 
 let lastPlaceholderSlug = "";
 
-When("a developer generates a placeholder slug with short ID {string}", function (this: StoreWorld, shortId: string) {
-  lastPlaceholderSlug = generatePlaceholderName(shortId);
+When("a developer generates a placeholder slug with short ID {string}", function (this: StoreWorld, _shortId: string) {
+  const epic = this.store.addPlaceholderEpic();
+  lastPlaceholderSlug = epic.slug;
 });
 
 Then("the placeholder slug should contain a human-readable word", function () {
@@ -88,7 +88,7 @@ Then("the placeholder slug should not be a bare hex string", function () {
 });
 
 Then("the placeholder slug should match the pattern adjective-noun-hex", function () {
-  assert.ok(/^[a-z]+-[a-z]+-[0-9a-f]{4}$/.test(lastPlaceholderSlug), `"${lastPlaceholderSlug}" should match adj-noun-hex`);
+  assert.ok(/^[a-z]+-[a-z]+-[0-9a-f]{4}$/.test(lastPlaceholderSlug), `"${lastPlaceholderSlug}" should match adj-noun-hex (store-derived slug)`);
 });
 
 // --- Slugify deduplication ---

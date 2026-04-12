@@ -52,7 +52,7 @@ export type Entity = Epic | Feature;
 
 // --- Patch Types ---
 
-export type EpicPatch = Partial<Omit<Epic, "id" | "type" | "created_at">>;
+export type EpicPatch = Partial<Omit<Epic, "id" | "type" | "slug" | "created_at">>;
 export type FeaturePatch = Partial<Omit<Feature, "id" | "type" | "parent" | "slug" | "created_at">>;
 
 // --- Tree Node ---
@@ -83,6 +83,7 @@ export interface TaskStore {
   getEpic(id: string): Epic | undefined;
   listEpics(): Epic[];
   addEpic(opts: { name: string }): Epic;
+  addPlaceholderEpic(): Epic;
   updateEpic(id: string, patch: EpicPatch): Epic;
   deleteEpic(id: string): void;
 

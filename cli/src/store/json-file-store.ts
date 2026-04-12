@@ -104,6 +104,10 @@ export class JsonFileStore implements TaskStore {
     return this.inner.addEpic(opts);
   }
 
+  addPlaceholderEpic(): Epic {
+    return this.inner.addPlaceholderEpic();
+  }
+
   updateEpic(id: string, patch: EpicPatch): Epic {
     return this.inner.updateEpic(id, patch);
   }

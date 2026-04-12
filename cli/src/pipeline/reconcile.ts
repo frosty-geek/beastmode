@@ -16,9 +16,7 @@ import {
 } from "../artifacts/reader.js";
 import { epicMachine, loadEpic } from "../pipeline-machine/index.js";
 import type { EpicContext } from "../pipeline-machine/index.js";
-import { resolve, join, basename } from "node:path";
-import { renameSync, existsSync } from "node:fs";
-import { renameTags } from "../git/tags.js";
+import { resolve, join } from "node:path";
 
 // --- Result type ---
 
@@ -159,54 +157,6 @@ function resolveEpic(store: JsonFileStore, epicId: string): Epic | undefined {
 // --- Phase-specific reconcile functions ---
 
 /**
- * Rename a design artifact file (and its output.json) from hex slug to
- * human-readable slug. Returns the new basename, or the original if no
- * rename was needed or possible.
- */
-function renameDesignArtifact(
-  wtPath: string,
-  designPath: string | undefined,
-  oldSlug: string,
-  newSlug: string,
-): string | undefined {
-  if (!designPath) return undefined;
-
-  const designDir = join(wtPath, ".beastmode", "artifacts", "design");
-  const oldMd = join(designDir, designPath);
-
-  if (!existsSync(oldMd)) return designPath;
-
-  // Replace the old slug suffix with the new slug in the filename
-  // e.g., 2026-04-11-f2d907.md -> 2026-04-11-fix-tree-log-rendering.md
-  const base = basename(designPath, ".md");
-  if (!base.endsWith(`-${oldSlug}`)) return designPath;
-
-  const prefix = base.slice(0, -(oldSlug.length));
-  const newBase = `${prefix}${newSlug}`;
-  const newMdName = `${newBase}.md`;
-  const newMd = join(designDir, newMdName);
-
-  try {
-    renameSync(oldMd, newMd);
-  } catch {
-    return designPath;
-  }
-
-  // Also rename the output.json if it exists
-  const oldOutput = join(designDir, `${base}.output.json`);
-  const newOutput = join(designDir, `${newBase}.output.json`);
-  if (existsSync(oldOutput)) {
-    try {
-      renameSync(oldOutput, newOutput);
-    } catch {
-      // Non-fatal — the .md rename succeeded
-    }
-  }
-
-  return newMdName;
-}
-
-/**
  * Reconcile a design phase completion.
  */
 export async function reconcileDesign(
@@ -232,7 +182,7 @@ export async function reconcileDesign(
     if (!output || output.status !== "completed") return undefined;
 
     const artifacts = output.artifacts as unknown as Record<string, unknown> | undefined;
-    const realSlug = artifacts?.["epic-slug-renamed"] as string | undefined;
+    const epicName = artifacts?.["epic-name"] as string | undefined;
     const designPath = artifacts?.design as string | undefined;
 
     let summary: { problem: string; solution: string } | undefined;
@@ -249,48 +199,15 @@ export async function reconcileDesign(
     const eventArtifacts: Record<string, string[]> | undefined = designPath
       ? { design: [designPath] }
       : undefined;
-    actor.send({ type: "DESIGN_COMPLETED", realSlug, summary, artifacts: eventArtifacts });
+    actor.send({ type: "DESIGN_COMPLETED", realSlug: epicName, summary, artifacts: eventArtifacts });
     const updated = extractEpic(actor, epic);
 
-    // Design phase may rename the slug (hex -> human-readable).
-    // Update in-place — entity ID stays stable.
-    // Preserve the collision-proof hex suffix from the epic ID.
-    const shortId = epic.id.replace("bm-", "");
-    const newSlug = realSlug ? `${realSlug}-${shortId}` : epic.slug;
-    if (newSlug !== epic.slug) {
-      const oldSlug = epic.slug;
-      store.updateEpic(epic.id, {
-        slug: newSlug,
-        name: realSlug ?? epic.name,
-        status: updated.status,
-        summary: summary ?? epic.summary,
-        design: designPath,
-        updated_at: updated.updated_at,
-      });
-      store.save();
-
-      // Rename git tags from old slug to new slug
-      await renameTags(oldSlug, newSlug, { cwd: projectRoot });
-
-      // Rename design artifact file from hex slug to human-readable slug
-      const renamedDesignPath = renameDesignArtifact(wtPath, designPath, oldSlug, newSlug);
-      if (renamedDesignPath && renamedDesignPath !== designPath) {
-        store.updateEpic(epic.id, { design: renamedDesignPath });
-        store.save();
-      }
-
-      const savedEpic = store.getEpic(epic.id)!;
-      return {
-        epic: savedEpic,
-        manifest: savedEpic,
-        phase: savedEpic.status as Phase,
-        progress: readProgress(epic.id, store),
-      };
-    }
-
+    // Update the store — store.updateEpic auto-derives slug when name changes.
+    // External side effects (tag rename, artifact rename, worktree rename) are
+    // handled by the runner after reconciliation returns.
     store.updateEpic(epic.id, {
+      name: epicName ?? epic.name,
       status: updated.status,
-      name: realSlug ?? epic.name,
       summary: summary ?? epic.summary,
       design: designPath,
       updated_at: updated.updated_at,

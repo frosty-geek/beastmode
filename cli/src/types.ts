@@ -18,8 +18,7 @@ export interface PhaseResult {
 /** Phase-specific artifact shapes for output files */
 export interface DesignArtifacts {
   design: string; // path to PRD
-  "epic-slug"?: string; // skill-proposed epic name from frontmatter
-  "epic-slug-renamed"?: string; // skill-derived human-readable slug for post-session rename
+  "epic-name"?: string; // skill-derived human-readable name for post-session rename
 }
 
 export interface PlanArtifacts {

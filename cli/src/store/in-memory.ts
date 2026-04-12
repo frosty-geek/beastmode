@@ -14,10 +14,20 @@ import {
 } from "./types.js";
 
 import { slugify } from "./slug.js";
+import { generatePlaceholderName } from "./placeholder.js";
 
 export class InMemoryTaskStore implements TaskStore {
   private entities = new Map<string, Entity>();
   private epicCounters = new Map<string, number>(); // parent ID -> next feature ordinal
+
+  /**
+   * Derive the full epic slug from a human-readable name and epic ID.
+   * Single source of truth for epic slug format: {slugified-name}-{hex}
+   */
+  private deriveEpicSlug(name: string, epicId: string): string {
+    const hex = epicId.replace("bm-", "");
+    return slugify(name) + "-" + hex;
+  }
 
   /**
    * Generate a unique Epic ID: bm-XXXX where XXXX is 4 random hex chars
@@ -76,12 +86,11 @@ export class InMemoryTaskStore implements TaskStore {
 
   addEpic(opts: { name: string }): Epic {
     const id = this.generateEpicId();
-    const shortId = id.replace("bm-", "");
     const epic: Epic = {
       id,
       type: "epic",
       name: opts.name,
-      slug: slugify(opts.name) + "-" + shortId,
+      slug: this.deriveEpicSlug(opts.name, id),
       status: "design",
       depends_on: [],
       created_at: this.now(),
@@ -92,13 +101,26 @@ export class InMemoryTaskStore implements TaskStore {
     return epic;
   }
 
+  addPlaceholderEpic(): Epic {
+    const id = this.generateEpicId();
+    const hex = id.replace("bm-", "");
+    const name = generatePlaceholderName(hex);
+    return this.addEpic({ name });
+  }
+
   updateEpic(id: string, patch: EpicPatch): Epic {
     const epic = this.getEpic(id);
     if (!epic) throw new Error(`Epic not found: ${id}`);
 
+    // Auto-derive slug when name changes
+    const slug = patch.name && patch.name !== epic.name
+      ? this.deriveEpicSlug(patch.name, id)
+      : epic.slug;
+
     const updated: Epic = {
       ...epic,
       ...patch,
+      slug,
       id: epic.id, // immutable
       type: "epic", // immutable
       created_at: epic.created_at, // immutable

@@ -18,9 +18,8 @@
  *   9. git.worktree.cleanup     -- Release only: archive + remove
  */
 
-import { resolve } from "node:path";
-import { renameSync, existsSync, writeFileSync as fsWriteFileSync } from "node:fs";
-import { stripPlaceholderHex } from "../store/placeholder.js";
+import { resolve, join, basename } from "node:path";
+import { renameSync, existsSync, writeFileSync as fsWriteFileSync, readFileSync } from "node:fs";
 import type { Phase, PhaseResult } from "../types.js";
 import type { Logger } from "../logger.js";
 import { createLogger, createStdioSink } from "../logger.js";
@@ -31,7 +30,7 @@ import { syncGitHubForEpic } from "../github/sync.js";
 import { discoverGitHub } from "../github/discovery.js";
 import type { ResolvedGitHub } from "../github/discovery.js";
 import { ensureEarlyIssues } from "../github/early-issues.js";
-import { createTag } from "../git/tags.js";
+import { createTag, renameTags } from "../git/tags.js";
 import { amendCommitsInRange } from "../git/commit-issue-ref.js";
 import { loadSyncRefs, getSyncRef } from "../github/sync-refs.js";
 import { JsonFileStore } from "../store/json-file-store.js";
@@ -136,37 +135,28 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     // The runner only needs the worktree path for post-dispatch steps (5-9).
     worktreePath = resolve(config.projectRoot, ".claude", "worktrees", epicSlug);
   } else {
-    // -- Step 0: pre-dispatch entity creation ---------------------------------
-    // Load or create the store entity before dispatch so the entity ID is
-    // available from the first hook invocation.
+    // -- Step 0: pre-dispatch entity creation/lookup ----------------------------
+    // Resolve or create the store entity before dispatch so the entity ID is
+    // available from the first hook invocation. For design phase with no
+    // existing epic, the runner creates a placeholder epic and adopts its slug.
     try {
       const storeFile = resolve(config.projectRoot, ".beastmode", "state", "store.json");
       const store = new JsonFileStore(storeFile);
       store.load();
 
-      // For design phase: check if entity exists. If not, create it.
-      // For other phases: look up existing entity.
-      const existingEpic = store.listEpics().find((e) => e.slug === epicSlug);
-
-      if (config.phase === "design") {
-        if (!existingEpic) {
-          // Strip placeholder hex suffix (e.g., "quick-quartz-f284" → "quick-quartz")
-          // so the store doesn't produce double-hex slugs ("quick-quartz-f284-96da").
-          const entityName = stripPlaceholderHex(epicSlug);
-          const newEpic = store.addEpic({ name: entityName });
-          config.epicId = newEpic.id;
-          logger.debug?.(`created store entity: ${newEpic.id}`);
-        } else {
-          config.epicId = existingEpic.id;
-          logger.debug?.(`found existing entity: ${existingEpic.id}`);
-        }
-      } else {
-        if (existingEpic) {
-          config.epicId = existingEpic.id;
-        }
+      const existingEpic = epicSlug
+        ? store.listEpics().find((e) => e.slug === epicSlug)
+        : undefined;
+      if (existingEpic) {
+        config.epicId = existingEpic.id;
+        logger.debug?.(`found store entity: ${existingEpic.id}`);
+      } else if (config.phase === "design") {
+        const newEpic = store.addPlaceholderEpic();
+        store.save();
+        config.epicId = newEpic.id;
+        epicSlug = newEpic.slug;
+        logger.debug?.(`created store entity: ${newEpic.id} (${newEpic.slug})`);
       }
-
-      store.save();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.warn(`store entity creation failed: ${message}`);
@@ -331,26 +321,45 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     logger.warn(`tag creation failed: ${message}`);
   }
 
-  // Design phase: update slug to real slug and rename worktree directory
+  // Design phase: rename everything from placeholder slug to real slug
   if (config.phase === "design" && reconcileResult) {
     const finalEpic = reconcileResult.epic;
     if (finalEpic.slug && finalEpic.slug !== epicSlug) {
-      // Rename the worktree directory, git branch, and git metadata
-      const oldWtPath = resolve(config.projectRoot, ".claude", "worktrees", epicSlug);
-      const newWtPath = resolve(config.projectRoot, ".claude", "worktrees", finalEpic.slug);
-      const oldBranch = `feature/${epicSlug}`;
-      const newBranch = `feature/${finalEpic.slug}`;
+      const oldSlug = epicSlug;
+      const newSlug = finalEpic.slug;
+
+      // -- Rename git tags --
+      try {
+        await renameTags(oldSlug, newSlug, { cwd: config.projectRoot });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.warn(`tag rename failed: ${message}`);
+      }
+
+      // -- Rename design artifact files --
+      const renamedDesignPath = renameDesignArtifact(worktreePath, finalEpic.design, oldSlug, newSlug);
+      if (renamedDesignPath && renamedDesignPath !== finalEpic.design) {
+        const artifactStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
+        artifactStore.load();
+        artifactStore.updateEpic(finalEpic.id, { design: renamedDesignPath });
+        artifactStore.save();
+
+        // Update frontmatter inside the renamed artifact
+        updateArtifactFrontmatter(worktreePath, renamedDesignPath, oldSlug, newSlug);
+      }
+
+      // -- Rename worktree directory, git branch, git metadata --
+      const oldWtPath = resolve(config.projectRoot, ".claude", "worktrees", oldSlug);
+      const newWtPath = resolve(config.projectRoot, ".claude", "worktrees", newSlug);
+      const oldBranch = `feature/${oldSlug}`;
+      const newBranch = `feature/${newSlug}`;
       if (existsSync(oldWtPath)) {
         try {
-          // Rename git branch
           await worktree.git(["branch", "-m", oldBranch, newBranch], { cwd: config.projectRoot });
-
-          // Move worktree directory
           renameSync(oldWtPath, newWtPath);
 
-          // Repair git worktree metadata
-          const gitDir = resolve(config.projectRoot, ".git", "worktrees", epicSlug);
-          const newGitDir = resolve(config.projectRoot, ".git", "worktrees", finalEpic.slug);
+          const gitDir = resolve(config.projectRoot, ".git", "worktrees", oldSlug);
+          const newGitDir = resolve(config.projectRoot, ".git", "worktrees", newSlug);
           if (existsSync(gitDir)) {
             renameSync(gitDir, newGitDir);
             fsWriteFileSync(resolve(newWtPath, ".git"), `gitdir: ${newGitDir}\n`);
@@ -362,26 +371,22 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
           await worktree.git(["worktree", "repair"], { cwd: config.projectRoot, allowFailure: true });
 
           worktreePath = newWtPath;
-          logger.info(`worktree renamed -> ${finalEpic.slug}`);
+          logger.info(`worktree renamed -> ${newSlug}`);
 
-          // Update the store's worktree path
           const renameStore = new JsonFileStore(resolve(config.projectRoot, ".beastmode", "state", "store.json"));
           renameStore.load();
-          const renamedEntity = renameStore.getEpic(finalEpic.id);
-          if (renamedEntity) {
-            renameStore.updateEpic(renamedEntity.id, {
-              worktree: { branch: newBranch, path: newWtPath },
-            });
-            renameStore.save();
-          }
+          renameStore.updateEpic(finalEpic.id, {
+            worktree: { branch: newBranch, path: newWtPath },
+          });
+          renameStore.save();
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           logger.warn(`worktree rename failed: ${message}`);
         }
       }
 
-      epicSlug = finalEpic.slug;
-      logger.info(`slug updated -> ${finalEpic.slug}`);
+      epicSlug = newSlug;
+      logger.info(`slug updated -> ${newSlug}`);
     }
   }
 
@@ -557,4 +562,77 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   }
 
   return { success: dispatchResult.success, worktreePath, epicSlug, reconcileResult };
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Rename a design artifact file (and its output.json) from old slug to new slug.
+ * Returns the new basename, or the original if no rename was needed.
+ */
+function renameDesignArtifact(
+  wtPath: string,
+  designPath: string | undefined,
+  oldSlug: string,
+  newSlug: string,
+): string | undefined {
+  if (!designPath) return undefined;
+
+  const designDir = join(wtPath, ".beastmode", "artifacts", "design");
+  const oldMd = join(designDir, designPath);
+
+  if (!existsSync(oldMd)) return designPath;
+
+  const base = basename(designPath, ".md");
+  if (!base.endsWith(`-${oldSlug}`)) return designPath;
+
+  const prefix = base.slice(0, -(oldSlug.length));
+  const newBase = `${prefix}${newSlug}`;
+  const newMdName = `${newBase}.md`;
+  const newMd = join(designDir, newMdName);
+
+  try {
+    renameSync(oldMd, newMd);
+  } catch {
+    return designPath;
+  }
+
+  // Also rename the output.json if it exists
+  const oldOutput = join(designDir, `${base}.output.json`);
+  const newOutput = join(designDir, `${newBase}.output.json`);
+  if (existsSync(oldOutput)) {
+    try {
+      renameSync(oldOutput, newOutput);
+    } catch {
+      // Non-fatal — the .md rename succeeded
+    }
+  }
+
+  return newMdName;
+}
+
+/**
+ * Update epic-slug in the artifact's YAML frontmatter to match the new slug.
+ */
+function updateArtifactFrontmatter(
+  wtPath: string,
+  designPath: string,
+  oldSlug: string,
+  newSlug: string,
+): void {
+  const fullPath = join(wtPath, ".beastmode", "artifacts", "design", designPath);
+  if (!existsSync(fullPath)) return;
+
+  try {
+    const content = readFileSync(fullPath, "utf-8");
+    const updated = content.replace(
+      `epic-slug: ${oldSlug}`,
+      `epic-slug: ${newSlug}`,
+    );
+    if (updated !== content) {
+      fsWriteFileSync(fullPath, updated);
+    }
+  } catch {
+    // Non-fatal — frontmatter update is best-effort
+  }
 }

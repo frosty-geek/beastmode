@@ -672,23 +672,23 @@ describe("pipeline/runner", () => {
       );
     });
 
-    it("passes newly created epicId to reconcileDesign", async () => {
+    it("passes pre-set epicId to reconcileDesign", async () => {
       const storeState = (mockJsonFileStore as any).__storeState;
-      // No existing entity — Step 0 creates one via addEpic
-      storeState.listEpics = vi.fn(() => []);
-      storeState.addEpic = vi.fn((_opts: { name: string }) => ({
+      // Entity already exists (created by phase.ts) — Step 0 looks it up
+      storeState.listEpics = vi.fn(() => [{
         id: "bm-new1",
-        slug: "test-epic-new1",
+        slug: "test-epic",
         name: "test-epic",
         type: "epic",
-      }));
+      }]);
 
       await run(makeConfig({
         phase: "design",
         epicSlug: "test-epic",
+        epicId: "bm-new1",
       }));
 
-      // reconcileDesign should receive the new entity's ID
+      // reconcileDesign should receive the entity's ID
       expect(mockReconcileDesign).toHaveBeenCalledWith(
         "/tmp/test-project",
         "bm-new1",
@@ -759,62 +759,23 @@ describe("pipeline/runner", () => {
     });
   });
 
-  describe("pre-dispatch entity creation (Step 0)", () => {
-    it("creates store entity for design phase before dispatch", async () => {
+  describe("pre-dispatch entity lookup (Step 0)", () => {
+    it("looks up existing entity for design phase by slug", async () => {
       const storeState = (mockJsonFileStore as any).__storeState;
-      // Entity doesn't exist yet — listEpics returns empty
-      storeState.listEpics = vi.fn(() => []);
-
-      const callOrder: string[] = [];
-      storeState.addEpic = vi.fn((opts: { name: string }) => {
-        callOrder.push("addEpic");
-        const id = "bm-new1";
-        return { id, slug: "test-epic-new1", name: opts.name, type: "epic" };
-      });
-
-      mockCreate.mockImplementation(async (slug: string) => {
-        callOrder.push("worktree.create");
-        return {
-          slug,
-          path: `/tmp/test-project/.claude/worktrees/${slug}`,
-          branch: `feature/${slug}`,
-        };
-      });
+      storeState.listEpics = vi.fn(() => [
+        { id: "bm-96da", slug: "test-epic", name: "Test Epic", type: "epic" },
+      ]);
 
       const config = makeConfig({ phase: "design" });
-      const result = await run(config);
+      await run(config);
 
-      expect(result.success).toBe(true);
-      // Step 0 (addEpic) should happen before Step 1 (worktree.create)
-      expect(callOrder[0]).toBe("addEpic");
-      expect(callOrder[1]).toBe("worktree.create");
-      // epicId should be set in config
-      expect(storeState.addEpic).toHaveBeenCalledWith({ name: "test-epic" });
-    });
-
-    it("strips placeholder hex suffix before creating entity name", async () => {
-      const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.listEpics = vi.fn(() => []);
-      storeState.addEpic = vi.fn((opts: { name: string }) => ({
-        id: "bm-96da",
-        slug: opts.name + "-96da",
-        name: opts.name,
-        type: "epic",
-      }));
-
-      await run(makeConfig({
-        phase: "design",
-        epicSlug: "quick-quartz-f284", // placeholder format: adjective-noun-4hex
-      }));
-
-      // Should strip the trailing -f284 so the store produces "quick-quartz-96da"
-      // instead of "quick-quartz-f284-96da" (double hex suffix)
-      expect(storeState.addEpic).toHaveBeenCalledWith({ name: "quick-quartz" });
+      // Step 0 should look up existing entity, not create one
+      expect(storeState.listEpics).toHaveBeenCalled();
+      expect(config.epicId).toBe("bm-96da");
     });
 
     it("looks up existing entity for non-design phases", async () => {
       const storeState = (mockJsonFileStore as any).__storeState;
-      // listEpics returns the existing entity — listEpics().find() will match by slug
       storeState.listEpics = vi.fn(() => [
         { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" },
       ]);
@@ -822,22 +783,18 @@ describe("pipeline/runner", () => {
 
       await run(makeConfig({ phase: "plan" }));
 
-      // For non-design phases, listEpics should be called but addEpic should not
       expect(storeState.listEpics).toHaveBeenCalled();
       expect(storeState.addEpic).not.toHaveBeenCalled();
     });
 
-    it("sets worktree metadata on newly created entity", async () => {
+    it("sets worktree metadata on design entity after worktree creation", async () => {
       const storeState = (mockJsonFileStore as any).__storeState;
       const updateCalls: Array<[string, any]> = [];
 
-      // Entity doesn't exist initially — listEpics returns empty
-      storeState.listEpics = vi.fn(() => []);
-
-      storeState.addEpic = vi.fn((opts: { name: string }) => {
-        const id = "bm-new2";
-        return { id, slug: "test-epic-new2", name: opts.name, type: "epic" };
-      });
+      // Entity already exists (created by phase.ts)
+      storeState.listEpics = vi.fn(() => [
+        { id: "bm-new2", slug: "test-epic", name: "Test Epic", type: "epic" },
+      ]);
 
       // Mock the updateEpic call
       const JsonFileStoreClass = mockJsonFileStore;
@@ -852,7 +809,7 @@ describe("pipeline/runner", () => {
         branch: `feature/${slug}`,
       }));
 
-      await run(makeConfig({ phase: "design" }));
+      await run(makeConfig({ phase: "design", epicId: "bm-new2" }));
 
       // After Step 1 (worktree.create), Step 0b should call updateEpic with worktree metadata
       expect(updateCalls.length).toBeGreaterThan(0);
