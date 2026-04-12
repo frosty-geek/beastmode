@@ -7,14 +7,10 @@ description: Create PRDs through structured decision-tree interviews — designi
 
 Create PRDs through structured decision-tree interviews and collaborative dialogue.
 
-<HARD-GATE>
-No implementation until PRD is approved.
-
-No Plan Mode — this skill operates in normal mode. EnterPlanMode/ExitPlanMode restrict Write/Edit tools and break the workflow.
-</HARD-GATE>
-
 ## Guiding Principles
-
+- No implementation until PRD is approved. No Plan Mode — this skill operates in normal mode. EnterPlanMode/ExitPlanMode restrict Write/Edit tools and break the workflow.
+- The session-start hook injects a metadata block into the session context with `epic-id`, `epic-slug`, and `output-target`. Use these values verbatim — do NOT re-derive, re-extract, or generate alternatives.
+- Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a PRD and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 - **Every feature gets a PRD.** A config change, a single-function utility, a rename — all of them. Short is fine; skipping is not.
 - **The user frames the problem.** Their words drive the design. Ask before exploring; listen before loading context.
 - **Decision tree before document.** Walk every branch, sweep for gray areas, then write. The PRD is the output, not the process.
@@ -150,22 +146,21 @@ Wait for user response before continuing.
 
 ## Phase 3: Checkpoint
 
-### 0. Derive Epic Slug
+### 0. Derive Epic Name
 
-The skill argument is the current epic-slug assigned by the CLI (e.g. `rabbit-running-4efa`).
+Derive a NEW human-readable **name** from the problem statement and solution discussed during the interview:
+- **epic-name**: A short, human-readable title (e.g. "Dashboard Redesign for Log Events"). Not slugified — natural language, title case. The CLI slugifies this automatically for the epic slug.
 
-Derive a NEW human-readable slug from the problem statement and solution discussed during the interview. This becomes the `epic-slug-renamed` value in the PRD frontmatter — the CLI uses it to rename everything post-session.
-
-- Log: "Derived slug: `<derived-slug>`"
+- Log: "Derived name: `<epic-name>`"
 
 ### 1. Write PRD
 
-Save to `.beastmode/artifacts/design/YYYY-MM-DD-<epic-slug>.md` where `<epic-slug>` is the skill argument (the passed-in slug).
+Save to the path specified by `output-target` in the session metadata block.
 
 In the PRD frontmatter:
-- `epic-id`: the hex suffix extracted from the passed-in slug (e.g. `4efa` from `rabbit-running-4efa`)
-- `epic-slug`: the passed-in slug (unchanged)
-- `epic-slug-renamed`: the derived slug from step 0
+- `epic-id`: from session metadata (verbatim)
+- `epic-slug`: from session metadata (verbatim)
+- `epic-name`: the human-readable name from step 0
 
 Use the PRD template from the Reference section below.
 
@@ -186,25 +181,6 @@ Next: beastmode plan <epic-slug>
 
 STOP. No additional output.
 
-## Constraints
-
-### No Implementation Until Approval
-
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a PRD and the user has approved it.
-
-This applies to EVERY project regardless of perceived simplicity.
-
-### Anti-Pattern: "Too Simple for a PRD"
-
-Every feature goes through this process. A config change, a single-function utility, a rename — all of them. "Simple" features are where unexamined assumptions cause the most wasted work.
-
-The PRD can be short (a few user stories), but you MUST:
-1. Walk at least one branch of the decision tree
-2. Present it for approval
-3. Write the PRD
-
-There is no "skip design" path.
-
 ## Reference
 
 ### PRD Template
@@ -214,7 +190,7 @@ There is no "skip design" path.
 phase: design
 epic-id: <epic-id>
 epic-slug: <epic-slug>
-epic-slug-renamed: <derived-slug>
+epic-name: <epic-name>
 ---
 
 ## Problem Statement
