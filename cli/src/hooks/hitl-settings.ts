@@ -78,8 +78,10 @@ export function buildEnvPrefix(ctx: EnvPrefixContext): string {
     `BEASTMODE_EPIC_ID=${ctx.epicId}`,
     `BEASTMODE_EPIC_SLUG=${ctx.epicSlug}`,
   ];
-  if (ctx.featureId && ctx.featureSlug) {
-    parts.push(`BEASTMODE_FEATURE_ID=${ctx.featureId}`);
+  if (ctx.featureSlug) {
+    if (ctx.featureId) {
+      parts.push(`BEASTMODE_FEATURE_ID=${ctx.featureId}`);
+    }
     if (ctx.featureName) {
       parts.push(`BEASTMODE_FEATURE_NAME=${ctx.featureName}`);
     }

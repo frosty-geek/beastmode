@@ -200,7 +200,7 @@ export function processArtifact(artifactPath: string, artifactsDir: string, work
     const dateMatch = artBasename.match(/^(\d{4}-\d{2}-\d{2})-/);
     const date = dateMatch ? dateMatch[1] : new Date().toISOString().slice(0, 10);
     const effectiveFeature = featureOverride ?? fm["feature-slug"] ?? fm["feature-name"];
-    const featureSuffix = effectiveFeature ? `-${effectiveFeature}` : "";
+    const featureSuffix = effectiveFeature ? `--${effectiveFeature}` : "";
     outputBasename = `${date}-${worktreeSlug}${featureSuffix}`;
   } else {
     outputBasename = artBasename;
