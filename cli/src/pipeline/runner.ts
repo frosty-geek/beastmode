@@ -20,6 +20,7 @@
 
 import { resolve } from "node:path";
 import { renameSync, existsSync, writeFileSync as fsWriteFileSync } from "node:fs";
+import { stripPlaceholderHex } from "../store/placeholder.js";
 import type { Phase, PhaseResult } from "../types.js";
 import type { Logger } from "../logger.js";
 import { createLogger, createStdioSink } from "../logger.js";
@@ -145,21 +146,23 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
 
       // For design phase: check if entity exists. If not, create it.
       // For other phases: look up existing entity.
+      const existingEpic = store.listEpics().find((e) => e.slug === epicSlug);
+
       if (config.phase === "design") {
-        const existingEntity = store.find(epicSlug);
-        if (!existingEntity) {
-          const newEpic = store.addEpic({ name: epicSlug });
+        if (!existingEpic) {
+          // Strip placeholder hex suffix (e.g., "quick-quartz-f284" → "quick-quartz")
+          // so the store doesn't produce double-hex slugs ("quick-quartz-f284-96da").
+          const entityName = stripPlaceholderHex(epicSlug);
+          const newEpic = store.addEpic({ name: entityName });
           config.epicId = newEpic.id;
           logger.debug?.(`created store entity: ${newEpic.id}`);
         } else {
-          config.epicId = existingEntity.id;
-          logger.debug?.(`found existing entity: ${existingEntity.id}`);
+          config.epicId = existingEpic.id;
+          logger.debug?.(`found existing entity: ${existingEpic.id}`);
         }
       } else {
-        // Non-design phases: look up existing entity
-        const entity = store.find(epicSlug);
-        if (entity) {
-          config.epicId = entity.id;
+        if (existingEpic) {
+          config.epicId = existingEpic.id;
         }
       }
 
@@ -291,7 +294,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
   try {
     switch (config.phase) {
       case "design":
-        reconcileResult = await reconcileDesign(config.projectRoot, epicSlug, worktreePath);
+        reconcileResult = await reconcileDesign(config.projectRoot, config.epicId ?? epicSlug, worktreePath);
         break;
       case "plan":
         reconcileResult = await reconcilePlan(config.projectRoot, config.epicId ?? epicSlug, worktreePath);

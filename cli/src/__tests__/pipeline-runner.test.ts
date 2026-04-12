@@ -651,6 +651,52 @@ describe("pipeline/runner", () => {
     });
   });
 
+  describe("design reconcile identifier", () => {
+    it("passes epicId to reconcileDesign when existing entity found", async () => {
+      const storeState = (mockJsonFileStore as any).__storeState;
+      // Entity exists with matching slug — Step 0 finds it via listEpics().find(e => e.slug === epicSlug)
+      storeState.listEpics = vi.fn(() => [
+        { id: "bm-96da", slug: "test-epic", name: "test-epic", type: "epic" },
+      ]);
+
+      await run(makeConfig({
+        phase: "design",
+        epicSlug: "test-epic",
+      }));
+
+      // reconcileDesign should receive the entity ID, not just the CLI slug
+      expect(mockReconcileDesign).toHaveBeenCalledWith(
+        "/tmp/test-project",
+        "bm-96da",
+        expect.stringContaining("worktrees"),
+      );
+    });
+
+    it("passes newly created epicId to reconcileDesign", async () => {
+      const storeState = (mockJsonFileStore as any).__storeState;
+      // No existing entity — Step 0 creates one via addEpic
+      storeState.listEpics = vi.fn(() => []);
+      storeState.addEpic = vi.fn((_opts: { name: string }) => ({
+        id: "bm-new1",
+        slug: "test-epic-new1",
+        name: "test-epic",
+        type: "epic",
+      }));
+
+      await run(makeConfig({
+        phase: "design",
+        epicSlug: "test-epic",
+      }));
+
+      // reconcileDesign should receive the new entity's ID
+      expect(mockReconcileDesign).toHaveBeenCalledWith(
+        "/tmp/test-project",
+        "bm-new1",
+        expect.stringContaining("worktrees"),
+      );
+    });
+  });
+
   describe("design slug rename", () => {
     it("updates epicSlug when reconcile produces a different slug", async () => {
       mockReconcileDesign.mockImplementation(async () => ({
@@ -716,10 +762,8 @@ describe("pipeline/runner", () => {
   describe("pre-dispatch entity creation (Step 0)", () => {
     it("creates store entity for design phase before dispatch", async () => {
       const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.find = vi.fn((_idOrSlug: string) => {
-        // Entity doesn't exist yet
-        return undefined;
-      });
+      // Entity doesn't exist yet — listEpics returns empty
+      storeState.listEpics = vi.fn(() => []);
 
       const callOrder: string[] = [];
       storeState.addEpic = vi.fn((opts: { name: string }) => {
@@ -748,20 +792,38 @@ describe("pipeline/runner", () => {
       expect(storeState.addEpic).toHaveBeenCalledWith({ name: "test-epic" });
     });
 
+    it("strips placeholder hex suffix before creating entity name", async () => {
+      const storeState = (mockJsonFileStore as any).__storeState;
+      storeState.listEpics = vi.fn(() => []);
+      storeState.addEpic = vi.fn((opts: { name: string }) => ({
+        id: "bm-96da",
+        slug: opts.name + "-96da",
+        name: opts.name,
+        type: "epic",
+      }));
+
+      await run(makeConfig({
+        phase: "design",
+        epicSlug: "quick-quartz-f284", // placeholder format: adjective-noun-4hex
+      }));
+
+      // Should strip the trailing -f284 so the store produces "quick-quartz-96da"
+      // instead of "quick-quartz-f284-96da" (double hex suffix)
+      expect(storeState.addEpic).toHaveBeenCalledWith({ name: "quick-quartz" });
+    });
+
     it("looks up existing entity for non-design phases", async () => {
       const storeState = (mockJsonFileStore as any).__storeState;
-      storeState.find = vi.fn((idOrSlug: string) => {
-        if (idOrSlug === "test-epic") {
-          return { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" };
-        }
-        return undefined;
-      });
+      // listEpics returns the existing entity — listEpics().find() will match by slug
+      storeState.listEpics = vi.fn(() => [
+        { id: "epic-123", slug: "test-epic", name: "Test Epic", type: "epic" },
+      ]);
       storeState.addEpic = vi.fn(); // Should NOT be called
 
       await run(makeConfig({ phase: "plan" }));
 
-      // For non-design phases, find should be called but addEpic should not
-      expect(storeState.find).toHaveBeenCalledWith("test-epic");
+      // For non-design phases, listEpics should be called but addEpic should not
+      expect(storeState.listEpics).toHaveBeenCalled();
       expect(storeState.addEpic).not.toHaveBeenCalled();
     });
 
@@ -769,10 +831,8 @@ describe("pipeline/runner", () => {
       const storeState = (mockJsonFileStore as any).__storeState;
       const updateCalls: Array<[string, any]> = [];
 
-      storeState.find = vi.fn((_idOrSlug: string) => {
-        // Entity doesn't exist initially
-        return undefined;
-      });
+      // Entity doesn't exist initially — listEpics returns empty
+      storeState.listEpics = vi.fn(() => []);
 
       storeState.addEpic = vi.fn((opts: { name: string }) => {
         const id = "bm-new2";

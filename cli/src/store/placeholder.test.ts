@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generatePlaceholderName, ADJECTIVES, NOUNS } from "./placeholder.js";
+import { generatePlaceholderName, stripPlaceholderHex, ADJECTIVES, NOUNS } from "./placeholder.js";
 
 describe("generatePlaceholderName", () => {
   it("returns a string matching adjective-noun-hex pattern", () => {
@@ -40,6 +40,28 @@ describe("generatePlaceholderName", () => {
     const name = generatePlaceholderName("beef");
     expect(/[a-z]{3,}/.test(name)).toBe(true);
     expect(/^[0-9a-f]+$/.test(name)).toBe(false);
+  });
+});
+
+describe("stripPlaceholderHex", () => {
+  it("strips trailing 4-hex suffix from placeholder names", () => {
+    expect(stripPlaceholderHex("quick-quartz-f284")).toBe("quick-quartz");
+  });
+
+  it("returns non-placeholder strings unchanged", () => {
+    expect(stripPlaceholderHex("my-custom-slug")).toBe("my-custom-slug");
+  });
+
+  it("only strips exactly 4-char hex at end", () => {
+    expect(stripPlaceholderHex("foo-abcde")).toBe("foo-abcde"); // 5 chars, no strip
+    expect(stripPlaceholderHex("foo-abc")).toBe("foo-abc"); // 3 chars, no strip
+  });
+
+  it("roundtrips with generatePlaceholderName", () => {
+    const name = generatePlaceholderName("beef");
+    const stripped = stripPlaceholderHex(name);
+    expect(stripped).not.toContain("beef");
+    expect(name).toBe(`${stripped}-beef`);
   });
 });
 

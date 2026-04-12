@@ -47,3 +47,13 @@ export function generatePlaceholderName(shortHex: string): string {
   const nounIndex = Math.floor(value / ADJECTIVES.length) % NOUNS.length;
   return `${ADJECTIVES[adjIndex]}-${NOUNS[nounIndex]}-${shortHex}`;
 }
+
+/**
+ * Strip the trailing 4-hex suffix from a placeholder name.
+ *
+ * "quick-quartz-f284" → "quick-quartz"
+ * "my-custom-slug"    → "my-custom-slug"  (no match, returned as-is)
+ */
+export function stripPlaceholderHex(name: string): string {
+  return name.replace(/-[0-9a-f]{4}$/, "");
+}
