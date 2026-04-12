@@ -6,9 +6,9 @@ const PHASE_TS = readFileSync(resolve(import.meta.dirname, "../commands/phase.ts
 const RUNNER_TS = readFileSync(resolve(import.meta.dirname, "../pipeline/runner.ts"), "utf-8");
 
 describe("design abandon guard — primary gate in phase.ts", () => {
-  test("imports loadWorktreePhaseOutput from artifacts/reader", () => {
+  test("imports loadWorktreePhaseOutput from artifacts", () => {
     expect(PHASE_TS).toContain("loadWorktreePhaseOutput");
-    expect(PHASE_TS).toContain("artifacts/reader");
+    expect(PHASE_TS).toContain("artifacts/index");
   });
 
   test("checks for design output after pipeline run", () => {

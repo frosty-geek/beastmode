@@ -6,13 +6,13 @@
 - `beastmode dashboard` runs fullscreen Ink v6 + React TUI with embedded watch loop — three-panel layout (EpicsPanel, OverviewPanel, LogPanel), iTerm2 terminal dispatch via ITermSessionFactory, lifecycle log entries for session visibility, context-sensitive key hints per view, keyboard navigation, alternate screen buffer mode, 1-second UI refresh tick; uses shared `status-data.ts` for data logic, WatchLoop EventEmitter typed events for state updates
 - `beastmode cancel <slug>` performs full cleanup via shared cancel module: removes worktree and branch, deletes archive tags, phase tags, artifacts (excluding research), closes GitHub issue as not_planned, deletes manifest — ordered steps with warn-and-continue per step, idempotent; `--force` flag skips confirmation prompt for automated pipelines; confirmation defaults to No (only y/Y accepted)
 - `beastmode compact` dispatches the compaction agent via existing session dispatch pattern — operates on the shared context tree without a worktree, always runs regardless of 5-release counter, produces stdout summary plus full artifact at `artifacts/compact/YYYY-MM-DD-compaction.md`
-- Design phase exception: `beastmode design <topic>` spawns interactive Claude via `Bun.spawn` with inherited stdio — not the SDK
+- Design phase exception: `beastmode design` (no slug required) — runner creates a placeholder epic via `store.addPlaceholderEpic()` at Step 0 and adopts its slug; if an existing slug is passed (re-dispatch), reuses it
 
 ## Dispatch Abstraction
 - ALWAYS use `SessionFactory` interface for phase dispatch — `create()`, optional `cleanup()`, `setBadgeOnContainer()`, `checkLiveness()` methods decouple dispatch mechanism from orchestration logic
 - `ITermSessionFactory` is the sole implementation — creates iTerm2 terminal tabs via AppleScript, runs `beastmode <phase> <slug>` in each tab; detects completion via `fs.watch` on `artifacts/<phase>/` for `*.output.json`
 - AbortController for cancellation — clean shutdown on Ctrl+C
-- Design phase exception: `beastmode design <topic>` always spawns interactive Claude via `Bun.spawn` with inherited stdio — not dispatched through `SessionFactory`
+- Design phase exception: `beastmode design` always spawns interactive Claude via `Bun.spawn` with inherited stdio — not dispatched through `SessionFactory`; no slug argument required, runner generates placeholder
 
 ## Worktree Lifecycle
 - CLI owns full worktree lifecycle: create at first phase encounter, persist through all intermediate phases, squash-merge to main and remove at release
@@ -51,6 +51,7 @@
 
 ## Post-Dispatch Pipeline
 - After every phase dispatch: Stop hook generates output.json from artifact frontmatter, CLI reads output.json from `artifacts/<phase>/` by hex slug match, enriches manifest via manifest.ts pure functions, optionally calls `store.rename()` for design phase (memory-only), then single `store.save()`, then runs `syncGitHubForEpic()` which encapsulates loadConfig, discoverGitHub, syncGitHub, mutation write-back via setGitHubEpic()/setFeatureGitHubIssue(), and warn-and-continue error handling. After sync, a commit issue ref amend step appends `(#N)` to the most recent commit message — epic issue ref for phase checkpoints and release merges, feature issue ref for feature task commits (resolved from commit message prefix)
+- Design phase post-reconcile: reconcileDesign is a pure store mutator (updates name/slug/status via `store.updateEpic()`, which auto-derives slug from name). All side effects happen in runner.ts after reconcile returns: tag rename (`renameTags`), artifact file rename, artifact frontmatter update, worktree directory/branch/git-metadata rename, store worktree path update
 - Non-design phases fail fast if slug not found in store via `resolveIdentifier()` — design creates the slug, all other phases are read-only with respect to slug identity
 - Machine persist action accumulates state in memory without disk writes — single `store.save()` at end of dispatch is the sole persist path
 - Design abandon cleanup: two-layer defense detects when design session ends without producing output.json. Primary gate in phase.ts checks `loadWorktreePhaseOutput()` after `runInteractive()` returns — if missing, runs cleanup via the shared cancel module (`cancelEpic()` from `cancel-logic.ts` — handles worktree, branch, tags, artifacts, GitHub issue, manifest in order with warn-and-continue) before returning, preventing post-dispatch from being called. Secondary guard in post-dispatch.ts skips `DESIGN_COMPLETED` event when no design output exists — defensive backstop for edge cases (ReconcilingFactory path). Both non-zero exit (crash/Ctrl+C) and zero exit without output (graceful quit) trigger the same cleanup path. Cleanup is idempotent — shared cancel module succeeds with nothing left to clean on re-run
@@ -73,7 +74,7 @@
 - Skills write artifacts with YAML frontmatter to `artifacts/<phase>/` — skills never write output.json or manifests
 - A Stop hook (generated into `.claude/settings.local.json` at dispatch time) fires when Claude finishes, scans `artifacts/<phase>/` for files matching the slug convention, reads YAML frontmatter, and generates `artifacts/<phase>/YYYY-MM-DD-<slug>.output.json`
 - output.json is the sole completion signal for all dispatch strategies — replaces `.dispatch-done.json`
-- Standardized artifact frontmatter across all phases: `phase`, `epic-id` (entity identifier), `epic-slug` (human name) always present; phase-specific additions: plan adds `feature-slug`, `wave`; implement adds `feature-id`, `feature-slug`, `status`; validate adds `status`, `failed-features`; release adds `bump`
+- Standardized artifact frontmatter across all phases: `phase`, `epic-id` (entity identifier), `epic-slug` (name) always present; design adds `epic-name` (DECISION — human-readable title for post-session rename); plan adds `feature-slug`, `wave`; implement adds `feature-id`, `feature-slug`, `status`; validate adds `status`, `failed-features`; release adds `bump`
 - CLI reads output.json from the worktree's `artifacts/<phase>/` directory after dispatch, located by hex slug match for unambiguous identification
 - `filenameMatchesEpic()` handles both hex-named files (pre-rename) and epic-named files (post-rename) during the design phase transition window
 
@@ -83,7 +84,7 @@
 - ALWAYS prepend structured metadata section in `assembleContext` output — delimited block containing phase, epic-id, epic-slug, feature-id, feature-slug, parent-artifacts, output-target; skills read metadata instead of parsing slash command args
 - `computeOutputTarget` computes the full artifact path (date prefix + slug components + phase) — skills use the metadata output-target, never derive filenames
 - HITL hooks read `BEASTMODE_PHASE` from env with positional arg fallback; session-start and session-stop require env vars (no fallback)
-- Pipeline runner pre-creates store entity at Step 0 before worktree setup — entity ID available from first hook invocation; `reconcileDesign` create-if-missing fallback removed
+- Pipeline runner pre-creates store entity at Step 0 before worktree setup — design phase calls `store.addPlaceholderEpic()` if no slug provided, non-design phases look up existing entity by slug via `store.listEpics().find()`; entity ID available from first hook invocation; `reconcileDesign` create-if-missing fallback removed
 - LLM prompt hooks (file-permission PreToolUse) are unchanged — env vars don't apply to prompt-type hooks
 
 ## Cancel Cleanup Module

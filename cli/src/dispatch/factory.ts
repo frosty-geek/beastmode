@@ -28,6 +28,7 @@ export interface SessionCreateOpts {
   phase: string;
   args: string[];
   featureSlug?: string;
+  featureName?: string;
   projectRoot: string;
   signal: AbortSignal;
 }

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import type { DispatchedSession } from "../../dispatch/types.js";
-import type { LogEntry } from "../../dispatch/factory.js";
-import type { EnrichedEpic } from "../../store/types.js";
+import type { DispatchedSession, LogEntry } from "../../dispatch/index.js";
+import type { EnrichedEpic } from "../../store/index.js";
 import type { TreeState, EpicNode, FeatureNode, TreeEntry, SystemEntry } from "../tree-types.js";
 import type { LogLevel } from "../../logger.js";
 import type { FallbackEntryStore } from "../lifecycle-entries.js";

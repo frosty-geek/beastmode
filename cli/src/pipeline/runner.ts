@@ -23,19 +23,12 @@ import { renameSync, existsSync, writeFileSync as fsWriteFileSync, readFileSync 
 import type { Phase, PhaseResult } from "../types.js";
 import type { Logger } from "../logger.js";
 import { createLogger, createStdioSink } from "../logger.js";
-import * as worktree from "../git/worktree.js";
-import { rebase } from "../git/worktree.js";
-import { loadWorktreePhaseOutput } from "../artifacts/reader.js";
-import { syncGitHubForEpic } from "../github/sync.js";
-import { discoverGitHub } from "../github/discovery.js";
-import type { ResolvedGitHub } from "../github/discovery.js";
-import { ensureEarlyIssues } from "../github/early-issues.js";
-import { createTag, renameTags } from "../git/tags.js";
-import { amendCommitsInRange } from "../git/commit-issue-ref.js";
-import { loadSyncRefs, getSyncRef } from "../github/sync-refs.js";
-import { JsonFileStore } from "../store/json-file-store.js";
-import { linkBranches } from "../github/branch-link.js";
-import { hasRemote, pushBranches, pushTags } from "../git/push.js";
+import * as worktree from "../git/index.js";
+import { rebase, createTag, renameTags, amendCommitsInRange, hasRemote, pushBranches, pushTags } from "../git/index.js";
+import { loadWorktreePhaseOutput } from "../artifacts/index.js";
+import { syncGitHubForEpic, discoverGitHub, ensureEarlyIssues, loadSyncRefs, getSyncRef, linkBranches } from "../github/index.js";
+import type { ResolvedGitHub } from "../github/index.js";
+import { JsonFileStore } from "../store/index.js";
 import {
   reconcileDesign,
   reconcilePlan,
@@ -51,13 +44,11 @@ import {
   buildPreToolUseHook,
   writeSessionStartHook,
   cleanSessionStartHook,
-} from "../hooks/hitl-settings.js";
-import {
   writeFilePermissionSettings,
   cleanFilePermissionSettings,
   buildFilePermissionPreToolUseHooks,
   buildFilePermissionPostToolUseHooks,
-} from "../hooks/file-permission-settings.js";
+} from "../hooks/index.js";
 import type { BeastmodeConfig } from "../config.js";
 import { getCategoryProse } from "../config.js";
 
@@ -80,6 +71,8 @@ export interface PipelineConfig {
   strategy: DispatchStrategy;
   /** Feature slug (for implement fan-out) */
   featureSlug?: string;
+  /** Feature human name (for implement metadata) */
+  featureName?: string;
   /** Beastmode configuration */
   config: BeastmodeConfig;
   /** Optional logger */
@@ -204,7 +197,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
     // -- Step 3: settings.create ----------------------------------------------
     const claudeDir = resolve(worktreePath, ".claude");
     cleanHitlSettings(claudeDir);
-    const envContext = { phase: config.phase, epicId: config.epicId ?? epicSlug, epicSlug, featureSlug: config.featureSlug };
+    const envContext = { phase: config.phase, epicId: config.epicId ?? epicSlug, epicSlug, featureName: config.featureName, featureSlug: config.featureSlug };
     const preToolUseHook = buildPreToolUseHook(envContext);
     writeHitlSettings({ claudeDir, preToolUseHook, envContext });
 
@@ -223,6 +216,7 @@ export async function run(config: PipelineConfig): Promise<PipelineResult> {
       phase: config.phase,
       epicId: config.epicId ?? epicSlug,
       epicSlug,
+      featureName: config.featureName,
       featureSlug: config.featureSlug,
     });
   }

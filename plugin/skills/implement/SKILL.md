@@ -7,18 +7,18 @@ description: Execute implementation plans — implementing, coding, building. Us
 
 Load plan, dispatch subagents per task in wave order, verify completion.
 
-<HARD-GATE>
-No EnterPlanMode or ExitPlanMode.
-</HARD-GATE>
-
 ## Guiding Principles
 
+- **No Plan Mode** — this skill operates in normal mode. EnterPlanMode/ExitPlanMode restrict Write/Edit tools and break the workflow.
+- **Session metadata is the source of truth** — the session-start hook injects a metadata block with `epic-id`, `epic-slug`, `feature-id`, `feature-name`, `feature-slug`, parent artifacts, and `output-target`. Use these values verbatim — do NOT re-derive, re-extract, or generate alternatives.
 - **One agent per task** — controller owns the plan, agents own the code
 - **Four statuses, not three tiers** — DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, BLOCKED
 - **Two-stage review** — spec compliance first, code quality second
 - **Wave ordering drives sequencing** — foundation before consumers
 - **All user input via `AskUserQuestion`** — freeform print-and-wait is invisible to HITL hooks; every question the user must answer goes through `AskUserQuestion`
 - **Model escalation** — start cheap (haiku), escalate on failure (sonnet, then opus)
+- **Working directory isolation** — the CLI provides the working directory; skills don't manage worktrees; each phase commits to the feature branch at checkpoint; merge happens only at /release
+- **Subagent safety** — one agent per task (never parallel on same wave); agents commit per task via `git add <files>` + `git commit`; agents must NOT read the plan file, modify files outside their task's file list, or push/switch branches
 
 ## Phase 0: Pre-Execute
 
@@ -77,7 +77,7 @@ Before dispatching, produce a detailed `.tasks.md` document from the feature pla
    - Include complete code in steps — no placeholders
    - Assign wave numbers based on dependencies (minimum Wave 1 — Wave 0 is reserved for Task 0)
    - Include verification steps with expected output
-6. **Write `.tasks.md`** to `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.md`:
+6. **Write `.tasks.md`** to `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-slug>--<feature-slug>.tasks.md`:
 
    The document has three sections and NO YAML frontmatter (the stop hook scans `artifacts/<phase>/` for `.md` files with frontmatter and generates `.output.json` — the `.tasks.md` must not trigger this):
 
@@ -195,7 +195,7 @@ For each wave (ascending order):
 
 3. **Update Task Persistence** — After each task completes (or is blocked):
 
-   1. Update `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-name>-<feature-name>.tasks.md`:
+   1. Update `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-slug>--<feature-slug>.tasks.md`:
       - Toggle completed steps from `- [ ]` to `- [x]`
       - If task is blocked, add `**Status: BLOCKED**` after the task header
 
@@ -224,7 +224,7 @@ After all waves complete (and before reporting completion), run the feature's in
 Find the integration test created by Task 0 using convention-based discovery:
 
 1. **File naming:** Look for `<feature-name>.integration.test.ts` or `<feature-name>.feature` in the project's test directories
-2. **Tags:** Look for `@<epic-name>` tag on Gherkin features
+2. **Tags:** Look for `@<epic-slug>` tag on Gherkin features
 3. **Describe blocks:** Look for the feature name in describe/feature blocks
 
 If no integration test is found (Task 0 was skipped because the feature plan had no Gherkin section), skip BDD verification entirely and proceed to Completion.
@@ -357,17 +357,17 @@ Do NOT proceed to next phase if critical tests fail.
 
 ### 1. Save Implementation Report
 
-Save to `.beastmode/artifacts/implement/YYYY-MM-DD-<epic-name>-<feature-name>.md`:
+Save to the path specified by `output-target` in the session metadata block.
 
-IMPORTANT: The filename MUST be exactly `YYYY-MM-DD-<epic-name>-<feature-name>.md` — no
+IMPORTANT: The filename MUST match the `output-target` exactly — no
 extra suffixes like `-deviations`. The stop hook derives the output.json filename from
-this basename, and the watch loop matches on `-<epic>-<feature>.output.json`. Any extra
+this basename, and the watch loop matches on the epic/feature slug convention. Any extra
 suffix breaks the match and the watch loop never sees completion.
 
     # Implementation Report: <feature-name>
 
     **Date:** YYYY-MM-DD
-    **Feature Plan:** .beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-<feature-name>.md
+    **Feature Plan:** .beastmode/artifacts/plan/YYYY-MM-DD-<epic-slug>--<feature-slug>.md
     **Tasks completed:** N/M
     **Review cycles:** N (spec: X, quality: Y)
     **Concerns:** N
@@ -401,9 +401,10 @@ The artifact MUST begin with YAML frontmatter:
 ---
 phase: implement
 epic-id: <epic-id>
-epic-slug: <epic-name>
+epic-slug: <epic-slug>
 feature-id: <feature-id>
-feature-slug: <feature-name>
+feature-name: <feature-name>
+feature-slug: <feature-slug>
 status: completed
 ---
 ```
@@ -416,46 +417,16 @@ Commit the implementation report on the feature branch:
 
 ```bash
 git add .beastmode/artifacts/implement/
-git commit -m "implement(<epic-name>-<feature-name>): checkpoint"
+git commit -m "implement(<epic-slug>--<feature-slug>): checkpoint"
 ```
 
 Print:
 
 ```
-Next: beastmode validate <epic-name>
+Next: beastmode validate <epic-slug>
 ```
 
 STOP. No additional output.
-
-## Constraints
-
-### No Plan Mode
-
-**NEVER call `EnterPlanMode` or `ExitPlanMode` during this skill.** This skill operates in normal mode. Calling either traps or breaks the workflow.
-
-### Working Directory Isolation
-
-- Never work directly on main/master branch
-- The CLI provides the working directory — skills don't manage worktrees
-- Each phase commits to the feature branch at checkpoint
-- Merge happens only at /release
-
-### Subagent Safety
-
-- Spawn ONE agent per task (never parallel implementer agents on the same wave — file conflicts)
-- Controller stays in the working directory — agents inherit it
-- Agents commit per task on the feature branch using `git add <files>` + `git commit` — never push or switch branches
-- Agents must NOT read the plan file — controller provides task text
-- Agents must NOT modify files outside their task's file list
-- If an agent returns BLOCKED, controller assesses and either re-dispatches or escalates to user
-
-### Status Handling
-
-- DONE and DONE_WITH_CONCERNS: proceed through review pipeline
-- NEEDS_CONTEXT: controller provides context and re-dispatches
-- BLOCKED: controller assesses and either fixes, splits, or escalates
-- All statuses tracked in implementation report for checkpoint
-- See Agent Statuses in Reference section for full descriptions
 
 ## Reference
 

@@ -20,8 +20,8 @@ import type {
   SessionHandle,
 } from "./factory.js";
 import type { SessionResult } from "./types.js";
-import { filenameMatchesEpic } from "../artifacts/reader.js";
-import * as worktree from "../git/worktree.js";
+import { filenameMatchesEpic } from "../artifacts/index.js";
+import * as worktree from "../git/index.js";
 import { JsonFileStore } from "../store/index.js";
 
 export class It2Error extends Error {

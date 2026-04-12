@@ -6,15 +6,15 @@
  * that the dashboard tree state hook can render in the same tree structure.
  */
 
-import type { LogEntry } from "../dispatch/factory.js";
 import type {
+  LogEntry,
   SessionStartedEvent,
   SessionCompletedEvent,
   SessionDeadEvent,
   WatchErrorEvent,
   ReleaseHeldEvent,
   EpicCancelledEvent,
-} from "../dispatch/types.js";
+} from "../dispatch/index.js";
 
 /** Payload union for all supported lifecycle event kinds. */
 type LifecyclePayload =

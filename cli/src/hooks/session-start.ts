@@ -19,6 +19,7 @@ export interface SessionStartInput {
   epic: string;
   slug: string;
   feature?: string;
+  featureName?: string;
   epicId?: string;
   featureId?: string;
   repoRoot: string;
@@ -38,7 +39,7 @@ const VALID_PHASES = ["design", "plan", "implement", "validate", "release"];
  * Throws on missing required inputs, context files, or artifacts.
  */
 export function assembleContext(input: SessionStartInput): string {
-  const { phase, epic, slug, feature, epicId, featureId, repoRoot } = input;
+  const { phase, epic, slug, feature, featureName, epicId, featureId, repoRoot } = input;
 
   // Validate required inputs
   if (!phase || !VALID_PHASES.includes(phase)) {
@@ -65,6 +66,7 @@ export function assembleContext(input: SessionStartInput): string {
     epicId,
     epicSlug: slug,
     featureId,
+    featureName,
     featureSlug: feature,
     parentArtifacts: parentArtifactFilenames,
     outputTarget,
@@ -206,8 +208,8 @@ function evaluateGates(epic: string, artifactsDir: string): string {
 
     const content = readFileSync(join(implDir, filename), "utf-8");
     const fm = parseFrontmatter(content);
-    if (fm["feature-slug"]) {
-      features.push({ name: fm["feature-slug"], status: fm.status ?? "unknown" });
+    if (fm["feature-name"] || fm["feature-slug"]) {
+      features.push({ name: fm["feature-name"] ?? fm["feature-slug"]!, status: fm.status ?? "unknown" });
     }
   }
 
@@ -254,6 +256,7 @@ export interface MetadataInput {
   epicId?: string;
   epicSlug: string;
   featureId?: string;
+  featureName?: string;
   featureSlug?: string;
   parentArtifacts: string[];
   outputTarget: string;
@@ -272,6 +275,9 @@ export function buildMetadataSection(input: MetadataInput): string {
   lines.push(`epic-slug: ${input.epicSlug}`);
   if (input.featureId) {
     lines.push(`feature-id: ${input.featureId}`);
+  }
+  if (input.featureName) {
+    lines.push(`feature-name: ${input.featureName}`);
   }
   if (input.featureSlug) {
     lines.push(`feature-slug: ${input.featureSlug}`);
@@ -301,6 +307,7 @@ export function runSessionStart(repoRoot: string): void {
   const epic = process.env.BEASTMODE_EPIC_ID;
   const slug = process.env.BEASTMODE_EPIC_SLUG;
   const feature = process.env.BEASTMODE_FEATURE_SLUG;
+  const featureName = process.env.BEASTMODE_FEATURE_NAME;
   const epicId = process.env.BEASTMODE_EPIC_ID;
   const featureId = process.env.BEASTMODE_FEATURE_ID;
 
@@ -308,6 +315,6 @@ export function runSessionStart(repoRoot: string): void {
   if (!epic) throw new Error("Missing environment variable: BEASTMODE_EPIC_ID");
   if (!slug) throw new Error("Missing environment variable: BEASTMODE_EPIC_SLUG");
 
-  const context = assembleContext({ phase, epic, slug, feature, epicId, featureId, repoRoot });
+  const context = assembleContext({ phase, epic, slug, feature, featureName, epicId, featureId, repoRoot });
   process.stdout.write(formatOutput(context));
 }

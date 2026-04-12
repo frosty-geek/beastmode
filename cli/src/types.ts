@@ -22,11 +22,11 @@ export interface DesignArtifacts {
 }
 
 export interface PlanArtifacts {
-  features: Array<{ "feature-slug": string; plan: string; wave?: number }>;
+  features: Array<{ "feature-name": string; plan: string; wave?: number }>;
 }
 
 export interface ImplementArtifacts {
-  features: Array<{ "feature-slug": string; status: "completed" | "blocked" }>;
+  features: Array<{ "feature-slug": string; "feature-name"?: string; status: "completed" | "blocked" }>;
   deviations?: string; // path to deviations log
 }
 

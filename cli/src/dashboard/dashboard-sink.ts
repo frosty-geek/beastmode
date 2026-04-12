@@ -10,7 +10,7 @@
  */
 
 import type { LogEntry, LogSink } from "../logger.js";
-import type { LogEntry as DispatchLogEntry } from "../dispatch/factory.js";
+import type { LogEntry as DispatchLogEntry } from "../dispatch/index.js";
 import type { FallbackEntryStore } from "./lifecycle-entries.js";
 import type { SystemEntryRef } from "./dashboard-logger.js";
 

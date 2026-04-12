@@ -491,7 +491,7 @@ describe("pipeline/runner", () => {
 
       const result = await run(makeConfig({ phase: "design" }));
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
       expect(mockReconcileDesign).not.toHaveBeenCalled();
       expect(mockCreateTag).not.toHaveBeenCalled();
     });

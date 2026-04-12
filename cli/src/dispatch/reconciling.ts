@@ -9,8 +9,8 @@ import { loadConfig } from "../config.js";
 import type { Logger } from "../logger.js";
 import type { SessionFactory, SessionCreateOpts, SessionHandle } from "./factory.js";
 import type { Phase } from "../types.js";
-import { run as runPipeline } from "../pipeline/runner.js";
-import type { ResolvedGitHub } from "../github/discovery.js";
+import { run as runPipeline } from "../pipeline/index.js";
+import type { ResolvedGitHub } from "../github/index.js";
 
 export class ReconcilingFactory implements SessionFactory {
   private inner: SessionFactory;
@@ -44,6 +44,7 @@ export class ReconcilingFactory implements SessionFactory {
         projectRoot,
         strategy: "iterm2",
         featureSlug: opts.featureSlug,
+        featureName: opts.featureName,
         config,
         logger: scopedLogger,
         resolved: this.resolved,

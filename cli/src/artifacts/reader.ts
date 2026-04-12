@@ -209,7 +209,7 @@ export async function extractSectionFromFile(
   sectionName: string,
 ): Promise<string | undefined> {
   try {
-    const content = await Bun.file(filePath).text();
+    const content = readFileSync(filePath, "utf-8");
     return extractSection(content, sectionName);
   } catch {
     return undefined;

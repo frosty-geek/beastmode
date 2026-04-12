@@ -8,7 +8,7 @@ import {
   type PhaseCount,
   type GitStatus,
 } from "./overview-panel.js";
-import { resolveArtifactPath } from "../artifacts/reader.js";
+import { resolveArtifactPath } from "../artifacts/index.js";
 import type { SessionStats } from "./session-stats.js";
 
 /** Selection state for the Details panel. */

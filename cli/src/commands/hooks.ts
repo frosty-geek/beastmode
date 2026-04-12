@@ -14,11 +14,13 @@ import { execSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { mkdirSync, appendFileSync, existsSync } from "node:fs";
 import { loadConfig } from "../config.js";
-import { getPhaseHitlProse } from "../hooks/hitl-settings.js";
-import { decideResponse } from "../hooks/hitl-auto.js";
-import { routeAndFormat } from "../hooks/hitl-log.js";
-import { runSessionStop } from "../hooks/session-stop.js";
-import { runSessionStart as runSessionStartImpl } from "../hooks/session-start.js";
+import {
+  getPhaseHitlProse,
+  decideResponse,
+  routeAndFormat,
+  runSessionStop,
+  runSessionStart as runSessionStartImpl,
+} from "../hooks/index.js";
 
 const VALID_HOOKS = ["hitl-auto", "hitl-log", "session-stop", "session-start"];
 

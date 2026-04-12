@@ -7,9 +7,17 @@
 - ALWAYS read phase from the top-level `manifest.phase` field — no inference from features, markers, or phases map
 - Valid phase values: `design | plan | implement | validate | release | cancelled`
 
+## Store Entity Model
+- Epic entity has `id` (bm-XXXX), `name` (human-readable), `slug` (auto-derived `{slugify(name)}-{4-hex}`), `status`, plus optional metadata
+- `slug` is NEVER directly mutable — it is auto-derived from `name` + `id` by `InMemoryTaskStore.deriveEpicSlug()`
+- `EpicPatch` excludes `slug` — callers update `name`, store derives the new slug automatically
+- `addPlaceholderEpic()` generates a hacker-jargon name (adjective-noun via deterministic selection from hex ID) and creates the epic in one call
+- Design-phase initial slug uses the placeholder name pattern; renamed to human-readable form when `reconcileDesign` updates the name after design completion
+- Old-format slugs remain valid for lookup; the store derives the canonical slug from current name + ID
+
 ## Manifest Validation Schema
 - PipelineManifest is the sole manifest type — EpicState, FeatureProgress, ScanResult, and the old Manifest interface are all deleted
-- Required fields: `slug` (string, immutable hex), `phase` (valid Phase literal), `features` (ManifestFeature[]), `lastUpdated` (ISO-8601 string)
+- Required fields: `slug` (string, auto-derived), `phase` (valid Phase literal), `features` (ManifestFeature[]), `lastUpdated` (ISO-8601 string)
 - Optional fields: `epic` (string, human-readable name after rename), `originId` (string, birth hex for lineage), `artifacts` (Record<string, string[]>), `summary` ({ problem, solution }), `worktree` ({ branch, path }), `github` ({ epic, repo, bodyHash? })
 - ManifestFeature extended with optional `description` field — plan checkpoint populates it
 - manifest-store.ts owns the validate() function — single source of truth for manifest structure

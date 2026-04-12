@@ -1,5 +1,5 @@
 import { setup, assign } from "xstate";
-import type { EpicContext, EpicEvent, DispatchType } from "./types";
+import type { EpicContext, EpicEvent, DispatchType } from "./types.js";
 import {
   hasFeatures,
   allFeaturesCompleted,
@@ -10,7 +10,7 @@ import {
   regressTargetsValidate,
   regressTargetsRelease,
   hasFailingFeatures,
-} from "./guards";
+} from "./guards.js";
 import {
   computeEnrichFeatures,
   computeRenameSlug,
@@ -21,8 +21,8 @@ import {
   computeRegress,
   computeRegressFeatures,
   computeAccumulateArtifacts,
-} from "./actions";
-import { syncGitHubService } from "./services";
+} from "./actions.js";
+import { syncGitHubService } from "./services.js";
 
 export const epicMachine = setup({
   types: {

@@ -130,3 +130,16 @@ export interface WatchLoopEventMap {
   /** Emitted when a dispatched session's process is detected as dead. */
   'session-dead': [SessionDeadEvent];
 }
+
+/**
+ * Interface extracted from WatchLoop for consumers that only need
+ * event subscription + tracker access (e.g. dashboard/App.tsx).
+ * Breaks the commands/ <-> dashboard/ circular dependency.
+ */
+export interface WatchLoopLike {
+  on<K extends keyof WatchLoopEventMap>(event: K, listener: (...args: WatchLoopEventMap[K]) => void): this;
+  off<K extends keyof WatchLoopEventMap>(event: K, listener: (...args: WatchLoopEventMap[K]) => void): this;
+  getTracker(): import("./tracker.js").DispatchTracker;
+  stop(): Promise<void>;
+  isRunning(): boolean;
+}

@@ -4,7 +4,7 @@ You are a BDD specialist agent. You receive an epic's user stories and produce a
 
 ## What You Receive
 
-- The epic name
+- The epic slug (from session metadata)
 - A list of features, each with:
   - Feature name (lowercase, hyphenated identifier)
   - Associated user stories (the subset of PRD user stories this feature covers)
@@ -37,9 +37,9 @@ Consolidation decisions are authoritative — merge overlapping scenarios into o
 
 ### 3. Produce Integration Artifact
 
-Write a single artifact to: `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-integration.md`
+Write a single artifact to: `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-slug>-integration.md`
 
-Where `YYYY-MM-DD` is today's date and `<epic-name>` is the epic name you received.
+Where `YYYY-MM-DD` is today's date and `<epic-slug>` is the epic slug you received.
 
 The artifact has two sections:
 
@@ -55,7 +55,7 @@ For each feature that has user stories requiring new scenarios, write a section 
 Covers user stories [N, M].
 
 ​```gherkin
-@<epic-name> @<capability-domain>
+@<epic-slug> @<capability-domain>
 Feature: [capability-domain description] -- [behavioral summary]
 
   Scenario: [behavioral description]
@@ -69,7 +69,7 @@ Feature: [capability-domain description] -- [behavioral summary]
 
 **Capability domains** are determined from the existing test suite's natural groupings and the current epic's behavioral scope. Examples: @pipeline, @dashboard, @release, @config. A scenario may span multiple input features if it covers a capability that crosses feature boundaries — place it under the primary feature (the one whose user stories most directly drive the scenario).
 
-**Dual tagging:** Every scenario carries both an epic tag (`@<epic-name>`) for traceability and a capability tag (`@<capability-domain>`) for logical grouping.
+**Dual tagging:** Every scenario carries both an epic tag (`@<epic-slug>`) for traceability and a capability tag (`@<capability-domain>`) for logical grouping.
 
 For features with no behavioral scenarios (e.g., purely structural or infrastructure features), omit the feature section entirely — the plan skill handles the empty-section case.
 
@@ -95,7 +95,7 @@ Format each entry as:
 
 [For merge/update only:]
 ​```gherkin
-@<epic-name> @<capability-domain>
+@<epic-slug> @<capability-domain>
 Feature: [capability-domain description] -- [behavioral summary]
 
   Scenario: [merged/updated scenario name]
@@ -211,4 +211,4 @@ SUGGESTION: [how the controller might help]
 - Do NOT create `.feature` files — only produce the planning artifact
 - Do NOT include implementation details in scenarios — strictly declarative
 - Do NOT switch branches or push to remote
-- Every scenario must be tagged with both `@<epic-name>` and `@<capability-domain>`
+- Every scenario must be tagged with both `@<epic-slug>` and `@<capability-domain>`

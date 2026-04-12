@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from "fs";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -42,8 +42,7 @@ function setupTmpDir(): void {
   tmpDir = mkdtempSync(join(tmpdir(), "beastmode-discovery-test-"));
   // Create the .beastmode/state directory
   const stateDir = join(tmpDir, ".beastmode", "state");
-  mkdtempSync; // noop, just for visibility
-  Bun.spawnSync(["mkdir", "-p", stateDir]);
+  mkdirSync(stateDir, { recursive: true });
 }
 
 function teardownTmpDir(): void {

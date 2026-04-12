@@ -13,7 +13,7 @@ import {
   loadWorktreePhaseOutput,
   loadWorktreeFeatureOutput,
   extractSectionFromFile,
-} from "../artifacts/reader.js";
+} from "../artifacts/index.js";
 import { epicMachine, loadEpic } from "../pipeline-machine/index.js";
 import type { EpicContext } from "../pipeline-machine/index.js";
 import { resolve, join } from "node:path";
@@ -34,6 +34,7 @@ export interface ReconcileResult {
 function buildContext(epic: Epic, store: JsonFileStore): EpicContext {
   const features = store.listFeatures(epic.id).map((f) => ({
     slug: f.slug,
+    name: f.name,
     plan: f.plan ?? "",
     description: f.description,
     wave: f.wave,
@@ -100,21 +101,23 @@ function readProgress(epicId: string, store: JsonFileStore): { completed: number
  */
 function extractFeaturesFromOutput(
   output: PhaseOutput | undefined,
-): Array<{ slug: string; plan: string; wave?: number }> {
+): Array<{ name: string; plan: string; wave?: number }> {
   if (!output) return [];
   const artifacts = output.artifacts as unknown as Record<string, unknown>;
   if (!artifacts || !Array.isArray(artifacts.features)) return [];
 
-  const features: Array<{ slug: string; plan: string; wave?: number }> = [];
+  const features: Array<{ name: string; plan: string; wave?: number }> = [];
   for (const entry of artifacts.features) {
     if (
       typeof entry === "object" &&
-      entry !== null &&
-      typeof (entry as Record<string, unknown>)["feature-slug"] === "string"
+      entry !== null
     ) {
       const rec = entry as Record<string, unknown>;
+      // Plan output uses "feature-name", implement output uses "feature-slug"
+      const featureName = (rec["feature-name"] ?? rec["feature-slug"]) as string | undefined;
+      if (typeof featureName !== "string") continue;
       features.push({
-        slug: rec["feature-slug"] as string,
+        name: featureName,
         plan: typeof rec.plan === "string" ? rec.plan : "",
         wave: typeof rec.wave === "number" ? rec.wave : undefined,
       });
@@ -254,7 +257,7 @@ export async function reconcilePlan(
     const eventArtifacts: Record<string, string[]> | undefined = planPaths.length > 0
       ? { plan: planPaths }
       : undefined;
-    actor.send({ type: "PLAN_COMPLETED", features, artifacts: eventArtifacts });
+    actor.send({ type: "PLAN_COMPLETED", features: features.map((f) => ({ slug: f.name, plan: f.plan, wave: f.wave })), artifacts: eventArtifacts });
     const updated = extractEpic(actor, epic);
 
     store.updateEpic(epic.id, {
@@ -267,7 +270,7 @@ export async function reconcilePlan(
 
     for (const f of features) {
       const existing = store.listFeatures(epic.id).find(
-        (ef) => ef.slug === f.slug || ef.name === f.slug,
+        (ef) => ef.slug === f.name || ef.name === f.name,
       );
       let description: string | undefined;
       if (f.plan) {
@@ -279,7 +282,7 @@ export async function reconcilePlan(
       if (!existing) {
         featureEntity = store.addFeature({
           parent: epic.id,
-          name: f.slug,
+          name: f.name,
           description,
         });
         store.updateFeature(featureEntity.id, {

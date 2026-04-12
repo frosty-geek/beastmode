@@ -5,12 +5,18 @@
  * Pure logic module, decoupled from React rendering.
  */
 
-import type { EventEmitter } from "node:events";
 import type {
+  WatchLoopEventMap,
   SessionStartedEvent,
   SessionCompletedEvent,
   ScanCompleteEvent,
-} from "../dispatch/types.js";
+} from "../dispatch/index.js";
+
+/** Minimal emitter interface — accepts both WatchLoopLike and raw EventEmitter in tests. */
+interface StatsEmitter {
+  on<K extends keyof WatchLoopEventMap>(event: K, listener: (...args: WatchLoopEventMap[K]) => void): unknown;
+  off<K extends keyof WatchLoopEventMap>(event: K, listener: (...args: WatchLoopEventMap[K]) => void): unknown;
+}
 
 /** Pipeline phases tracked for duration averages. */
 const TRACKED_PHASES = ["plan", "implement", "validate", "release"] as const;
@@ -67,12 +73,12 @@ export class SessionStatsAccumulator {
 
   private readonly startTime: number;
   private readonly nowFn: () => number;
-  private readonly emitter: EventEmitter;
+  private readonly emitter: StatsEmitter;
   private readonly boundStarted: (ev: SessionStartedEvent) => void;
   private readonly boundCompleted: (ev: SessionCompletedEvent) => void;
   private readonly boundScan: (ev: ScanCompleteEvent) => void;
 
-  constructor(emitter: EventEmitter, options?: AccumulatorOptions) {
+  constructor(emitter: StatsEmitter, options?: AccumulatorOptions) {
     this.nowFn = options?.nowFn ?? (() => Date.now());
     this.startTime = this.nowFn();
     this.emitter = emitter;

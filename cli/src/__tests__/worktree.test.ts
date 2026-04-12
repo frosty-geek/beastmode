@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
+import { writeFileSync, readFileSync, existsSync as fsExistsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { git, gitCheck, create, enter, remove, ensureWorktree, exists, resolveMainBranch, rebase } from "../git/worktree.js";
@@ -20,7 +21,7 @@ beforeAll(async () => {
 
   // Create an initial commit so HEAD exists
   const filePath = join(repoDir, "README.md");
-  await Bun.write(filePath, "# Test repo\n");
+  writeFileSync(filePath, "# Test repo\n");
   await git(["add", "."], { cwd: repoDir });
   await git(["commit", "-m", "initial commit"], { cwd: repoDir });
 });
@@ -183,7 +184,7 @@ describe("ensureWorktree", () => {
     const info1 = await ensureWorktree("test-ensure-reuse", { cwd: repoDir });
 
     // Add a file so we can verify it's the same worktree
-    await Bun.write(join(info1.path, "marker.txt"), "marker\n");
+    writeFileSync(join(info1.path, "marker.txt"), "marker\n");
     await git(["add", "."], { cwd: info1.path });
     await git(["commit", "-m", "add marker"], { cwd: info1.path });
 
@@ -196,7 +197,7 @@ describe("ensureWorktree", () => {
     expect(info2.forkPoint).toBe(info1.forkPoint);
 
     // Verify the marker file still exists (worktree was reused, not recreated)
-    const markerExists = await Bun.file(join(info2.path, "marker.txt")).exists();
+    const markerExists = fsExistsSync(join(info2.path, "marker.txt"));
     expect(markerExists).toBe(true);
 
     // Clean up
@@ -267,7 +268,7 @@ describe("resolveMainBranch", () => {
     await git(["init", "-b", "main"], { cwd: originDir });
     await git(["config", "user.email", "test@test.com"], { cwd: originDir });
     await git(["config", "user.name", "Test"], { cwd: originDir });
-    await Bun.write(join(originDir, "README.md"), "# origin\n");
+    writeFileSync(join(originDir, "README.md"), "# origin\n");
     await git(["add", "."], { cwd: originDir });
     await git(["commit", "-m", "init"], { cwd: originDir });
 
@@ -302,7 +303,7 @@ describe("fork-point tracking", () => {
     const expectedBase = (await git(["rev-parse", "HEAD"], { cwd: repoDir })).stdout;
 
     // Add a commit to main so main moves ahead
-    await Bun.write(join(repoDir, "main-change.txt"), "main content\n");
+    writeFileSync(join(repoDir, "main-change.txt"), "main content\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "advance main"], { cwd: repoDir });
 
@@ -319,7 +320,7 @@ describe("fork-point tracking", () => {
     const orphanWt = join(repoDir, ".claude/worktrees/test-orphan-setup");
     await git(["worktree", "add", "--detach", orphanWt], { cwd: repoDir });
     await git(["checkout", "--orphan", "feature/test-forkpoint-orphan"], { cwd: orphanWt });
-    await Bun.write(join(orphanWt, "orphan.txt"), "orphan\n");
+    writeFileSync(join(orphanWt, "orphan.txt"), "orphan\n");
     await git(["add", "."], { cwd: orphanWt });
     await git(["commit", "-m", "orphan commit"], { cwd: orphanWt });
     await git(["worktree", "remove", orphanWt, "--force"], { cwd: repoDir });
@@ -340,12 +341,12 @@ describe("rebase", () => {
     const info = await create("test-rebase-success", { cwd: repoDir });
 
     // Add a commit on main so there's something to merge
-    await Bun.write(join(repoDir, "main-rebase-file.txt"), "main content\n");
+    writeFileSync(join(repoDir, "main-rebase-file.txt"), "main content\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "advance main for rebase test"], { cwd: repoDir });
 
     // Add a non-conflicting commit in the worktree
-    await Bun.write(join(info.path, "feature-file.txt"), "feature content\n");
+    writeFileSync(join(info.path, "feature-file.txt"), "feature content\n");
     await git(["add", "."], { cwd: info.path });
     await git(["commit", "-m", "feature commit"], { cwd: info.path });
 
@@ -364,7 +365,7 @@ describe("rebase", () => {
     expect(warns.length).toBe(0);
 
     // Verify main's file is now available in the worktree
-    const mainFile = await Bun.file(join(info.path, "main-rebase-file.txt")).text();
+    const mainFile = readFileSync(join(info.path, "main-rebase-file.txt"), "utf-8");
     expect(mainFile).toBe("main content\n");
 
     // Clean up
@@ -376,12 +377,12 @@ describe("rebase", () => {
     const info = await create("test-rebase-conflict", { cwd: repoDir });
 
     // Create a conflicting file on main
-    await Bun.write(join(repoDir, "conflict-file.txt"), "main version\n");
+    writeFileSync(join(repoDir, "conflict-file.txt"), "main version\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "main conflict commit"], { cwd: repoDir });
 
     // Create the same file with different content in the worktree
-    await Bun.write(join(info.path, "conflict-file.txt"), "feature version\n");
+    writeFileSync(join(info.path, "conflict-file.txt"), "feature version\n");
     await git(["add", "."], { cwd: info.path });
     await git(["commit", "-m", "feature conflict commit"], { cwd: info.path });
 

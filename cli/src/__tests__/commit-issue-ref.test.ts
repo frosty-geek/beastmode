@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
+import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -144,7 +145,7 @@ describe("amendCommitWithIssueRef", () => {
     await git(["init", "-b", "main"], { cwd: repoDir });
     await git(["config", "user.email", "test@test.com"], { cwd: repoDir });
     await git(["config", "user.name", "Test"], { cwd: repoDir });
-    await Bun.write(join(repoDir, "README.md"), "# Test\n");
+    writeFileSync(join(repoDir, "README.md"), "# Test\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "initial commit"], { cwd: repoDir });
   });
@@ -155,7 +156,7 @@ describe("amendCommitWithIssueRef", () => {
 
   test("amends checkpoint commit on feature branch with epic ref", async () => {
     await git(["checkout", "-b", "feature/test-epic-abc123"], { cwd: repoDir });
-    await Bun.write(join(repoDir, "file.txt"), "content\n");
+    writeFileSync(join(repoDir, "file.txt"), "content\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "design(test-epic): checkpoint"], { cwd: repoDir });
 
@@ -172,7 +173,7 @@ describe("amendCommitWithIssueRef", () => {
   });
 
   test("amends release commit on main with epic ref", async () => {
-    await Bun.write(join(repoDir, "release.txt"), "release content\n");
+    writeFileSync(join(repoDir, "release.txt"), "release content\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "release(test-epic): v1.0.0"], { cwd: repoDir });
 
@@ -186,7 +187,7 @@ describe("amendCommitWithIssueRef", () => {
   });
 
   test("no-op when epic has no sync ref", async () => {
-    await Bun.write(join(repoDir, "noop.txt"), "noop\n");
+    writeFileSync(join(repoDir, "noop.txt"), "noop\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "some commit"], { cwd: repoDir });
 
@@ -200,7 +201,7 @@ describe("amendCommitWithIssueRef", () => {
   });
 
   test("no-op when commit already has issue ref", async () => {
-    await Bun.write(join(repoDir, "already.txt"), "already\n");
+    writeFileSync(join(repoDir, "already.txt"), "already\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "design(test-epic): checkpoint (#42)"], { cwd: repoDir });
 
@@ -221,7 +222,7 @@ describe("resolveRangeStart", () => {
     await git(["init", "-b", "main"], { cwd: repoDir });
     await git(["config", "user.email", "test@test.com"], { cwd: repoDir });
     await git(["config", "user.name", "Test"], { cwd: repoDir });
-    await Bun.write(join(repoDir, "README.md"), "# Test\n");
+    writeFileSync(join(repoDir, "README.md"), "# Test\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "initial commit"], { cwd: repoDir });
   });
@@ -232,12 +233,12 @@ describe("resolveRangeStart", () => {
 
   test("returns previous phase tag SHA for plan phase", async () => {
     await git(["checkout", "-b", "feature/test-slug"], { cwd: repoDir });
-    await Bun.write(join(repoDir, "d.txt"), "d\n");
+    writeFileSync(join(repoDir, "d.txt"), "d\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "design checkpoint"], { cwd: repoDir });
     await git(["tag", "beastmode/test-slug/design"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "p.txt"), "p\n");
+    writeFileSync(join(repoDir, "p.txt"), "p\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan checkpoint"], { cwd: repoDir });
 
@@ -252,7 +253,7 @@ describe("resolveRangeStart", () => {
 
   test("returns merge-base for design phase (no previous tag)", async () => {
     await git(["checkout", "-b", "feature/new-slug"], { cwd: repoDir });
-    await Bun.write(join(repoDir, "n.txt"), "n\n");
+    writeFileSync(join(repoDir, "n.txt"), "n\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "design checkpoint"], { cwd: repoDir });
 
@@ -266,7 +267,7 @@ describe("resolveRangeStart", () => {
 
   test("falls back to merge-base when previous phase tag is missing", async () => {
     await git(["checkout", "-b", "feature/missing-tag"], { cwd: repoDir });
-    await Bun.write(join(repoDir, "m.txt"), "m\n");
+    writeFileSync(join(repoDir, "m.txt"), "m\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan checkpoint"], { cwd: repoDir });
 
@@ -298,7 +299,7 @@ describe("amendCommitsInRange", () => {
     await git(["init", "-b", "main"], { cwd: repoDir });
     await git(["config", "user.email", "test@test.com"], { cwd: repoDir });
     await git(["config", "user.name", "Test"], { cwd: repoDir });
-    await Bun.write(join(repoDir, "README.md"), "# Test\n");
+    writeFileSync(join(repoDir, "README.md"), "# Test\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "initial commit"], { cwd: repoDir });
   });
@@ -311,11 +312,11 @@ describe("amendCommitsInRange", () => {
     await git(["checkout", "-b", "feature/test-epic-abc123-multi"], { cwd: repoDir });
     await git(["tag", "beastmode/test-epic-abc123/design-multi"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "f1.txt"), "f1\n");
+    writeFileSync(join(repoDir, "f1.txt"), "f1\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan(test-epic): first change"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "f2.txt"), "f2\n");
+    writeFileSync(join(repoDir, "f2.txt"), "f2\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan(test-epic): second change"], { cwd: repoDir });
 
@@ -343,11 +344,11 @@ describe("amendCommitsInRange", () => {
     await git(["checkout", "-b", "feature/test-epic-abc123-skip"], { cwd: repoDir });
     await git(["tag", "beastmode/test-epic-abc123/design-skip"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "s1.txt"), "s1\n");
+    writeFileSync(join(repoDir, "s1.txt"), "s1\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan(test-epic): already done (#42)"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "s2.txt"), "s2\n");
+    writeFileSync(join(repoDir, "s2.txt"), "s2\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan(test-epic): needs ref"], { cwd: repoDir });
 
@@ -368,7 +369,7 @@ describe("amendCommitsInRange", () => {
     await git(["checkout", "-b", "feature/test-epic-abc123-noop"], { cwd: repoDir });
     await git(["tag", "beastmode/test-epic-abc123/design-noop"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "n1.txt"), "n1\n");
+    writeFileSync(join(repoDir, "n1.txt"), "n1\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "plan(test-epic): done (#42)"], { cwd: repoDir });
 
@@ -389,11 +390,11 @@ describe("amendCommitsInRange", () => {
     await git(["checkout", "-b", "feature/test-epic-abc123-route"], { cwd: repoDir });
     await git(["tag", "beastmode/test-epic-abc123/design-route"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "r1.txt"), "r1\n");
+    writeFileSync(join(repoDir, "r1.txt"), "r1\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "feat(my-feature): add parsing"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "r2.txt"), "r2\n");
+    writeFileSync(join(repoDir, "r2.txt"), "r2\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "implement(test-epic): checkpoint"], { cwd: repoDir });
 
@@ -419,7 +420,7 @@ describe("amendCommitsInRange", () => {
   test("uses merge-base for design phase", async () => {
     await git(["checkout", "-b", "feature/test-epic-abc123-des"], { cwd: repoDir });
 
-    await Bun.write(join(repoDir, "d1.txt"), "d1\n");
+    writeFileSync(join(repoDir, "d1.txt"), "d1\n");
     await git(["add", "."], { cwd: repoDir });
     await git(["commit", "-m", "design(test-epic): checkpoint"], { cwd: repoDir });
 

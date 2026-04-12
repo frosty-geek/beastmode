@@ -5,8 +5,8 @@
  * Parses args, builds config, delegates to cancelEpic(), reports result.
  */
 
-import type { BeastmodeConfig } from "../config";
-import { createLogger, createStdioSink } from "../logger";
+import type { BeastmodeConfig } from "../config.js";
+import { createLogger, createStdioSink } from "../logger.js";
 import { cancelEpic } from "./cancel-logic.js";
 
 export async function cancelCommand(

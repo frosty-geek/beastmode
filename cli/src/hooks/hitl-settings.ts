@@ -63,12 +63,13 @@ export interface EnvPrefixContext {
   epicId: string;
   epicSlug: string;
   featureId?: string;
+  featureName?: string;
   featureSlug?: string;
 }
 
 /**
  * Build the inline env var prefix string for command hooks.
- * Produces 5 vars when feature context is present, 3 when absent.
+ * Produces up to 6 vars when feature context is present, 3 when absent.
  * Feature vars are only included when BOTH featureId and featureSlug are provided.
  */
 export function buildEnvPrefix(ctx: EnvPrefixContext): string {
@@ -79,6 +80,9 @@ export function buildEnvPrefix(ctx: EnvPrefixContext): string {
   ];
   if (ctx.featureId && ctx.featureSlug) {
     parts.push(`BEASTMODE_FEATURE_ID=${ctx.featureId}`);
+    if (ctx.featureName) {
+      parts.push(`BEASTMODE_FEATURE_NAME=${ctx.featureName}`);
+    }
     parts.push(`BEASTMODE_FEATURE_SLUG=${ctx.featureSlug}`);
   }
   return parts.join(" ");
@@ -281,6 +285,7 @@ export interface WriteSessionStartHookOptions {
   epicId: string;
   epicSlug: string;
   featureId?: string;
+  featureName?: string;
   featureSlug?: string;
 }
 
@@ -306,7 +311,7 @@ export function buildSessionStartHook(opts: EnvPrefixContext): HookEntry {
  * Preserves all existing keys and replaces only the SessionStart hook.
  */
 export function writeSessionStartHook(options: WriteSessionStartHookOptions): void {
-  const { claudeDir, phase, epicId, epicSlug, featureId, featureSlug } = options;
+  const { claudeDir, phase, epicId, epicSlug, featureId, featureName, featureSlug } = options;
   const settingsPath = resolve(claudeDir, "settings.local.json");
 
   let settings: SettingsLocal = {};
@@ -322,7 +327,7 @@ export function writeSessionStartHook(options: WriteSessionStartHookOptions): vo
     settings.hooks = {};
   }
 
-  const hook = buildSessionStartHook({ phase, epicId, epicSlug, featureId, featureSlug });
+  const hook = buildSessionStartHook({ phase, epicId, epicSlug, featureId, featureName, featureSlug });
   settings.hooks.SessionStart = [hook];
 
   mkdirSync(claudeDir, { recursive: true });

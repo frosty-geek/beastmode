@@ -1,4 +1,5 @@
 import { describe, test, expect } from "vitest";
+import { writeFileSync, unlinkSync } from "node:fs";
 import { extractSection, extractSectionFromFile, extractSections } from "../artifacts/reader.js";
 
 // --- extractSection ---
@@ -61,7 +62,7 @@ describe("extractSection", () => {
 describe("extractSectionFromFile", () => {
   test("extracts section from a real file", async () => {
     const tmpFile = `/tmp/beastmode-test-section-${Date.now()}.md`;
-    await Bun.write(tmpFile, "## Problem\n\nFile content.");
+    writeFileSync(tmpFile, "## Problem\n\nFile content.");
     const result = await extractSectionFromFile(tmpFile, "Problem");
     expect(result).toBe("File content.");
   });
@@ -73,7 +74,7 @@ describe("extractSectionFromFile", () => {
 
   test("returns undefined for missing section in existing file", async () => {
     const tmpFile = `/tmp/beastmode-test-section-${Date.now()}.md`;
-    await Bun.write(tmpFile, "## Other\n\nContent.");
+    writeFileSync(tmpFile, "## Other\n\nContent.");
     const result = await extractSectionFromFile(tmpFile, "Problem");
     expect(result).toBeUndefined();
   });

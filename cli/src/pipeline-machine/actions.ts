@@ -1,5 +1,5 @@
-import type { EpicContext, EpicEvent } from "./types";
-import type { EpicStatus } from "../store/types";
+import type { EpicContext, EpicEvent } from "./types.js";
+import type { EpicStatus } from "../store/index.js";
 
 /**
  * Action logic implementations for the epic machine.

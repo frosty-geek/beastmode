@@ -6,6 +6,7 @@ export default defineConfig({
       "src/__tests__/*.test.ts",
       "src/pipeline-machine/__tests__/*.test.ts",
     ],
+    setupFiles: ["src/__tests__/vitest-setup.ts"],
     pool: "forks",
     restoreMocks: true,
     clearMocks: true,

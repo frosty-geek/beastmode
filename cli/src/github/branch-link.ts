@@ -12,7 +12,7 @@ import {
   ghIssueNodeId,
   ghCreateLinkedBranch,
 } from "./cli.js";
-import { git } from "../git/worktree.js";
+import { git } from "../git/index.js";
 import { createLogger, createStdioSink } from "../logger.js";
 import type { Logger } from "../logger.js";
 

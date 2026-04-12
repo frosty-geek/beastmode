@@ -7,12 +7,10 @@ description: Decompose PRDs into independent features — scoping, slicing, arch
 
 Decompose a PRD into independent feature plans. Each feature is a vertical slice that can be implemented separately via /implement.
 
-<HARD-GATE>
-No EnterPlanMode or ExitPlanMode — this skill manages its own flow.
-</HARD-GATE>
-
 ## Guiding Principles
 
+- **No Plan Mode** — this skill manages its own flow. EnterPlanMode/ExitPlanMode restrict Write/Edit tools and break the workflow.
+- **Session metadata is the source of truth** — the session-start hook injects a metadata block with `epic-id`, `epic-slug`, parent artifacts, and `output-target`. Use these values verbatim — do NOT re-derive, re-extract, or generate alternatives.
 - **Thin vertical slices** — each feature cuts through all relevant layers end-to-end, independently implementable
 - **Features map to user stories** — every feature traces back to at least one PRD user story; no orphan features
 - **Wave number is the sole ordering primitive** — no explicit dependency graph between features, just wave numbers
@@ -150,11 +148,11 @@ Skipped: [list of skipped feature names]
 
 Spawn the `plan-integration-tester` agent as a subagent:
 
-- **Agent:** `plan-integration-tester` (from `.claude/agents/plan-integration-tester.md`)
-- **Input:** Epic name and the **behavioral_features** batch only (each feature with its name and user stories)
-- **Method:** `Agent(subagent_type="general-purpose", prompt=<built prompt>)` — the prompt instructs the agent to follow the plan-integration-tester agent definition
+- **Agent:** `beastmode:plan-integration-tester`
+- **Input:** Epic slug (from session metadata) and the **behavioral_features** batch only (each feature with its name and user stories)
+- **Method:** `Agent(subagent_type="beastmode:plan-integration-tester", prompt=<built prompt>)`
 
-The agent reads the existing test tree, analyzes coverage against the feature-level user stories, and produces an integration artifact at `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-integration.md` with scenarios grouped by feature name.
+The agent reads the existing test tree, analyzes coverage against the feature-level user stories, and produces an integration artifact at `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-slug>-integration.md` with scenarios grouped by feature name.
 
 **Handle agent status:**
 
@@ -281,9 +279,9 @@ This is read-only — do NOT ask new questions here.
 
 ### 1. Write Feature Plan Files
 
-For each feature, save to `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-name>-<feature-name>.md` using the feature plan format below.
+For each feature, save to `.beastmode/artifacts/plan/YYYY-MM-DD-<epic-slug>--<feature-name>.<ordinal>.md` using the feature plan format below.
 
-Where `<epic-name>` is the epic name and `<feature-name>` is the feature's name.
+Where `<epic-slug>` is from session metadata, `<feature-name>` is the feature's name (lowercase, hyphenated), and `<ordinal>` is assigned sequentially (`.1`, `.2`, `.3`) based on feature creation order.
 
 Each feature plan file must begin with YAML frontmatter:
 
@@ -291,8 +289,8 @@ Each feature plan file must begin with YAML frontmatter:
 ---
 phase: plan
 epic-id: <epic-id>
-epic-slug: <epic-name>
-feature-slug: <feature-name>
+epic-slug: <epic-slug>
+feature-name: <feature-name>
 wave: <N>
 ---
 ```
@@ -303,7 +301,7 @@ Commit all work to the feature branch:
 
 ```bash
 git add -A
-git commit -m "plan(<epic-name>): checkpoint"
+git commit -m "plan(<epic-slug>): checkpoint"
 ```
 
 Print features and their implement commands:
@@ -312,23 +310,14 @@ Print features and their implement commands:
 Features ready for implementation:
 
 Wave 1:
-  1. <feature-a> → beastmode implement <epic-name> <feature-a>
-  2. <feature-b> → beastmode implement <epic-name> <feature-b>
+  1. <feature-a> → beastmode implement <epic-slug> <feature-a>
+  2. <feature-b> → beastmode implement <epic-slug> <feature-b>
 
 Wave 2:
-  3. <feature-c> → beastmode implement <epic-name> <feature-c>
+  3. <feature-c> → beastmode implement <epic-slug> <feature-c>
 ```
 
 STOP. No additional output.
-
-## Constraints
-
-**You MUST NOT call `EnterPlanMode` or `ExitPlanMode` at any point during this skill.**
-
-- Calling `EnterPlanMode` traps the session in plan mode where Write/Edit are restricted
-- Calling `ExitPlanMode` breaks the workflow and skips the user's execution choice
-
-If you feel the urge to call either, STOP — follow this skill's instructions instead.
 
 ## Reference
 
@@ -342,8 +331,8 @@ Each feature plan file follows this structure:
 ---
 phase: plan
 epic-id: <epic-id>
-epic-slug: <epic-name>
-feature-slug: <feature-name>
+epic-slug: <epic-slug>
+feature-name: <feature-name>
 wave: <N>
 ---
 

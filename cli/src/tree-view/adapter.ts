@@ -5,7 +5,7 @@ import type {
   FeatureNode,
   TreeEntry as FlatEntry,
   SystemEntry,
-} from "../dashboard/tree-types.js";
+} from "./flat-types.js";
 
 let _seq = 0;
 

@@ -1,4 +1,4 @@
-import type { EpicStatus, FeatureStatus } from "../store/types";
+import type { EpicStatus, FeatureStatus } from "../store/index.js";
 
 // ── Epic machine context ─────────────────────────────────────────
 // Mirrors the store's Epic entity shape. The machine context IS the
@@ -35,6 +35,7 @@ export interface EpicContext {
  */
 export interface MachineFeature {
   slug: string;
+  name?: string;
   plan: string;
   description?: string;
   wave?: number;

@@ -8,8 +8,8 @@
 
 import { git } from "./worktree.js";
 import { tagName } from "./tags.js";
-import type { SyncRefs } from "../github/sync-refs.js";
-import { getSyncRef } from "../github/sync-refs.js";
+import type { SyncRefs } from "../github/index.js";
+import { getSyncRef } from "../github/index.js";
 
 /** Minimal feature info needed for issue resolution. */
 export interface IssueRefFeature {

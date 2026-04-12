@@ -1,5 +1,5 @@
 import { setup } from "xstate";
-import type { FeatureContext, FeatureEvent, DispatchType } from "./types";
+import type { FeatureContext, FeatureEvent, DispatchType } from "./types.js";
 
 export const featureMachine = setup({
   types: {

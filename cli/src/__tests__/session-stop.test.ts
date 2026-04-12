@@ -240,24 +240,24 @@ describe("scanPlanFeatures", () => {
 
   test("finds features for matching epic", () => {
     writeArtifact("plan", "2026-03-30-my-epic-auth.md",
-      "---\nphase: plan\nepic-slug: my-epic\nfeature-slug: auth\n---\n# Auth");
+      "---\nphase: plan\nepic-slug: my-epic\nfeature-name: auth\n---\n# Auth");
     writeArtifact("plan", "2026-03-30-my-epic-db.md",
-      "---\nphase: plan\nepic-slug: my-epic\nfeature-slug: db\n---\n# DB");
+      "---\nphase: plan\nepic-slug: my-epic\nfeature-name: db\n---\n# DB");
 
     const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
     expect(features).toHaveLength(2);
-    expect(features.map((f) => f["feature-slug"]).sort()).toEqual(["auth", "db"]);
+    expect(features.map((f) => f["feature-name"]).sort()).toEqual(["auth", "db"]);
   });
 
   test("rejects features from different epic (strict frontmatter match)", () => {
     writeArtifact("plan", "2026-03-29-old-epic-stale.md",
-      "---\nphase: plan\nepic-slug: old-epic\nfeature-slug: stale\n---\n# Stale");
+      "---\nphase: plan\nepic-slug: old-epic\nfeature-name: stale\n---\n# Stale");
     writeArtifact("plan", "2026-03-30-my-epic-fresh.md",
-      "---\nphase: plan\nepic-slug: my-epic\nfeature-slug: fresh\n---\n# Fresh");
+      "---\nphase: plan\nepic-slug: my-epic\nfeature-name: fresh\n---\n# Fresh");
 
     const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
     expect(features).toHaveLength(1);
-    expect(features[0]["feature-slug"]).toBe("fresh");
+    expect(features[0]["feature-name"]).toBe("fresh");
   });
 
   test("skips files without feature field", () => {
@@ -279,22 +279,22 @@ describe("scanPlanFeatures", () => {
 
   test("extracts wave number from feature frontmatter", () => {
     writeArtifact("plan", "2026-03-30-my-epic-wave-a.md",
-      "---\nphase: plan\nepic-slug: my-epic\nfeature-slug: wave-a\nwave: 1\n---\n# Wave A");
+      "---\nphase: plan\nepic-slug: my-epic\nfeature-name: wave-a\nwave: 1\n---\n# Wave A");
     writeArtifact("plan", "2026-03-30-my-epic-wave-b.md",
-      "---\nphase: plan\nepic-slug: my-epic\nfeature-slug: wave-b\nwave: 2\n---\n# Wave B");
+      "---\nphase: plan\nepic-slug: my-epic\nfeature-name: wave-b\nwave: 2\n---\n# Wave B");
 
     const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
     expect(features).toHaveLength(2);
     const sorted = features.sort((a, b) => (a.wave ?? 1) - (b.wave ?? 1));
-    expect(sorted[0]["feature-slug"]).toBe("wave-a");
+    expect(sorted[0]["feature-name"]).toBe("wave-a");
     expect(sorted[0].wave).toBe(1);
-    expect(sorted[1]["feature-slug"]).toBe("wave-b");
+    expect(sorted[1]["feature-name"]).toBe("wave-b");
     expect(sorted[1].wave).toBe(2);
   });
 
   test("defaults wave to undefined when not in frontmatter", () => {
     writeArtifact("plan", "2026-03-30-my-epic-no-wave.md",
-      "---\nphase: plan\nepic-slug: my-epic\nfeature-slug: no-wave\n---\n# No Wave");
+      "---\nphase: plan\nepic-slug: my-epic\nfeature-name: no-wave\n---\n# No Wave");
 
     const features = scanPlanFeatures(ARTIFACTS_DIR, "my-epic");
     expect(features).toHaveLength(1);
@@ -322,16 +322,16 @@ describe("processArtifact", () => {
 
   test("generates output.json for a plan artifact with features", () => {
     writeArtifact("plan", "2026-03-30-my-epic-auth.md",
-      "---\nphase: plan\nepic-slug: my-epic\nfeature-slug: auth\n---\n# Auth");
+      "---\nphase: plan\nepic-slug: my-epic\nfeature-name: auth\n---\n# Auth");
     const planPath = writeArtifact("plan", "2026-03-30-my-epic.md",
       "---\nphase: plan\nepic-slug: my-epic\nepic-id: my-epic\n---\n# Plan");
 
     processArtifact(planPath, ARTIFACTS_DIR);
 
     const output = readOutputJson("plan", "2026-03-30-my-epic");
-    const features = (output.artifacts as Record<string, unknown>).features as Array<{ "feature-slug": string }>;
+    const features = (output.artifacts as Record<string, unknown>).features as Array<{ "feature-name": string }>;
     expect(features).toHaveLength(1);
-    expect(features[0]["feature-slug"]).toBe("auth");
+    expect(features[0]["feature-name"]).toBe("auth");
   });
 
   test("skips artifact without phase frontmatter", () => {
@@ -389,7 +389,7 @@ describe("runSessionStop", () => {
   test("the bug scenario: stale plan features are excluded by frontmatter", () => {
     // Stale artifact from old epic still in plan/ dir
     writeArtifact("plan", "2026-03-29-done-status-v2-github-sync.md",
-      "---\nphase: plan\nepic-slug: done-status-v2\nfeature-slug: github-sync\n---\n# Old feature");
+      "---\nphase: plan\nepic-slug: done-status-v2\nfeature-name: github-sync\n---\n# Old feature");
 
     // Current epic's plan artifact
     writeArtifact("plan", "2026-03-30-remove-persona-voice.md",
@@ -397,20 +397,20 @@ describe("runSessionStop", () => {
 
     // Current epic's feature plan
     writeArtifact("plan", "2026-03-30-remove-persona-voice-strip.md",
-      "---\nphase: plan\nepic-slug: remove-persona-voice\nfeature-slug: strip-persona-import\n---\n# Strip");
+      "---\nphase: plan\nepic-slug: remove-persona-voice\nfeature-name: strip-persona-import\n---\n# Strip");
 
     runSessionStop(ARTIFACTS_DIR);
 
     // The stale artifact's output should only contain done-status-v2 features
     const staleOutput = readOutputJson("plan", "2026-03-29-done-status-v2-github-sync");
-    const staleFeatures = (staleOutput.artifacts as Record<string, unknown>).features as Array<{ "feature-slug": string }>;
+    const staleFeatures = (staleOutput.artifacts as Record<string, unknown>).features as Array<{ "feature-name": string }>;
     expect(staleFeatures).toHaveLength(1);
-    expect(staleFeatures[0]["feature-slug"]).toBe("github-sync");
+    expect(staleFeatures[0]["feature-name"]).toBe("github-sync");
 
     // The current epic's output should only contain remove-persona-voice features
     const currentOutput = readOutputJson("plan", "2026-03-30-remove-persona-voice");
-    const currentFeatures = (currentOutput.artifacts as Record<string, unknown>).features as Array<{ "feature-slug": string }>;
+    const currentFeatures = (currentOutput.artifacts as Record<string, unknown>).features as Array<{ "feature-name": string }>;
     expect(currentFeatures).toHaveLength(1);
-    expect(currentFeatures[0]["feature-slug"]).toBe("strip-persona-import");
+    expect(currentFeatures[0]["feature-name"]).toBe("strip-persona-import");
   });
 });

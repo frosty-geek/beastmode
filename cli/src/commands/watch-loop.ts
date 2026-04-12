@@ -10,21 +10,19 @@ import type {
   DispatchedSession,
   WatchConfig,
   WatchLoopEventMap,
-} from "../dispatch/types.js";
-import type { SessionFactory } from "../dispatch/factory.js";
+  SessionFactory,
+} from "../dispatch/index.js";
 import type { Logger } from "../logger.js";
 import { EventEmitter } from "node:events";
-import { DispatchTracker } from "../dispatch/tracker.js";
+import { DispatchTracker } from "../dispatch/index.js";
 import { acquireLock, releaseLock } from "../lockfile.js";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createLogger, createStdioSink } from "../logger.js";
 import { resolveVersion } from "../version.js";
-import { createTag } from "../git/tags.js";
-import { reconcileGitHub } from "../github/reconcile.js";
-import { loadSyncRefs, saveSyncRefs } from "../github/sync-refs.js";
+import { createTag } from "../git/index.js";
+import { reconcileGitHub, loadSyncRefs, saveSyncRefs, discoverGitHub } from "../github/index.js";
 import { loadConfig } from "../config.js";
-import { discoverGitHub } from "../github/discovery.js";
 
 /** Injected dependencies — allows testing without real SDK/scanner. */
 export interface WatchDeps {
@@ -330,11 +328,13 @@ export class WatchLoop extends EventEmitter {
       const abortController = new AbortController();
 
       try {
+        const feature = epic.features.find((f) => f.slug === featureSlug);
         const handle = await this.deps.sessionFactory.create({
           epicSlug: epic.slug,
           phase: "implement",
           args: [epic.slug, featureSlug],
           featureSlug,
+          featureName: feature?.name,
           projectRoot: this.config.projectRoot,
           signal: abortController.signal,
         });

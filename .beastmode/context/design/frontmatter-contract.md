@@ -33,7 +33,8 @@ Fields marked **DECISION** are produced by the skill. All others are identity ec
 ```yaml
 phase: design
 epic-id: <hex>                    # echo
-epic-slug: <skill-proposed-slug>  # DECISION — may differ from env var
+epic-slug: <slug>                 # echo
+epic-name: <human-readable-name>  # DECISION — natural-language title, CLI slugifies
 ```
 
 ### plan (per feature file)
@@ -105,5 +106,6 @@ GitHub sync reads these from the store as before. No change to GitHub sync's dat
 Session-stop is a dumb pass-through:
 - Scans `artifacts/<phase>/` for `.md` files with YAML frontmatter
 - Writes all frontmatter fields verbatim to output.json
+- For design phase: passes `epic-name` from frontmatter into `artifacts.epic-name` in output.json — reconcile reads this to derive the new slug
 - For plan phase: aggregates multiple plan artifacts into `features[]` array
 - No env var comparison, no identity/decision distinction, no rename logic

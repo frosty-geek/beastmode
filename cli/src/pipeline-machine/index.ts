@@ -1,16 +1,16 @@
 import { createActor } from "xstate";
-import { epicMachine } from "./epic";
-import type { EpicContext } from "./types";
+import { epicMachine } from "./epic.js";
+import type { EpicContext } from "./types.js";
 
 // ── Machines ───────────────────────────────────────────────────
 
-export { epicMachine } from "./epic";
-export { featureMachine } from "./feature";
+export { epicMachine } from "./epic.js";
+export { featureMachine } from "./feature.js";
 
 // ── Types ──────────────────────────────────────────────────────
 
-export type { EpicContext, EpicEvent, FeatureContext, FeatureEvent, DispatchType, MachineFeature } from "./types";
-export type { SyncGitHubResult } from "./services";
+export type { EpicContext, EpicEvent, FeatureContext, FeatureEvent, DispatchType, MachineFeature } from "./types.js";
+export type { SyncGitHubResult } from "./services.js";
 
 // ── Action overrides ──────────────────────────────────────────
 

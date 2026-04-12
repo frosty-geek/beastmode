@@ -26,6 +26,7 @@ export interface ArtifactFrontmatter {
   "epic-slug"?: string;
   "epic-name"?: string;
   "feature-id"?: string;
+  "feature-name"?: string;
   "feature-slug"?: string;
   status?: string;
   bump?: string;
@@ -94,6 +95,7 @@ export function buildOutput(
         artifacts: {
           features: [{
             "feature-slug": featureOverride ?? fm["feature-slug"] ?? "unknown",
+            ...(fm["feature-name"] ? { "feature-name": fm["feature-name"] } : {}),
             status: (fm.status ?? "completed") as "completed" | "blocked",
           }],
         },
@@ -135,13 +137,13 @@ export function buildOutput(
 export function scanPlanFeatures(
   artifactsDir: string,
   epic: string | undefined,
-): Array<{ "feature-slug": string; plan: string; wave?: number }> {
+): Array<{ "feature-name": string; plan: string; wave?: number }> {
   if (!epic) return [];
 
   const planDir = join(artifactsDir, "plan");
   if (!existsSync(planDir)) return [];
 
-  const features: Array<{ "feature-slug": string; plan: string; wave?: number }> = [];
+  const features: Array<{ "feature-name": string; plan: string; wave?: number }> = [];
 
   for (const filename of readdirSync(planDir)) {
     if (!filename.endsWith(".md")) continue;
@@ -155,11 +157,11 @@ export function scanPlanFeatures(
     }
 
     const fm = parseFrontmatter(content);
-    if (!fm["feature-slug"]) continue;
+    if (!fm["feature-name"]) continue;
     if (fm["epic-slug"] !== epic) continue;
 
-    const entry: { "feature-slug": string; plan: string; wave?: number } = {
-      "feature-slug": fm["feature-slug"],
+    const entry: { "feature-name": string; plan: string; wave?: number } = {
+      "feature-name": fm["feature-name"],
       plan: basename(filePath, ".md") + ".md",
     };
     if (fm.wave !== undefined) {
@@ -197,7 +199,7 @@ export function processArtifact(artifactPath: string, artifactsDir: string, work
     // During design the worktree is still the hex slug; after rename it's the epic name.
     const dateMatch = artBasename.match(/^(\d{4}-\d{2}-\d{2})-/);
     const date = dateMatch ? dateMatch[1] : new Date().toISOString().slice(0, 10);
-    const effectiveFeature = featureOverride ?? fm["feature-slug"];
+    const effectiveFeature = featureOverride ?? fm["feature-slug"] ?? fm["feature-name"];
     const featureSuffix = effectiveFeature ? `-${effectiveFeature}` : "";
     outputBasename = `${date}-${worktreeSlug}${featureSuffix}`;
   } else {

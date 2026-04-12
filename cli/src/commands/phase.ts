@@ -12,27 +12,31 @@
  *      loop's ReconcilingFactory.
  */
 
-import type { BeastmodeConfig } from "../config";
-import type { Phase } from "../types";
+import type { BeastmodeConfig } from "../config.js";
+import type { Phase } from "../types.js";
 import { resolve, join } from "node:path";
-import { runInteractive } from "../dispatch/factory";
+import { runInteractive } from "../dispatch/index.js";
 import {
   isInsideWorktree,
   resolveMainCheckoutRoot,
-} from "../git/worktree";
-import { run as runPipeline } from "../pipeline/runner.js";
+} from "../git/index.js";
+import { run as runPipeline } from "../pipeline/index.js";
 import { JsonFileStore, resolveIdentifier } from "../store/index.js";
-import { createLogger, createStdioSink } from "../logger";
-import { loadWorktreePhaseOutput } from "../artifacts/reader";
-import { loadConfig, getCategoryProse } from "../config";
+import { createLogger, createStdioSink } from "../logger.js";
+import { loadWorktreePhaseOutput } from "../artifacts/index.js";
+import { loadConfig, getCategoryProse } from "../config.js";
 import { cancelEpic } from "./cancel-logic.js";
-import { writeHitlSettings, cleanHitlSettings, buildPreToolUseHook, writeSessionStartHook, cleanSessionStartHook } from "../hooks/hitl-settings";
 import {
+  writeHitlSettings,
+  cleanHitlSettings,
+  buildPreToolUseHook,
+  writeSessionStartHook,
+  cleanSessionStartHook,
   writeFilePermissionSettings,
   cleanFilePermissionSettings,
   buildFilePermissionPreToolUseHooks,
   buildFilePermissionPostToolUseHooks,
-} from "../hooks/file-permission-settings";
+} from "../hooks/index.js";
 
 /**
  * Execute a phase command. Called directly from the top-level router.

@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Text, useApp } from "ink";
 import type { BeastmodeConfig } from "../config.js";
 import type { EnrichedEpic } from "../store/index.js";
-import type { WatchLoopEventMap, DispatchedSession } from "../dispatch/types.js";
-import type { WatchLoop } from "../commands/watch-loop.js";
+import type { WatchLoopEventMap, WatchLoopLike, DispatchedSession } from "../dispatch/types.js";
 import type { LogLevel } from "../logger.js";
 import ThreePanelLayout from "./ThreePanelLayout.js";
 import EpicsPanel from "./EpicsPanel.js";
@@ -30,7 +29,7 @@ import { join } from "node:path";
 export interface AppProps {
   config: BeastmodeConfig;
   verbosity: number;
-  loop?: WatchLoop;
+  loop?: WatchLoopLike;
   projectRoot?: string;
   /** Shared fallback entry store — created by dashboard command, fed by DashboardLogger. */
   fallbackStore?: FallbackEntryStore;
