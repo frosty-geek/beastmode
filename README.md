@@ -187,12 +187,15 @@ The pipeline is a state machine. A single JSON file store at `.beastmode/state/s
 
 ### GitHub Integration
 
-When `github.enabled: true` in config, the CLI mirrors pipeline state to GitHub:
+When `github.enabled: true` in config, the store mirrors pipeline state to GitHub as a one-way sync:
 
+- **Store as authority** — `.beastmode/state/store.json` is the operational source of truth. GitHub reflects store state, never the reverse.
 - **Epic and feature issues** — created automatically, updated after each phase
-- **Labels as source of truth** — phase, type, and status labels drive the state model
-- **Project board sync** — issues appear on a GitHub Projects V2 board
-- **Commit refs** — phase checkpoints and release merges annotate commit messages with issue numbers
+- **Label taxonomy** — `type/epic`, `type/feature`, `phase/*`, `status/*` labels categorize issues
+- **Project board sync** — V2 board status synced via GraphQL
+- **Retry queue** — failed sync operations retry with exponential backoff
+- **Commit refs** — phase checkpoints annotate commit messages with issue numbers
+- **Release closing** — done epics receive a closing comment with version tag
 
 ## The Persona
 
