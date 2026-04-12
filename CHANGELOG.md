@@ -4,6 +4,23 @@ All notable changes to beastmode.
 
 ---
 
+## v0.124.0 — Remove Design Topic Input (2026-04-12)
+
+Removes the unused `[topic]` positional argument from `beastmode design`. The design skill's Phase 0 interview is now the sole entry point for problem framing.
+
+### Features
+
+- Remove design args branch in phase command; design always passes empty slug
+- Add args rejection guard: `beastmode design something` errors with a clear message and exits
+- Update CLI help text to show `beastmode design` without `[topic]` placeholder
+
+### Chores
+
+- Update interactive-runner design fixtures to empty args
+- Add args rejection guard tests for design phase
+
+---
+
 ## v0.121.0 — Heartbeat Countdown Timer (2026-04-12)
 
 Replaces the static "watch: running/stopped" label with a live countdown timer that ticks every second, shows "scanning..." during active scans, and displays the configured interval when stopped.
