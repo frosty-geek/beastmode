@@ -39,13 +39,13 @@ describe("interactive-runner", () => {
 
   // --- Prompt construction ---
   describe("prompt construction", () => {
-    test("design phase constructs /beastmode:design <topic>", async () => {
+    test("design phase constructs /beastmode:design with no args", async () => {
       const { runInteractive } = await import(
         "../dispatch/factory"
       );
       const promise = runInteractive({
         phase: "design",
-        args: ["my-topic"],
+        args: [],
         cwd: "/test",
       });
       resolveExited(0);
@@ -57,7 +57,7 @@ describe("interactive-runner", () => {
         "claude",
         "--dangerously-skip-permissions",
         "--",
-        "/beastmode:design my-topic",
+        "/beastmode:design",
       ]);
     });
 
@@ -154,7 +154,7 @@ describe("interactive-runner", () => {
       );
       const promise = runInteractive({
         phase: "design",
-        args: ["topic"],
+        args: [],
         cwd: "/my/project",
       });
       resolveExited(0);
@@ -176,7 +176,7 @@ describe("interactive-runner", () => {
       );
       const promise = runInteractive({
         phase: "design",
-        args: ["topic"],
+        args: [],
         cwd: "/test",
       });
       resolveExited(0);
@@ -204,7 +204,7 @@ describe("interactive-runner", () => {
       );
       const promise = runInteractive({
         phase: "design",
-        args: ["topic"],
+        args: [],
         cwd: "/test",
       });
       resolveExited(0);
@@ -218,7 +218,7 @@ describe("interactive-runner", () => {
       );
       const promise = runInteractive({
         phase: "design",
-        args: ["topic"],
+        args: [],
         cwd: "/test",
       });
       resolveExited(0);
@@ -235,7 +235,7 @@ describe("interactive-runner", () => {
       );
       const promise = runInteractive({
         phase: "design",
-        args: ["topic"],
+        args: [],
         cwd: "/test",
       });
 
@@ -260,7 +260,7 @@ describe("interactive-runner", () => {
 
       const promise = runInteractive({
         phase: "design",
-        args: ["topic"],
+        args: [],
         cwd: "/test",
       });
       expect(process.listenerCount("SIGINT")).toBe(listenerCountBefore + 1);
