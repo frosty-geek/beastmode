@@ -12,8 +12,10 @@ export async function verifyInstall({ execCommand }) {
   let beastmodeOk = false;
   let claudeOk = false;
 
+  // Use 'help' instead of '--version' — help exits 0 on all platforms
+  const beastmodeCmd = process.platform === 'win32' ? 'beastmode help' : 'beastmode --version';
   try {
-    execCommand('beastmode --version');
+    execCommand(beastmodeCmd);
     beastmodeOk = true;
   } catch {
     failures.push(
