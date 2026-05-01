@@ -113,12 +113,19 @@ function openTerminalTab(opts: { title: string; cwd: string; command: string }):
 }
 
 function openWindowsTerminalTab(title: string, cwd: string, command: string): void {
-  // Escape single quotes in paths for PowerShell string literals
   const safeCwd = cwd.replace(/'/g, "''");
   const psCommand = `Set-Location '${safeCwd}'; ${command}`;
-  // -w 0 targets the existing WT window; falls back to new window if none
+
+  // wt.exe is a Windows App Execution Alias and cannot be spawned directly via
+  // CreateProcess — route through pwsh, which resolves App Execution Aliases.
+  // Use -EncodedCommand (UTF-16LE base64) for the inner pwsh to avoid quoting
+  // issues when the command travels through two shell argument parsers.
+  const encoded = Buffer.from(psCommand, "utf16le").toString("base64");
+  const safeTitle = title.replace(/'/g, "''");
+  // -w 0 targets the existing WT window; opens a new window if none is running
   Bun.spawn(
-    ["wt", "-w", "0", "new-tab", "--title", title, "--", "pwsh", "-NoExit", "-Command", psCommand],
+    ["pwsh", "-NoProfile", "-WindowStyle", "Hidden", "-Command",
+     `wt -w 0 new-tab --title '${safeTitle}' -- pwsh -NoExit -EncodedCommand ${encoded}`],
     { stdio: ["ignore", "ignore", "ignore"] },
   );
 }
