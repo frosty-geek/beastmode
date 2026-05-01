@@ -9,8 +9,9 @@ import { join, dirname } from 'node:path';
  * @param {object} opts
  * @param {string} opts.cliDir - path to the cli/ directory in the cache
  * @param {function} opts.execCommand - shell command executor
+ * @param {string} [opts.platform] - override process.platform (for testing)
  */
-export async function linkCli({ cliDir, execCommand }) {
+export async function linkCli({ cliDir, execCommand, platform = process.platform }) {
   console.log('Installing CLI dependencies...');
 
   try {
@@ -25,7 +26,7 @@ export async function linkCli({ cliDir, execCommand }) {
 
   console.log('Linking beastmode CLI...');
 
-  if (process.platform === 'win32') {
+  if (platform === 'win32') {
     await linkCliWindows({ cliDir, execCommand });
   } else {
     try {

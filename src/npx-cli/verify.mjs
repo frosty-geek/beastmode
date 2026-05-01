@@ -6,14 +6,15 @@
  *
  * @param {object} opts
  * @param {function} opts.execCommand - shell command executor
+ * @param {string} [opts.platform] - override process.platform (for testing)
  */
-export async function verifyInstall({ execCommand }) {
+export async function verifyInstall({ execCommand, platform = process.platform }) {
   const failures = [];
   let beastmodeOk = false;
   let claudeOk = false;
 
   // Use 'help' instead of '--version' — help exits 0 on all platforms
-  const beastmodeCmd = process.platform === 'win32' ? 'beastmode help' : 'beastmode --version';
+  const beastmodeCmd = platform === 'win32' ? 'beastmode help' : 'beastmode --version';
   try {
     execCommand(beastmodeCmd);
     beastmodeOk = true;
